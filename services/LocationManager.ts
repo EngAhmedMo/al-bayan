@@ -230,40 +230,7 @@ export const LocationManager = {
             };
         }
 
-        // --- NEW: Web Platform IP Geolocation Strategy ---
         const isWeb = Capacitor.getPlatform() === 'web';
-        
-        // If on Web and NOT forcing refresh (just opening the app), try silent IP location first
-        // If forcing refresh, we try GPS first, and fallback to IP if GPS fails
-        if (isWeb && !forceRefresh) {
-            console.log('📍 Web Platform Detected: Attempting silent IP Geolocation...');
-            const ipGeo = await this.tryIPGeolocation();
-            if (ipGeo) {
-                let cityName = ipGeo.city;
-                // Determine city name (either from IP or our fallbacks)
-                if (!cityName || !/^[\u0600-\u06FF\s]+$/.test(cityName)) { 
-                    cityName = await this.getCityNameWithFallback(ipGeo.lat, ipGeo.lng);
-                }
-                
-                saveLocation(ipGeo.lat, ipGeo.lng);
-                localStorage.setItem('user_location_name', cityName);
-                localStorage.setItem('user_location_coords', JSON.stringify({
-                    lat: ipGeo.lat, lng: ipGeo.lng, accuracy: 500, savedAt: Date.now()
-                }));
-                
-                console.log(`📍 IP Location successful: ${cityName}`);
-                return {
-                    lat: ipGeo.lat,
-                    lng: ipGeo.lng,
-                    cityName,
-                    source: 'gps', // Pretend it's GPS so the UI handles it smoothly
-                    timestamp: Date.now(),
-                    accuracy: 500,
-                    accuracyLevel: 'acceptable',
-                    needsUpdate: false
-                };
-            }
-        }
 
         try {
             // 1. Check Permissions
