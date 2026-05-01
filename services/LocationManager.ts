@@ -231,6 +231,39 @@ export const LocationManager = {
         }
 
         const isWeb = Capacitor.getPlatform() === 'web';
+        const isMobileWeb = isWeb && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        // If it's a Desktop web browser (not mobile) and we're not forcing refresh,
+        // we use silent IP Geolocation to avoid annoying permission prompts.
+        // Mobile web (iOS/Android) will skip this and ask for precise GPS permissions.
+        if (isWeb && !isMobileWeb && !forceRefresh) {
+            console.log('📍 Desktop Web Detected: Attempting silent IP Geolocation...');
+            const ipGeo = await this.tryIPGeolocation();
+            if (ipGeo) {
+                let cityName = ipGeo.city;
+                if (!cityName || !/^[\u0600-\u06FF\s]+$/.test(cityName)) { 
+                    cityName = await this.getCityNameWithFallback(ipGeo.lat, ipGeo.lng);
+                }
+                
+                saveLocation(ipGeo.lat, ipGeo.lng);
+                localStorage.setItem('user_location_name', cityName);
+                localStorage.setItem('user_location_coords', JSON.stringify({
+                    lat: ipGeo.lat, lng: ipGeo.lng, accuracy: 500, savedAt: Date.now()
+                }));
+                
+                console.log(`📍 Desktop IP Location successful: ${cityName}`);
+                return {
+                    lat: ipGeo.lat,
+                    lng: ipGeo.lng,
+                    cityName,
+                    source: 'gps', // Pretend it's GPS
+                    timestamp: Date.now(),
+                    accuracy: 500,
+                    accuracyLevel: 'acceptable',
+                    needsUpdate: false
+                };
+            }
+        }
 
         try {
             // 1. Check Permissions
