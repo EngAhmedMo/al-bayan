@@ -1132,7 +1132,7 @@ export const QuranReader: React.FC = () => {
 
                                 {/* Ornamental Frame (Banner) */}
                                 <img
-                                  src="/svgs/surah_banner1.svg"
+                                  src={`${import.meta.env.BASE_URL}svgs/surah_banner1.svg`}
                                   alt="Surah Frame"
                                   className={`w-full max-w-[400px] md:max-w-[500px] h-auto opacity-90 ${isDark ? 'brightness-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.3)]' : 'drop-shadow-sm'}`}
                                 />
@@ -1140,7 +1140,7 @@ export const QuranReader: React.FC = () => {
                                 {/* Surah Name Calligraphy (Centered in Frame) */}
                                 <div className="absolute inset-0 flex items-center justify-center z-10">
                                   <img
-                                    src={`/svgs/surah_name/00${surah.number}.svg`}
+                                    src={`${import.meta.env.BASE_URL}svgs/surah_name/00${surah.number}.svg`}
                                     alt={surah.name}
                                     className={`h-[90%] w-auto max-w-[95%] object-contain ${isDark ? 'svg-gold-filter' : 'svg-navy-filter'}`}
                                   />
@@ -1161,7 +1161,7 @@ export const QuranReader: React.FC = () => {
                               {surah.number !== 1 && surah.number !== 9 && (
                                 <div className="flex justify-center mb-6 mt-1 opacity-90">
                                   <img
-                                    src="/svgs/besmAllah.svg"
+                                    src={`${import.meta.env.BASE_URL}svgs/besmAllah.svg`}
                                     alt="بسم الله الرحمن الرحيم"
                                     className={`h-10 md:h-12 w-auto ${isDark ? 'svg-gold-filter' : 'svg-navy-filter'}`}
                                   />
