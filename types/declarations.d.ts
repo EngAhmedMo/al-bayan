@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 
 // This file helps TypeScript understand plugins even if they aren't fully installed yet
 // or if their types are missing.
