@@ -68,7 +68,7 @@ interface BookConfig {
 
 const BOOK_MAP: Record<string, BookConfig> = {
     'nawawi40': {
-        url: '/data/hadith/by_book/forties/nawawi40.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/forties/nawawi40.json',
         name: 'الأربعون النووية',
         arabicName: 'الأربعون النووية',
         count: 42,
@@ -77,7 +77,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 1
     },
     'qudsi40': {
-        url: '/data/hadith/by_book/forties/qudsi40.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/forties/qudsi40.json',
         name: 'الأربعون القدسية',
         arabicName: 'الأربعون القدسية',
         count: 40,
@@ -86,7 +86,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 2
     },
     'riyad': {
-        url: '/data/hadith/by_book/other_books/riyad_assalihin.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/other_books/riyad_assalihin.json',
         name: 'رياض الصالحين',
         arabicName: 'رياض الصالحين',
         count: 1896,
@@ -95,7 +95,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 3
     },
     'bukhari': {
-        url: '/data/hadith/by_book/the_9_books/bukhari.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/the_9_books/bukhari.json',
         name: 'صحيح البخاري',
         arabicName: 'صحيح البخاري',
         count: 7563,
@@ -104,7 +104,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 4
     },
     'muslim': {
-        url: '/data/hadith/by_book/the_9_books/muslim.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/the_9_books/muslim.json',
         name: 'صحيح مسلم',
         arabicName: 'صحيح مسلم',
         count: 3033,
@@ -113,7 +113,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 5
     },
     'tirmidhi': {
-        url: '/data/hadith/by_book/the_9_books/tirmidhi.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/the_9_books/tirmidhi.json',
         name: 'جامع الترمذي',
         arabicName: 'جامع الترمذي',
         count: 3956,
@@ -122,7 +122,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 6
     },
     'abudawud': {
-        url: '/data/hadith/by_book/the_9_books/abudawud.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/the_9_books/abudawud.json',
         name: 'سنن أبي داود',
         arabicName: 'سنن أبي داود',
         count: 5274,
@@ -131,7 +131,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 7
     },
     'nasai': {
-        url: '/data/hadith/by_book/the_9_books/nasai.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/the_9_books/nasai.json',
         name: 'سنن النسائي',
         arabicName: 'سنن النسائي',
         count: 5758,
@@ -140,7 +140,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 8
     },
     'ibnmajah': {
-        url: '/data/hadith/by_book/the_9_books/ibnmajah.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/the_9_books/ibnmajah.json',
         name: 'سنن ابن ماجه',
         arabicName: 'سنن ابن ماجه',
         count: 4341,
@@ -149,7 +149,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 9
     },
     'malik': {
-        url: '/data/hadith/by_book/the_9_books/malik.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/the_9_books/malik.json',
         name: 'موطأ مالك',
         arabicName: 'موطأ مالك',
         count: 1720,
@@ -158,7 +158,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 10
     },
     'shamail': {
-        url: '/data/hadith/by_book/other_books/shamail_muhammadiyah.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/other_books/shamail_muhammadiyah.json',
         name: 'الشمائل المحمدية',
         arabicName: 'الشمائل المحمدية',
         count: 415,
@@ -167,7 +167,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 11
     },
     'adab': {
-        url: '/data/hadith/by_book/other_books/aladab_almufrad.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/other_books/aladab_almufrad.json',
         name: 'الأدب المفرد',
         arabicName: 'الأدب المفرد',
         count: 1322,
@@ -176,7 +176,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 12
     },
     'bulugh': {
-        url: '/data/hadith/by_book/other_books/bulugh_almaram.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/other_books/bulugh_almaram.json',
         name: 'بلوغ المرام',
         arabicName: 'بلوغ المرام',
         count: 1596,
@@ -185,7 +185,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 13
     },
     'mishkat': {
-        url: '/data/hadith/by_book/other_books/mishkat_almasabih.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/other_books/mishkat_almasabih.json',
         name: 'مشكاة المصابيح',
         arabicName: 'مشكاة المصابيح',
         count: 6285,
@@ -194,7 +194,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 14
     },
     'darimi': {
-        url: '/data/hadith/by_book/the_9_books/darimi.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/the_9_books/darimi.json',
         name: 'سنن الدارمي',
         arabicName: 'سنن الدارمي',
         count: 3367,
@@ -203,7 +203,7 @@ const BOOK_MAP: Record<string, BookConfig> = {
         priority: 15
     },
     'ahmad': {
-        url: '/data/hadith/by_book/the_9_books/ahmed.json',
+        url: ${import.meta.env.BASE_URL}data/hadith/by_book/the_9_books/ahmed.json',
         name: 'مسند أحمد',
         arabicName: 'مسند أحمد',
         count: 1374,
