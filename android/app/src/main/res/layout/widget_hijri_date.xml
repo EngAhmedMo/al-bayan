@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="@dimen/widget_padding"
+    android:background="@drawable/widget_background"
+    android:layoutDirection="rtl"
+    android:baselineAligned="false">
+
+    <!-- Row 1: Top Section (Salli Ala Nabi & Hijri Info) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="@dimen/widget_spacing_vertical">
+
+        <!-- Right Side: Hijri Date Group (50% Width) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <!-- Rightmost in RTL: Hijri Day Number Box -->
+            <TextView
+                android:id="@+id/hijri_day"
+                android:layout_width="@dimen/widget_day_box_size"
+                android:layout_height="@dimen/widget_day_box_size"
+                android:background="@drawable/widget_day_box"
+                android:gravity="center"
+                android:text="٢"
+                android:textSize="@dimen/text_size_hijri_day"
+                android:textStyle="bold"
+                android:textColor="@color/widget_day_text"
+                android:fontFamily="@font/uthmanic"
+                android:layout_marginEnd="12dp"
+                android:includeFontPadding="false" />
+
+            <!-- Middle: Hijri Month & Year -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="start">
+
+                <TextView
+                    android:id="@+id/hijri_month"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="ذو القعدة"
+                    android:textSize="@dimen/text_size_hijri_month"
+                    android:textStyle="bold"
+                    android:textColor="@color/widget_text_primary"
+                    android:fontFamily="@font/uthmanic"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:gravity="start"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/hijri_year"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="١٤٤٧ هـ"
+                    android:textSize="@dimen/text_size_hijri_year"
+                    android:textColor="@color/widget_text_secondary"
+                    android:fontFamily="@font/uthmanic"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:layout_marginTop="2dp"
+                    android:gravity="start"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Left Side: Salli ala Nabi (50% Width) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:gravity="center">
+            
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="صَلِّ عَلَى النَّبِيِّ"
+                android:textSize="26sp"
+                android:fontFamily="@font/uthmanic"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"
+                android:includeFontPadding="false" />
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Grid Section 2x2 -->
+    <!-- Row 1 of Grid -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp"
+        android:baselineAligned="false">
+
+        <!-- Top Right: Days Remaining (First in RTL goes to the Right) -->
+        <TextView
+            android:id="@+id/hijri_days_remaining"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/widget_pill_bg"
+            android:paddingVertical="@dimen/pill_padding_vertical"
+            android:paddingHorizontal="@dimen/pill_padding_horizontal"
+            android:text="24 يوم لنهاية الشهر الهجري"
+            android:textSize="@dimen/text_size_pill"
+            android:textStyle="bold"
+            android:textColor="@color/widget_text_secondary"
+            android:fontFamily="@font/uthmanic"
+            android:gravity="center"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:includeFontPadding="false"
+            android:layout_marginEnd="8dp" />
+
+        <!-- Top Left: Gregorian Date (Second in RTL goes to the Left) -->
+        <TextView
+            android:id="@+id/gregorian_date"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/widget_pill_bg"
+            android:paddingVertical="@dimen/pill_padding_vertical"
+            android:paddingHorizontal="@dimen/pill_padding_horizontal"
+            android:text="الاثنين، ٢٠ أبريل"
+            android:textSize="@dimen/text_size_pill"
+            android:textColor="@color/widget_text_secondary"
+            android:fontFamily="@font/uthmanic"
+            android:gravity="center"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:includeFontPadding="false" />
+    </LinearLayout>
+
+    <!-- Row 2 of Grid -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <!-- Bottom Right: Next Prayer Pill (First in RTL goes to Right) -->
+        <LinearLayout
+            android:id="@+id/prayer_pill_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/widget_pill_bg"
+            android:paddingVertical="@dimen/pill_padding_vertical"
+            android:paddingHorizontal="@dimen/pill_padding_horizontal"
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:layout_marginEnd="8dp">
+
+            <TextView
+                android:id="@+id/next_prayer_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="الفجر"
+                android:textSize="@dimen/text_size_prayer"
+                android:textStyle="bold"
+                android:textColor="@color/widget_accent"
+                android:fontFamily="@font/uthmanic"
+                android:includeFontPadding="false" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" " 
+                android:textColor="@color/widget_text_secondary"/>
+
+            <TextView
+                android:id="@+id/next_prayer_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="03:45"
+                android:textSize="@dimen/text_size_prayer"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"
+                android:fontFamily="@font/uthmanic"
+                android:includeFontPadding="false" />
+        </LinearLayout>
+
+        <!-- Bottom Left: Remaining Time Chronometer (Second in RTL goes to Left) -->
+        <LinearLayout
+            android:id="@+id/countdown_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@drawable/widget_pill_bg"
+            android:paddingVertical="@dimen/pill_padding_vertical"
+            android:paddingHorizontal="@dimen/pill_padding_horizontal"
+            android:orientation="horizontal"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/timer_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="متبقي علي صلاة الفجر: "
+                android:textSize="@dimen/text_size_pill"
+                android:textColor="@color/widget_accent"
+                android:fontFamily="@font/uthmanic"
+                android:includeFontPadding="false"
+                android:layout_marginEnd="2dp" />
+
+            <Chronometer
+                android:id="@+id/prayer_countdown"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/text_size_pill"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"
+                android:fontFamily="@font/uthmanic"
+                android:includeFontPadding="false" />
+                
+            <!-- Fallback text for old devices without Chronometer countdown -->
+            <TextView
+                android:id="@+id/prayer_countdown_fallback"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="٠٠:٣٥"
+                android:textSize="@dimen/text_size_pill"
+                android:textStyle="bold"
+                android:textColor="@color/widget_text_primary"
+                android:fontFamily="@font/uthmanic"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+
+            <!-- Time unit label - dynamically set to دقيقة or ساعة -->
+            <TextView
+                android:id="@+id/timer_unit"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text=" دقيقة"
+                android:textSize="@dimen/text_size_pill"
+                android:textColor="@color/widget_accent"
+                android:fontFamily="@font/uthmanic"
+                android:includeFontPadding="false"
+                android:layout_marginStart="2dp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

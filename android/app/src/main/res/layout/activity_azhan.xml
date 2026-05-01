@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layoutDirection="rtl"
+    android:background="@drawable/bg_azhan_gradient">
+
+    <!-- Decorative Glow Effects (Approximated with Alpha Views) -->
+    <View
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="100dp"
+        android:background="#1AD4B978" 
+        android:backgroundTint="#1AD4B978"
+        android:alpha="0.4"
+        android:scaleX="1.5"
+        android:scaleY="1.5" /> 
+        <!-- Note: Real blur is expensive in XML, using low alpha solid/gradient is a valid fallback -->
+
+    <!-- Main Content Container (Glassmorphism Effect) -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_margin="24dp"
+        app:cardBackgroundColor="#F20F2238" 
+        app:cardCornerRadius="36dp"
+        app:cardElevation="0dp"> <!-- removed elevation -->
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingBottom="42dp"
+            android:background="@android:color/transparent">
+
+            <!-- Top Header -->
+            <ImageButton
+                android:id="@+id/btn_settings"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginEnd="24dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_settings"
+                app:tint="#80FFFFFF"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <!-- Close "X" is usually Top LEFT in React direction or Top RIGHT. 
+                 React code: justify-between. X is first (Left). Settings is last (Right).
+                 Wait, LTR: X Left, Settings Right.
+                 Arabic Context: often mirrored? 
+                 User Image 1 (Preview): Settings resembles Gear (Top Right?). 
+                 However, React code: 
+                 <div class="justify-between">
+                    <button onClick={onClose}> <X /> </button>
+                    <button onClick={Settings}> <Settings /> </button>
+                 </div>
+                 In LTR: X is Left. Settings is Right.
+                 My previous XML had Settings Left.
+                 I will SWAP them to match React LTR standard if that's what the preview is.
+                 Or if it's RTL (Arabic), X is Right.
+                 Let's assume RTL layout direction for Arabic app.
+                 X on Right, Settings on Left.
+            -->
+            
+            <ImageButton
+                android:id="@+id/btn_close_top"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:layout_marginTop="24dp"
+                android:layout_marginStart="24dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_close"
+                app:tint="#80FFFFFF" 
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <!-- Golden Ring Animation Container -->
+            <RelativeLayout
+                android:id="@+id/ring_container"
+                android:layout_width="160dp"
+                android:layout_height="160dp"
+                android:layout_marginTop="40dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/btn_close_top">
+
+                <!-- Ring Background (Gradient/Glow) -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/circle_navy_light"
+                    android:backgroundTint="#33D4B978" 
+                    android:alpha="0.2"/>
+
+                <!-- Ring View (Rotates) -->
+                <View
+                    android:id="@+id/ring_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/ring_gold_outline" />
+                
+                <!-- Center Bell Icon -->
+                <ImageView
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:layout_centerInParent="true"
+                    android:src="@drawable/ic_notification_bell"
+                    app:tint="#D4B978" />
+            </RelativeLayout>
+
+            <!-- Prayer Name -->
+            <TextView
+                android:id="@+id/tv_prayer_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="32dp"
+                android:fontFamily="sans-serif-black"
+                android:text="صلاة العشاء"
+                android:textColor="#FFFFFF"
+                android:textSize="32sp"
+                android:textStyle="bold"
+                android:shadowColor="#1AFFFFFF"
+                android:shadowDy="2"
+                android:shadowRadius="20"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/ring_container" />
+
+            <!-- Time -->
+            <TextView
+                android:id="@+id/tv_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:fontFamily="sans-serif-medium"
+                android:text="6:30 م"
+                android:textColor="#D4B978"
+                android:textSize="24sp"
+                android:shadowColor="#4DD4B978"
+                android:shadowDy="2"
+                android:shadowRadius="15"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_prayer_name" />
+
+            <!-- Muazzin Name Badge -->
+            <LinearLayout
+                android:id="@+id/badge_container"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:background="@drawable/capsule_bg_navy_light"
+                android:backgroundTint="#0DFFFFFF"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="8dp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/tv_time">
+                
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="بصوت: "
+                    android:textColor="#99FFFFFF"
+                    android:textSize="12sp" />
+                    
+                <TextView
+                    android:id="@+id/tv_muazzin"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="الشيخ ..."
+                    android:textColor="#D4B978"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+            
+            <!-- Controls Layout -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="48dp"
+                android:paddingHorizontal="24dp"
+                android:gravity="center"
+                android:orientation="horizontal"
+                app:layout_constraintTop_toBottomOf="@id/badge_container"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <!-- Stop Button (Left - Red Outline) -->
+                 <Button
+                    android:id="@+id/btn_dismiss"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="56dp"
+                    android:background="@drawable/bg_stop_button"
+                    android:text="إيقاف"
+                    android:textColor="#EF4444"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:paddingHorizontal="24dp"
+                    android:minWidth="80dp"/>
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
+
+                <!-- Play/Pause (Center - Large Gold Gradient) -->
+                <ImageButton
+                    android:id="@+id/btn_play_pause"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:background="@drawable/bg_gold_gradient_circle"
+                    android:src="@drawable/ic_pause"
+                    android:padding="20dp"
+                    android:scaleType="centerInside"
+                    android:elevation="10dp"
+                    android:outlineProvider="background"
+                    app:tint="#0F2238" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
+
+                <!-- Mute Button (Right) -->
+                 <ImageButton
+                    android:id="@+id/btn_mute"
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:background="@drawable/circle_navy_light"
+                    android:src="@drawable/ic_volume_off" 
+                    android:padding="16dp"
+                    android:scaleType="centerInside"
+                    android:backgroundTint="#1a2d47"
+                    app:tint="#D4B978" />
+
+            </LinearLayout>
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.cardview.widget.CardView>
+</FrameLayout>

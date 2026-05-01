@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Al Bayan</string>
+    <string name="title_activity_main">Al Bayan</string>
+    <string name="package_name">com.albayan.quran</string>
+    <string name="custom_url_scheme">com.albayan.quran</string>
+    <string name="widget_description">عرض التاريخ الهجري والصلاة القادمة</string>
+</resources>

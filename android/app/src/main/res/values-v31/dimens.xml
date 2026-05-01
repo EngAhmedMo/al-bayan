@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ dynamically extracts corner radius to perfectly match system widgets -->
+    <dimen name="widget_padding">16dp</dimen>
+    <dimen name="widget_corner_radius">@android:dimen/system_app_widget_background_radius</dimen>
+
+    <dimen name="widget_day_box_size">56dp</dimen>
+    <!-- We can use the inner radius for inner elements like the day box -->
+    <dimen name="widget_day_box_radius">18dp</dimen>
+    
+    <dimen name="text_size_hijri_day">26sp</dimen>
+    <dimen name="text_size_hijri_month">18sp</dimen>
+    <dimen name="text_size_hijri_year">14sp</dimen>
+    
+    <dimen name="text_size_pill">12sp</dimen>
+    <dimen name="text_size_prayer">13sp</dimen>
+    
+    <dimen name="pill_padding_vertical">8dp</dimen>
+    <dimen name="pill_padding_horizontal">12dp</dimen>
+    <dimen name="pill_radius">16dp</dimen>
+    
+    <dimen name="widget_spacing_vertical">8dp</dimen>
+</resources>

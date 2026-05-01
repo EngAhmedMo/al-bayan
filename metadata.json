@@ -1,0 +1,7 @@
+{
+  "name": "Al-Bayan Quran & Sunnah",
+  "description": "A comprehensive Islamic application featuring Quran reading, smart search, Hifz planning, Tasbih, and multi-source Hadith references.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

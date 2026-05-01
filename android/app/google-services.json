@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "322748917960",
+    "project_id": "albayan-8fb26",
+    "storage_bucket": "albayan-8fb26.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:322748917960:android:3ba4b0f99f48874da69dfd",
+        "android_client_info": {
+          "package_name": "com.albayan.quran"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOASaWlrrrnaD4ZROpAf0DvuvpvUoD46I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

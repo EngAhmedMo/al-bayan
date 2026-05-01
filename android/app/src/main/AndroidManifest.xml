@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+
+        <activity
+            android:name=".AzhanActivity"
+            android:theme="@style/AppTheme.Azhan"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:exported="false" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+
+        <service
+            android:name=".AudioPlaybackService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback">
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService" />
+                <action android:name="android.intent.action.MEDIA_BUTTON" />
+            </intent-filter>
+        </service>
+
+        <receiver android:name=".AzhanReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="ACTION_PLAY_AZHAN" />
+            </intent-filter>
+        </receiver>
+        
+        <!-- Pre-prayer alert receiver for audio reminders before prayer time -->
+        <receiver android:name=".PrePrayerAlertReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.albayan.quran.ACTION_PRE_PRAYER_ALERT" />
+            </intent-filter>
+        </receiver>
+        
+        <!-- Salawat reminder receiver for blessings upon the Prophet ﷺ -->
+        <receiver android:name=".SalawatAlertReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.albayan.quran.ACTION_SALAWAT_ALERT" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Ramadan alerts receiver for Suhoor, Iftar and Last 10 Nights -->
+        <receiver android:name=".RamadanAlertReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.albayan.quran.ACTION_RAMADAN_ALERT" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Timezone Receiver for Travel Detection (Smart Resilience) -->
+        <receiver android:name=".TimezoneReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Time Change Receiver: Reschedules prayers when user manually changes time -->
+        <receiver android:name=".OnTimeChangeReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.TIME_CHANGED" />
+            </intent-filter>
+        </receiver>
+        
+        <!-- Boot receiver to reschedule Adhan alarms after device restart -->
+        <receiver 
+            android:name=".BootReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
+        
+        <!-- Hijri Date Home Screen Widget -->
+        <receiver
+            android:name=".HijriDateWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.albayan.quran.ACTION_REFRESH_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_hijri_date_info" />
+        </receiver>
+
+        <!-- Date/Time Change Receiver: Updates widget Hijri date at midnight and on manual time changes -->
+        <receiver android:name=".DateChangeReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIME_CHANGED" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    
+    <!-- Exact Alarm permissions for Adhan scheduling -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
+    
+    <!-- Do Not Disturb bypass for Adhan notifications -->
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY"/>
+    
+    <!-- Vibrate for Adhan notifications -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
+    
+    <!-- Boot receiver to reschedule alarms after device restart -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+
+    <!-- Required for "Display over other apps" (Overlay) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT"/>
+
+</manifest>
