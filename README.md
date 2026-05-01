@@ -4,6 +4,21 @@
 
 <p><strong>البيان</strong> تطبيق إسلامي متكامل يجمع قراءة القرآن الكريم والتلاوات الصوتية وخطة للحفظ، مواقيت الصلاة والأذان والقبلة، الأذكار، والأحاديث — في تجربة واحدة سلسة بواجهة عربية أنيقة ودعم الوضع الليلي. يعمل دون إنترنت بعد التحميل.</p>
 
+<h3>🔗 روابط التطبيق:</h3>
+
+<ul style="list-style-position: inside; padding-right: 16px; padding-left: 0; margin: 0;">
+  <li>🌐 الموقع الرسمي: 
+    <a href="https://engahmedmo.github.io/al-bayan" target="_blank">
+      https://engahmedmo.github.io/al-bayan
+    </a>
+  </li>
+  <li>📥 تحميل تطبيق الأندرويد (APK):
+    <a href="https://github.com/EngAhmedMo/al-bayan/releases/download/v1.0.0/Al.Bayan.apk" target="_blank">
+      تحميل مباشر
+    </a>
+  </li>
+</ul>
+
 <h3>✨ أهم المميزات:</h3>
 
 <ul style="list-style-position: inside; padding-right: 16px; padding-left: 0; margin: 0;">
@@ -51,6 +66,7 @@
 </ul>
 
 </div>
+
 <div dir="rtl" style="text-align:right;">
 
 ## 📸 صور من التطبيق
