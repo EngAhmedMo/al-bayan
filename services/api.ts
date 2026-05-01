@@ -444,7 +444,7 @@ export const searchQuranText = async (query: string): Promise<QuranSearchResult[
 
   if (!fullQuranCache) {
     try {
-      const res = await fetch(`/data/quran/hafsData_v2-0.json`);
+      const res = await fetch(`${import.meta.env.BASE_URL}data/quran/hafsData_v2-0.json`);
       const data = await res.json();
       if (data && Array.isArray(data)) {
         fullQuranCache = [];

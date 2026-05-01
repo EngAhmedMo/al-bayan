@@ -11,7 +11,7 @@ self.onmessage = async (e: MessageEvent) => {
 
     try {
         if (!cachedQuranData) {
-            const response = await fetch('/data/quran/hafsData_v2-0.json');
+            const response = await fetch(`${import.meta.env.BASE_URL}data/quran/hafsData_v2-0.json`);
             if (!response.ok) {
                 throw new Error('Failed to fetch quran data');
             }

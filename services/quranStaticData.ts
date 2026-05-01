@@ -309,7 +309,7 @@ let isLoading = false;
 let loadPromise: Promise<void> | null = null;
 
 // Path to bundled Quran data
-const HAFS_V2_DATA_PATH = '/data/quran/hafsData_v2-0.json';
+const HAFS_V2_DATA_PATH = `${import.meta.env.BASE_URL}data/quran/hafsData_v2-0.json`;
 
 // Type for the new Hafs Data V2 items
 interface HafsDataV2Item {

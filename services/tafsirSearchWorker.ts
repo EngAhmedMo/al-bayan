@@ -73,7 +73,7 @@ const loadAllChunks = async (folderName: string): Promise<{ surahs: any[] }> => 
 
     // Fetch all 114 chunks simultaneously
     const surahPromises = Array.from({ length: TOTAL_SURAHS }, (_, i) =>
-        fetch(`/data/tafsir/${folderName}/${i + 1}.json`).then(r => {
+        fetch(`${import.meta.env.BASE_URL}data/tafsir/${folderName}/${i + 1}.json`).then(r => {
             if (!r.ok) throw new Error(`Failed chunk ${i + 1} for ${folderName}`);
             return r.json();
         })
@@ -109,7 +109,7 @@ self.onmessage = async (e: MessageEvent) => {
 
             const quranPromise = cachedQuranData 
                 ? Promise.resolve(cachedQuranData) 
-                : fetch('/data/quran/hafsData_v2-0.json').then(r => r.json());
+                : fetch(`${import.meta.env.BASE_URL}data/quran/hafsData_v2-0.json`).then(r => r.json());
 
             const [tafsirData, quranData] = await Promise.all([
                 loadAllChunks(folderName),

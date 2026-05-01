@@ -53,7 +53,7 @@ export const loadTafsirSurah = async (slug: string, surahNumber: number) => {
     if (!tafsirSurahCache[folderName][surahNumber]) {
         try {
             // Fetch individual surah JSON
-            const response = await fetch(`/data/tafsir/${folderName}/${surahNumber}.json`);
+            const response = await fetch(`${import.meta.env.BASE_URL}data/tafsir/${folderName}/${surahNumber}.json`);
             if (!response.ok) throw new Error('Failed to load tafsir');
             
             const surahData = await response.json();
