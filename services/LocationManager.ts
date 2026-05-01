@@ -266,13 +266,15 @@ export const LocationManager = {
         }
 
         try {
-            // 1. Check Permissions
-            // On web, if we reached here, IP failed or user clicked "forceRefresh".
-            // We will request browser permission, but if it fails, we catch it.
-            const perm = await Geolocation.checkPermissions();
-            if (perm.location !== 'granted') {
-                const req = await Geolocation.requestPermissions();
-                if (req.location !== 'granted') throw new Error('Permission denied');
+            // 1. Check Permissions (Native Only)
+            // Web browsers handle permissions intrinsically during getCurrentPosition.
+            // Using checkPermissions on the web (esp. Safari) often throws unsupported errors.
+            if (Capacitor.isNativePlatform()) {
+                const perm = await Geolocation.checkPermissions();
+                if (perm.location !== 'granted') {
+                    const req = await Geolocation.requestPermissions();
+                    if (req.location !== 'granted') throw new Error('Permission denied');
+                }
             }
 
             // 2. Fetch GPS with high accuracy (with retry for poor accuracy)
