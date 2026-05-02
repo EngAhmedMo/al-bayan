@@ -304,64 +304,67 @@ async function fetchEgyptianHijriDate(): Promise<HijriApiDate | null> {
         if (parsed) return parsed;
     }
 
-    // WEB-SPECIFIC CORS FALLBACK: Aladhan API
-    // Since Dar Al-Ifta API blocks cross-origin requests (CORS), it will fail on the web.
-    // We fall back to the Aladhan API (Umm al-Qura) to ensure the web version can still sync successfully.
-    if (!Capacitor.isNativePlatform()) {
-        console.log('[HijriSync] 🌐 Web CORS/Fetch failed for Dar Al-Ifta, using Aladhan API fallback...');
-        const fallbackDate = await fetchFallbackAladhanHijriDate();
-        if (fallbackDate) return fallbackDate;
-    }
-
     return null;
 }
 
 /**
- * Fallback to Aladhan API for Web users
- */
-async function fetchFallbackAladhanHijriDate(): Promise<HijriApiDate | null> {
-    try {
-        const today = new Date();
-        const dd = String(today.getDate()).padStart(2, '0');
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const yyyy = today.getFullYear();
-        
-        const res = await fetch(`https://api.aladhan.com/v1/gToH?date=${dd}-${mm}-${yyyy}`);
-        const json = await res.json();
-        
-        if (json.code === 200 && json.data && json.data.hijri) {
-            return {
-                day: parseInt(json.data.hijri.day),
-                month: json.data.hijri.month.number,
-                year: parseInt(json.data.hijri.year)
-            };
-        }
-    } catch (e) {
-        console.warn('[HijriSync] Fallback Aladhan API failed:', e);
-    }
-    return null;
-}
-
-/**
- * Fetch from API with specific language
+ * Fetch from API with specific language using direct fetch for Native, or proxies for Web.
  */
 async function fetchApiWithLang(langID: number): Promise<string | null> {
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), SYNC_TIMEOUT_MS);
 
-        const response = await fetch(`${EGYPT_API_BASE}?langID=${langID}`, {
-            signal: controller.signal,
-            headers: {
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5'
+        const targetUrl = `${EGYPT_API_BASE}?langID=${langID}`;
+        let response: Response;
+
+        if (Capacitor.isNativePlatform()) {
+            // Direct fetch for Native (or Dev)
+            response = await fetch(targetUrl, {
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5'
+                }
+            });
+        } else {
+            // Web requires CORS Proxies since Dar Al Ifta doesn't support CORS
+            const proxies = [
+                `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+                `https://api.codetabs.com/v1/proxy?quest=${targetUrl}`
+            ];
+            
+            let proxySuccess = false;
+            for (const proxyUrl of proxies) {
+                try {
+                    console.log(`[HijriSync] Trying proxy: ${proxyUrl.split('?')[0]}`);
+                    const proxyResponse = await fetch(proxyUrl, {
+                        signal: controller.signal,
+                        headers: { 'Accept': '*/*' }
+                    });
+                    
+                    if (proxyResponse.ok) {
+                        response = proxyResponse;
+                        proxySuccess = true;
+                        break;
+                    }
+                } catch (e) {
+                    console.warn(`[HijriSync] Proxy failed: ${proxyUrl.split('?')[0]}`);
+                }
             }
-        });
+            
+            if (!proxySuccess) {
+                clearTimeout(timeoutId);
+                throw new Error("All CORS proxies failed for Web");
+            }
+        }
+        
         clearTimeout(timeoutId);
 
-        if (!response.ok) return null;
+        if (!response!.ok) return null;
 
-        const buffer = await response.arrayBuffer();
+        const buffer = await response!.arrayBuffer();
         const bytes = new Uint8Array(buffer);
         let text = '';
         
