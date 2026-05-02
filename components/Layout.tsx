@@ -215,7 +215,7 @@ const AudioPlayerBar = () => {
   };
 
   return (
-    <div className={`fixed bottom-[70px] xl:bottom-0 left-0 right-0 ${isFullscreen ? '' : 'xl:right-[280px]'} z-50 animate-in slide-in-from-bottom-10 pointer-events-auto`}>
+    <div className={`fixed bottom-[70px] left-0 right-0 z-50 animate-in slide-in-from-bottom-10 pointer-events-auto`}>
       {showReciterMenu && (
         <div className="absolute bottom-full left-0 right-0 md:left-6 md:right-auto md:w-80 mx-3 mb-2 bg-white dark:bg-navy-950 rounded-2xl shadow-2xl border border-navy-100 dark:border-navy-700 overflow-hidden animate-in zoom-in-95 origin-bottom">
           <div className="p-3 border-b border-navy-100 dark:border-navy-800 flex justify-between items-center bg-navy-50 dark:bg-navy-900/50">
@@ -346,7 +346,7 @@ const RadioPlayerBar = () => {
   if (!activeStation) return null;
 
   return (
-    <div className={`fixed bottom-[80px] xl:bottom-6 left-2 right-2 xl:left-6 ${isFullscreen ? 'xl:right-6' : 'xl:right-[calc(280px+1.5rem)]'} z-50 pointer-events-none flex justify-center`}>
+    <div className={`fixed bottom-[80px] left-2 right-2 z-50 pointer-events-none flex justify-center`}>
       <div className="w-full max-w-3xl pointer-events-auto animate-in slide-in-from-bottom-10 fade-in duration-500">
         <div className={`relative overflow-hidden rounded-2xl md:rounded-3xl p-3 md:p-4 flex items-center justify-between gap-3 md:gap-6 shadow-xl shadow-black/10 hover:shadow-2xl transition-all duration-500 bg-white/95 border border-gold-200/60 backdrop-blur-xl text-navy-900 dark:bg-[#0f172a]/95 dark:border-emerald-500/20 dark:text-white dark:shadow-black/40`}>
           {/* ... Radio content ... */}
@@ -429,129 +429,6 @@ const NavItem = ({ to, icon, label }: { to: string; icon: React.ReactNode; label
   </NavLink>
 );
 
-const DesktopSidebar = ({ surahs }: { surahs: Surah[] }) => {
-  const { isDark, toggleTheme } = useTheme();
-  const { openSettings } = useSettings();
-  const navigate = useNavigate();
-  const [searchTerm, setSearchTerm] = useState('');
-
-  // Remove Arabic diacritics for search matching
-  const removeDiacritics = (text: string) =>
-      text.replace(/[\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED]/g, '');
-
-  const filteredSurahs = useMemo(() => {
-      if (!surahs) return [];
-      const normalizedSearch = removeDiacritics(searchTerm.trim());
-      if (!normalizedSearch) return surahs;
-
-      return surahs.filter(s => {
-          const normalizedName = removeDiacritics(s.name);
-          return normalizedName.includes(normalizedSearch) ||
-              s.englishName.toLowerCase().includes(searchTerm.toLowerCase());
-      });
-  }, [surahs, searchTerm]);
-
-  return (
-    <aside className="hidden xl:flex flex-col w-[280px] h-full bg-white dark:bg-navy-900 border-l border-navy-100 dark:border-navy-800 shadow-[-5px_0_20px_rgba(0,0,0,0.02)] z-30 transition-colors duration-500 shrink-0">
-      <div className="h-20 flex items-center px-6 border-b border-navy-50 dark:border-navy-800/50 cursor-pointer hover:bg-navy-50/50 dark:hover:bg-navy-800/30 transition-colors" onClick={() => navigate('/about')}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-gold-400 to-amber-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-gold-500/30">
-            <span className="font-quran text-2xl font-bold mt-1">ب</span>
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-navy-900 dark:text-white font-quran leading-none">البيان</h1>
-            <p className="text-[10px] font-bold text-gold-600 dark:text-gold-400 tracking-wider">القرآن والسنة</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-2">
-        <DesktopNavItem to="/" icon={<Home size={20} />} label="الرئيسية" />
-        <DesktopNavItem to="/reader" icon={<BookOpen size={20} />} label="المصحف" />
-        <DesktopNavItem to="/quiz" icon={<Brain size={20} />} label="اختبارات قرآنية" />
-        <DesktopNavItem to="/adhkar" icon={<Shield size={20} />} label="حصن المسلم" />
-        <DesktopNavItem to="/hadith" icon={<BookHeart size={20} />} label="الحديث الشريف" />
-        <DesktopNavItem to="/search" icon={<Search size={20} />} label="البحث في المصحف" />
-        <DesktopNavItem to="/radio" icon={<Radio size={20} />} label="الإذاعة المباشرة" />
-        <DesktopNavItem to="/tasbih" icon={<Grid size={20} />} label="السبحة" />
-        <DesktopNavItem to="/hifz" icon={<Activity size={20} />} label="خطة الحفظ" />
-        <DesktopNavItem to="/bookmarks" icon={<Bookmark size={20} />} label="المحفوظات" />
-        <DesktopNavItem to="/downloads" icon={<WifiOff size={20} />} label="التحميلات (أوفلاين)" />
-        <DesktopNavItem to="/about" icon={<Info size={20} />} label="عن التطبيق" />
-      </div>
-
-      {/* Surah Search & List */}
-      <div className="flex-[2] flex flex-col bg-white dark:bg-navy-950 border-t border-navy-50 dark:border-navy-800/50 overflow-hidden">
-          {/* Search Bar */}
-          <div className="p-3 bg-white/95 dark:bg-navy-950/95 z-20 border-b border-gold-100/50 dark:border-navy-800 shadow-sm shrink-0">
-              <div className="relative">
-                  <input
-                      type="text"
-                      placeholder="ابحث عن سورة..."
-                      className="w-full h-11 px-4 pl-11 rounded-xl border-2 border-gold-100 dark:border-navy-700 bg-gradient-to-r from-white to-gold-50/30 dark:from-navy-900 dark:to-navy-800 text-navy-900 dark:text-white focus:border-gold-400 dark:focus:border-gold-500 focus:ring-4 focus:ring-gold-500/10 outline-none transition-all text-sm font-medium placeholder:text-navy-300 dark:placeholder:text-navy-500 appearance-none"
-                      value={searchTerm}
-                      onChange={e => setSearchTerm(e.target.value)}
-                  />
-                  <div className="absolute left-3.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg bg-gold-100 dark:bg-navy-700 flex items-center justify-center pointer-events-none">
-                      <Search size={14} className="text-gold-600 dark:text-gold-400" />
-                  </div>
-              </div>
-          </div>
-
-          {/* Surah List */}
-          <div className="overflow-y-auto custom-scrollbar flex-1 px-3 pb-6 pt-2">
-              <div className="space-y-1">
-                  {filteredSurahs.map(surah => {
-                      const tashkeelName = SURAH_NAMES_TASHKEEL[surah.number - 1] ?? surah.name;
-                      return (
-                          <button
-                              key={surah.number}
-                              onClick={() => { navigate(`/reader?surah=${surah.number}`); }}
-                              className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-gradient-to-r hover:from-gold-50 hover:to-amber-50/50 dark:hover:from-navy-800 dark:hover:to-navy-800/80 transition-colors duration-200 group border border-transparent hover:border-gold-200/50 dark:hover:border-navy-700"
-                          >
-                              <div className="flex items-center gap-3">
-                                  <span className="w-9 h-9 flex shrink-0 items-center justify-center bg-gradient-to-br from-navy-100 to-navy-50 dark:from-navy-800 dark:to-navy-900 rounded-xl text-xs font-bold text-navy-600 dark:text-navy-400 group-hover:from-gold-400 group-hover:to-amber-500 group-hover:text-white transition-colors duration-200 font-sans shadow-sm">
-                                      {surah.number}
-                                  </span>
-                                  <div className="text-right flex flex-col gap-0.5">
-                                      <div className="font-quran text-[15px] leading-tight font-bold text-navy-800 dark:text-white group-hover:text-gold-700 dark:group-hover:text-gold-400 transition-colors">
-                                          {tashkeelName}
-                                      </div>
-                                      <div className="flex items-center gap-1.5 text-[9px] md:text-[10px] font-medium tracking-wide mt-0.5">
-                                          <span className="text-navy-400 dark:text-navy-500 group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors">{surah.englishName}</span>
-                                          <span className="w-1 h-1 rounded-full bg-navy-200 dark:bg-navy-700 group-hover:bg-gold-400/50"></span>
-                                          <span className={`font-bold transition-colors ${surah.revelationType === 'Meccan' ? 'text-emerald-600 dark:text-emerald-500 group-hover:text-emerald-500' : 'text-blue-600 dark:text-blue-500 group-hover:text-blue-500'}`}>{surah.revelationType === 'Meccan' ? 'مكية' : 'مدنية'}</span>
-                                          <span className="w-1 h-1 rounded-full bg-navy-200 dark:bg-navy-700 group-hover:bg-gold-400/50"></span>
-                                          <span className="text-amber-600 dark:text-amber-500 font-bold group-hover:text-amber-500 transition-colors">آياتها {surah.numberOfAyahs}</span>
-                                      </div>
-                                  </div>
-                              </div>
-                          </button>
-                      );
-                  })}
-              </div>
-          </div>
-      </div>
-
-      <div className="p-4 border-t border-navy-50 dark:border-navy-800/50 space-y-2 shrink-0">
-        <button
-          onClick={toggleTheme}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-navy-500 dark:text-navy-400 hover:bg-gold-50/50 dark:hover:bg-navy-800/50 hover:text-navy-700 dark:hover:text-white transition-all group"
-        >
-          {isDark ? <Sun size={20} className="text-gold-500" /> : <Moon size={20} className="text-navy-600" />}
-          <span>{isDark ? 'الوضع النهاري' : 'الوضع الليلي'}</span>
-        </button>
-        <button
-          onClick={openSettings}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl font-bold text-navy-500 dark:text-navy-400 hover:bg-gold-50/50 dark:hover:bg-navy-800/50 hover:text-navy-700 dark:hover:text-white transition-all"
-        >
-          <Settings size={20} />
-          <span>الإعدادات</span>
-        </button>
-      </div>
-    </aside>
-  );
-};
 
 export const Layout: React.FC = () => {
   const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
@@ -1855,9 +1732,12 @@ export const Layout: React.FC = () => {
           <AudioContext.Provider value={{ currentTrack, isPlaying, autoAdvance, repeatCount, continuousRepeat, surahRepeat, pageRepeat, playTrack, playNext: () => manualChangeTrack(1), playPrev: () => manualChangeTrack(-1), pauseTrack, closePlayer, togglePlay }}>
             <RadioContext.Provider value={{ activeStation: radioStation, isPlaying: isRadioPlaying, isLoading: radioLoading, error: radioError, playStation, stopRadio, toggleRadio, playNextStation: () => changeStation('next'), playPrevStation: () => changeStation('prev') }}>
               <NavigationContext.Provider value={{ navigateToAyah: (s, a, p) => { navigate(`/reader?page=${p}&highlight=${s}:${a}`); setSidebarOpen(false); }, openSidebar: () => setSidebarOpen(true), isFullscreen, setIsFullscreen }}>
-
-                <div className="flex h-[100dvh] overflow-hidden bg-gold-50 dark:bg-navy-950 transition-colors duration-500 ease-in-out">
-
+                <div className={`flex justify-center w-full min-h-[100dvh] bg-gray-100 dark:bg-[#0a0f1c]`}>
+                  <div 
+                    className={`flex h-[100dvh] overflow-hidden bg-gold-50 dark:bg-navy-950 transition-colors duration-500 ease-in-out ${!Capacitor.isNativePlatform() ? 'w-full max-w-[768px] relative shadow-[0_0_50px_rgba(0,0,0,0.1)] dark:shadow-[0_0_50px_rgba(0,0,0,0.5)] border-x border-navy-100 dark:border-navy-800' : 'w-full'}`}
+                    style={!Capacitor.isNativePlatform() ? { transform: 'translateZ(0)' } : undefined}
+                    dir="rtl"
+                  >
                   {/* Offline Banner - REMOVED: was covering UI content */}
                   {/* Settings Modal (Global) */}
                   {isSettingsOpen && (
@@ -2195,8 +2075,6 @@ export const Layout: React.FC = () => {
                       surahs={surahs}
                     />
 
-                    <DesktopSidebar surahs={surahs} />
-
                     <div className="flex-1 flex flex-col h-full relative overflow-hidden">
                       <main className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth">
                         <Outlet />
@@ -2217,8 +2095,7 @@ export const Layout: React.FC = () => {
                           }}
                         />
                       )}
-
-                      <nav className={`h-[70px] bg-white dark:bg-navy-900 border-t border-navy-100 dark:border-navy-800 grid grid-cols-6 gap-0 items-center px-2 z-40 fixed bottom-0 w-full xl:hidden shadow-[0_-5px_20px_rgba(0,0,0,0.03)] pb-2 pt-1 transition-all duration-500 ease-in-out ${isFullscreen ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}>
+                      <nav className={`h-[70px] bg-white dark:bg-navy-900 border-t border-navy-100 dark:border-navy-800 grid grid-cols-6 gap-0 items-center px-2 z-40 fixed bottom-0 left-0 right-0 w-full shadow-[0_-5px_20px_rgba(0,0,0,0.03)] pb-2 pt-1 transition-all duration-500 ease-in-out ${isFullscreen ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}>
                         <NavItem to="/" icon={<Home size={22} />} label="الرئيسية" />
                         <NavItem to="/reader" icon={<BookOpen size={22} />} label="المصحف" />
                         <NavItem to="/hifz" icon={<Activity size={22} />} label="الحفظ" />
@@ -2230,6 +2107,7 @@ export const Layout: React.FC = () => {
 
                   </PermissionGate>
                 </div>
+              </div>
               </NavigationContext.Provider>
             </RadioContext.Provider>
           </AudioContext.Provider>
