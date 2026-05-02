@@ -27,7 +27,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, showBack, onBack, extra }
             <ArrowRight size={20} />
           </button>
         ) : (
-          <button onClick={openSidebar} className={`${btnClass} xl:hidden`} title="القائمة">
+          <button onClick={openSidebar} className={`${btnClass}`} title="القائمة">
             <Menu size={20} />
           </button>
         )}
