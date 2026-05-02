@@ -42,8 +42,7 @@ if (!isModuleAvailable('@capacitor-firebase/analytics') || !isModuleAvailable('@
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  // Base path for GitHub Pages: https://<username>.github.io/al-bayan/
-  base: '/al-bayan/',
+  // Default base '/' for native builds, GitHub Pages overrides this via CLI
   plugins: [react()],
   build: {
     outDir: 'dist',
