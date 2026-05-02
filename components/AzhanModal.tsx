@@ -304,7 +304,13 @@ export const AzhanModal: React.FC<AzhanModalProps> = ({
     } catch (err: any) {
       if (err.name !== 'AbortError' && isMounted.current) {
         console.error("Audio Playback Error:", err);
-        setError("تعذر الوصول لصوت المؤذن حالياً (Network/Format Error).");
+        // Autoplay Policy Error Detection
+        if (err.name === 'NotAllowedError') {
+          setError("منع المتصفح التشغيل التلقائي. اضغط على زر التشغيل للاستماع.");
+          setIsPlaying(false); // Make sure it's paused so user can click play
+        } else {
+          setError("تعذر الوصول لصوت المؤذن حالياً (Network/Format Error).");
+        }
         setIsLoading(false);
       }
     }
@@ -382,7 +388,12 @@ export const AzhanModal: React.FC<AzhanModalProps> = ({
   }, [currentAzhanId, loadAndPlay, isReal]);
 
   const togglePlay = async () => {
-    if (isLoading || error) return;
+    if (isLoading) return; // Removed '|| error' to allow retry on Autoplay policy block
+
+    // Clear autoplay error if user manually interacts
+    if (error && error.includes('التشغيل التلقائي')) {
+       setError(null);
+    }
 
     try {
       if (isAndroid) {
@@ -409,6 +420,7 @@ export const AzhanModal: React.FC<AzhanModalProps> = ({
             requestWakeLock();
             await audioRef.current.play();
             setIsPlaying(true);
+            setError(null); // Clear any previous error on successful play
           } catch (e) {
             console.error("Web play error:", e);
             setError("فشل استئناف الأذان.");

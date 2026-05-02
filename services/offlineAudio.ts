@@ -192,8 +192,19 @@ export const getPlayableUrl = async (reciterId: string, globalAyahId: number): P
 
 // --- AZHAN FUNCTIONS ---
 
+const getWebSafeAzhanUrl = (id: string): string | null => {
+  const url = getAzhanUrl(id);
+  if (!url) return null;
+  if (!isNative && url.startsWith('/')) {
+    const baseUrl = import.meta.env.BASE_URL || '/';
+    const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+    return `${cleanBaseUrl}${url}`;
+  }
+  return url;
+};
+
 export const downloadAzhan = async (azhanId: string, onProgress?: (p: number) => void, signal?: AbortSignal): Promise<void> => {
-  const url = getAzhanUrl(azhanId);
+  const url = getWebSafeAzhanUrl(azhanId);
 
   // Cannot download if URL is unknown (bundled azhans don't need download)
   if (!url) {
@@ -298,7 +309,7 @@ export const getPlayableAzhanUrl = async (azhanId: string): Promise<string | nul
   }
 
   // 3. Check if it's a known muazzin with URL
-  const url = getAzhanUrl(azhanId);
+  const url = getWebSafeAzhanUrl(azhanId);
 
   if (!url) {
     // ❌ NO FALLBACK - unknown muazzin ID
@@ -374,7 +385,7 @@ export const isAzhanDownloaded = async (azhanId: string) => {
       return true;
     } catch { return false; }
   } else {
-    const url = getAzhanUrl(azhanId);
+    const url = getWebSafeAzhanUrl(azhanId);
     if (!url) return false; // Unknown azhan
     const cache = await caches.open(AZHAN_CACHE_NAME);
     return (await cache.match(url)) !== undefined;
@@ -385,7 +396,7 @@ export const deleteAzhanFromCache = async (azhanId: string) => {
   if (isNative) {
     try { await Filesystem.deleteFile({ path: getNativeAzhanPath(azhanId), directory: NATIVE_DIR }); } catch { }
   } else {
-    const url = getAzhanUrl(azhanId);
+    const url = getWebSafeAzhanUrl(azhanId);
     if (!url) return; // Unknown azhan
     const cache = await caches.open(AZHAN_CACHE_NAME);
     await cache.delete(url);
