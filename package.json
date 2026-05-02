@@ -7,9 +7,10 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "build:android": "npm run build && node scripts/optimize-android.js && npx cap sync android",
+    "build:web": "tsc && vite build --base=/al-bayan/",
     "preview": "vite preview",
     "android": "npx cap open android",
-    "deploy": "tsc && vite build --base=/al-bayan/ && npx gh-pages -d dist"
+    "deploy": "npm run build:web && npx gh-pages -d dist"
   },
   "dependencies": {
     "@capacitor-community/keep-awake": "^8.0.1",
