@@ -1743,7 +1743,7 @@ export const QuranReader: React.FC = () => {
                               </h4>
                               <button onClick={() => setTafsirData(null)} className="text-xs text-navy-400 hover:text-red-500 font-bold">إغلاق</button>
                             </div>
-                            <p className="text-base leading-loose text-navy-800 dark:text-gray-300 font-serif text-justify">
+                            <p className="text-base leading-loose text-navy-800 dark:text-gray-300 font-serif text-right">
                               {tafsirData.text}
                             </p>
                             <p className="text-[10px] text-navy-400 dark:text-navy-500 mt-3">

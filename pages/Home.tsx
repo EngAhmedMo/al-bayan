@@ -150,14 +150,15 @@ export const Home: React.FC = () => {
       // Update Android home screen widget with date/prayer data
       if (Capacitor.isNativePlatform()) {
         const hijriData = getHijriDate();
-        // ISO date: used as Source-of-Truth lock key in Kotlin (yyyy-MM-dd)
         const now = new Date();
-        const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const displayDateFormat = new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
+        const displayDate = toArabicDigits(displayDateFormat.format(now));
+        
         MediaBridge.updateWidgetData({
             hijriDay: toArabicDigits(hijriData.day),
             hijriMonth: MONTH_MAP[hijriData.month] || '',
             hijriYear: toArabicDigits(hijriData.year),
-            gregorianDate: isoDate,  // ISO format — Kotlin comparison key
+            gregorianDate: displayDate,  // Display format for widget
             nextPrayerName: '',  // Will be updated by calculateNextPrayer
             nextPrayerTime: '',
             hijriAdjustment: getHijriAdjustment().toString()
@@ -468,16 +469,17 @@ export const Home: React.FC = () => {
     if (Capacitor.isNativePlatform()) {
       const hijriData = getHijriDate();
       const formatted = formatTime12(time24);
-      // ISO date: used as Source-of-Truth lock key in Kotlin (yyyy-MM-dd)
       const now = new Date();
-      const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+      const displayDateFormat = new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
+      const displayDate = toArabicDigits(displayDateFormat.format(now));
+      
       try {
         import('../services/islamicCalendar').then(({ getHijriAdjustment }) => {
           MediaBridge.updateWidgetData({
             hijriDay: toArabicDigits(hijriData.day),
             hijriMonth: MONTH_MAP[hijriData.month] || '',
             hijriYear: toArabicDigits(hijriData.year),
-            gregorianDate: isoDate,  // ISO format — Kotlin comparison key
+            gregorianDate: displayDate,
             nextPrayerName: name,
             nextPrayerTime: toArabicDigits(formatted.time) + ' ' + formatted.period,
             nextPrayerTimestamp: timestamp,
@@ -811,7 +813,7 @@ export const Home: React.FC = () => {
               </div>
               <div className="bg-gradient-to-br from-navy-50 to-stone-50 dark:from-navy-900 dark:to-navy-950 p-4 rounded-xl border border-navy-100 dark:border-navy-700">
                 <h4 className="text-[10px] font-bold text-gold-600 dark:text-gold-400 mb-2 flex items-center gap-1.5"><Library size={12} /> التفسير الميسر:</h4>
-                <p className="text-xs sm:text-sm text-navy-600 dark:text-navy-200 leading-relaxed text-justify">{dailyBenefit.tafsir}</p>
+                <p className="text-xs sm:text-sm text-navy-600 dark:text-navy-200 leading-relaxed text-right">{dailyBenefit.tafsir}</p>
               </div>
             </div>
           ) : (

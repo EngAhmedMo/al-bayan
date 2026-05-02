@@ -642,8 +642,8 @@ const ZekrCard: React.FC<{
       {/* Main Content */}
       <div className="px-5 md:px-6 pb-8 text-center relative z-10">
         <p
-          className="font-quran text-navy-900 dark:text-white mb-6 leading-[2.4] text-justify"
-          style={{ fontSize: `${fontSize}px`, textAlignLast: 'center' }}
+          className="font-quran text-navy-900 dark:text-white mb-6 leading-[2.4] text-center"
+          style={{ fontSize: `${fontSize}px` }}
         >
           {cleanText(data.zekr)}
         </p>

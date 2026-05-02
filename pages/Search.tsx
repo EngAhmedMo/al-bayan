@@ -389,7 +389,7 @@ export const Search: React.FC = () => {
 
                         {/* Ayah Text - Mushaf Style */}
                         <div className="p-5 md:p-6">
-                          <p className="font-quran text-xl sm:text-2xl md:text-[1.7rem] text-stone-900 dark:text-stone-100 leading-[2.4] sm:leading-[2.6] text-justify" dir="rtl">
+                          <p className="font-quran text-xl sm:text-2xl md:text-[1.7rem] text-stone-900 dark:text-stone-100 leading-[2.4] sm:leading-[2.6] text-center" dir="rtl">
                             <HighlightText text={res.ayah.text} term={query} />
                             <span className="inline-flex items-center justify-center w-7 h-7 mx-1 text-[10px] font-bold text-gold-700 dark:text-gold-400 bg-gold-100/50 dark:bg-gold-900/20 rounded-full border border-gold-200 dark:border-gold-800/30 font-sans align-middle">
                               {toArabicDigits(res.ayah.numberInSurah)}

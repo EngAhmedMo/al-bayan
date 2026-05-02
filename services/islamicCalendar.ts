@@ -47,13 +47,14 @@ export function setHijriAdjustment(days: number, silent = false): void {
     if (Capacitor.isNativePlatform()) {
         const hijri = gregorianToHijri(new Date());
         const now = new Date();
-        const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const displayDateFormat = new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
+        const displayDate = toArabicDigits(displayDateFormat.format(now));
         try {
             MediaBridge.updateWidgetData({
                 hijriDay: toArabicDigits(hijri.day),
                 hijriMonth: hijri.monthName,
                 hijriYear: toArabicDigits(hijri.year),
-                gregorianDate: isoDate,
+                gregorianDate: displayDate, // Display format for widget
                 hijriAdjustment: days.toString()
             });
         } catch (e) {

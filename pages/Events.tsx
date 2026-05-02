@@ -317,7 +317,7 @@ export const Events: React.FC = () => {
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-amber-500 flex items-center justify-center mb-4 shadow-lg shadow-gold-500/20">
                     <Quote size={18} className="text-white rotate-180" />
                   </div>
-                  <p className="font-quran text-lg sm:text-xl leading-loose text-justify text-navy-800 dark:text-white mb-5">
+                  <p className="font-quran text-lg sm:text-xl leading-loose text-center text-navy-800 dark:text-white mb-5">
                     {h.hadith}
                   </p>
                   <div className="flex items-start gap-2 pt-4 border-t border-gold-100 dark:border-navy-700">

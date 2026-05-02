@@ -149,7 +149,7 @@ export const HajjUmrah: React.FC = () => {
                                                                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
                                                                         <Quote className="text-white" size={16} />
                                                                     </div>
-                                                                    <p className="text-sm font-serif italic text-amber-900 dark:text-amber-100 leading-relaxed text-justify flex-1">
+                                                                    <p className="text-sm font-serif italic text-amber-900 dark:text-amber-100 leading-relaxed text-right flex-1">
                                                                         {step.evidence}
                                                                     </p>
                                                                 </div>
