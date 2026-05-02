@@ -460,7 +460,8 @@ export const searchQuranText = async (query: string): Promise<QuranSearchResult[
             ayah: { 
               number: ayahData.id,
               numberInSurah: ayahData.aya_no,
-              text: ayahData.aya_text_emlaey,
+              text: ayahData.aya_text, // Display Uthmani text in Search Results
+              aya_text_emlaey: ayahData.aya_text_emlaey, // Use for search logic
               page: ayahData.page || -1 
             } as any
           });
@@ -473,7 +474,8 @@ export const searchQuranText = async (query: string): Promise<QuranSearchResult[
     const results: QuranSearchResult[] = [];
 
     for (const item of fullQuranCache) {
-      const normalizedAyah = normalizeArabic(item.ayah.text);
+      // Use aya_text_emlaey (without tashkeel) for searching to ensure accuracy and speed
+      const normalizedAyah = normalizeArabic(item.ayah.aya_text_emlaey || item.ayah.text);
 
       // Check: Are ALL query terms present?
       // We use a hybrid approach: Strict Morphological Match OR Simple Substring Match

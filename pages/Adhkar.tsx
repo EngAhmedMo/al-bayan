@@ -8,9 +8,9 @@ import { Zekr } from '../types';
 import {
   ArrowLeft, CheckCircle2, Heart, Plus, Trash2, PenTool, Shield, Star, Grid,
   Moon, Sun, Sunrise, Sunset, Edit2, Book, Coffee, Home, Plane, Info, AlertTriangle, Sparkles,
-  Users, Map, Leaf, Stethoscope, BookOpen, Smile, Utensils, X
+  Users, Map, Leaf, Stethoscope, BookOpen, Smile, Utensils, X, Search as SearchIcon
 } from 'lucide-react';
-import { toArabicDigits } from '../services/normalization';
+import { toArabicDigits, normalizeArabic } from '../services/normalization';
 import { useSettings } from '../components/Layout';
 import {
   getFavoriteAdhkarIds,
@@ -46,6 +46,7 @@ export const Adhkar: React.FC = () => {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'all' | 'favorites'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [favIds, setFavIds] = useState<number[]>([]);
   const [customAdhkar, setCustomAdhkar] = useState<Zekr[]>([]);
 
@@ -239,8 +240,51 @@ export const Adhkar: React.FC = () => {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="px-4 mt-4">
+        <div className="relative">
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="ابحث عن ذكر..."
+            className="w-full h-12 pl-12 pr-12 rounded-xl border border-gold-200/50 dark:border-navy-700 bg-white/90 dark:bg-navy-900/90 text-navy-900 dark:text-white shadow-sm focus:border-gold-500 focus:ring-1 focus:ring-gold-500 outline-none transition-all duration-300 font-bold placeholder:font-normal placeholder:text-navy-400"
+          />
+          <SearchIcon size={18} className="absolute right-4 top-3.5 text-navy-400" />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute left-3 top-2.5 p-1.5 bg-stone-100 dark:bg-navy-800 text-stone-500 dark:text-navy-400 rounded-lg hover:bg-red-100 hover:text-red-500 dark:hover:bg-red-900/30 dark:hover:text-red-400 transition-colors"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
+      </div>
+
       <div className="flex-1 p-4 overflow-y-auto pb-24 custom-scrollbar">
-        {viewMode === 'all' ? (
+        {searchQuery.trim() !== '' ? (
+          <div className="space-y-6 pt-2">
+            {(() => {
+              const query = normalizeArabic(searchQuery);
+              const matched = allAdhkarCombined.filter(z => normalizeArabic(z.zekr).includes(query));
+              if (matched.length === 0) return <div className="text-center text-navy-400 py-10 font-bold">لا توجد نتائج مطابقة</div>;
+              return matched.map(zekr => (
+                <div key={zekr.id} className="relative">
+                  <div className="absolute -top-3 right-4 z-20">
+                    <span className="bg-gradient-to-r from-gold-100 to-amber-100 dark:from-gold-900/50 dark:to-amber-900/50 text-gold-800 dark:text-gold-300 text-[10px] font-bold px-3 py-1 rounded-full border border-gold-200 dark:border-gold-800/50 shadow-sm">{zekr.category}</span>
+                  </div>
+                  <ZekrCard 
+                    data={zekr} 
+                    isFav={favIds.includes(zekr.id)} 
+                    onToggleFav={(id) => { toggleFavoriteAdhkar(id); refreshData(); }} 
+                    onEdit={zekr.category === "أذكاري الخاصة" ? () => { setEditingZekr(zekr); setIsModalOpen(true); } : undefined}
+                  />
+                </div>
+              ));
+            })()}
+          </div>
+        ) : viewMode === 'all' ? (
           <div className="space-y-5">
             {/* Add Custom Button */}
             <button onClick={() => { setEditingZekr(undefined); setIsModalOpen(true); }} className="w-full p-5 rounded-2xl border-2 border-dashed border-gold-300 dark:border-navy-700 text-gold-600 dark:text-gold-400 hover:border-gold-500 hover:bg-gold-50/50 dark:hover:bg-navy-800/50 transition-all font-bold flex items-center justify-center gap-3 group bg-white/50 dark:bg-navy-900/30 backdrop-blur-sm">
