@@ -64,17 +64,12 @@ export interface MediaBridgePlugin {
         // NEW: Ramadan Persistence for Native Scheduler
         ramadanSettingsJson?: string;
         // NEW: Hijri Auto-Sync Persistence for Native Widget
-        hijriAutoSyncEnabled?: boolean;
-        hijriManualOverride?: boolean;
-        // hijriEffectiveAdjustment: القيمة الفعلية المطبقة (manual أو auto) — تقرأها Kotlin
-        hijriEffectiveAdjustment?: number;
+
     }): Promise<void>;
 
     getPersistenceData(): Promise<{
         hijriAutoAdjustment?: number;
-        hijriAutoSyncEnabled?: boolean;
-        hijriManualOverride?: boolean;
-        hijriEffectiveAdjustment?: number;
+
     }>;
 
     registerSustainabilityWork(): Promise<void>;
@@ -108,7 +103,7 @@ export interface MediaBridgePlugin {
     
     getAzhanStopMethods(): Promise<{ masterEnabled: boolean; flipEnabled: boolean; proximityEnabled: boolean; volumeEnabled: boolean }>;
     setAzhanStopMethods(options: { masterEnabled?: boolean; flipEnabled?: boolean; proximityEnabled?: boolean; volumeEnabled?: boolean }): Promise<void>;
-    fetchHijriDate(): Promise<{ day: string; month: string; year: string }>;
+
 }
 
 export const MediaBridge = registerPlugin<MediaBridgePlugin>('MediaBridge');

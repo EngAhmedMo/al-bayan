@@ -1068,13 +1068,7 @@ export const scheduleAllNotifications = async (
             // NEW: Sync Pre-Prayer Preferences (Phase 3 - Gap Fix)
             prePrayerSettingsJson: JSON.stringify(prePrayerSettingsForNative),
             // NEW: Sync Ramadan Preferences (Native Ramadan Logic)
-            ramadanSettingsJson: JSON.stringify(settings.ramadan || {}),
-            // NEW: Sync Hijri Auto-Sync Preferences
-            hijriAutoSyncEnabled: localStorage.getItem('hijri_auto_sync_enabled') === 'true',
-            hijriManualOverride: localStorage.getItem('hijri_manual_override') === 'true',
-            // hijriEffectiveAdjustment: القيمة الفعلية المطبقة (manual أو auto)
-            // هذا ما تقرأه Kotlin مباشرةً — المصدر الوحيد للحقيقة
-            hijriEffectiveAdjustment: getHijriAdjustment()
+            ramadanSettingsJson: JSON.stringify(settings.ramadan || {})
           });
           console.log('[NotificationManager] 💾 Synced persistence data to Native Layer (with Pre-Prayer)');
 

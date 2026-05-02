@@ -25,7 +25,7 @@ import { PrayerTimesModal } from '../components/PrayerTimesModal';
 import { GPSPromptModal } from '../components/GPSPromptModal';
 import { CitySearchModal } from '../components/CitySearchModal';
 import { useHijriDate } from '../hooks/useHijriDate';
-import { syncHijriDateIfNeeded } from '../services/hijriAutoSync';
+import { getHijriAdjustment } from '../services/islamicCalendar';
 
 // ... existing imports
 
@@ -128,9 +128,6 @@ export const Home: React.FC = () => {
     loadDailyBenefit();
     loadDailyHadith();
 
-    // Auto-sync Hijri date from Dar Al-Ifta Egypt API (fire-and-forget)
-    syncHijriDateIfNeeded().catch(() => { /* silent */ });
-
     // Load prayers locally - no API needed, never expires!
     const cachedPrayers = getTodayPrayerTimesLocal();
     if (cachedPrayers) {
@@ -156,8 +153,7 @@ export const Home: React.FC = () => {
         // ISO date: used as Source-of-Truth lock key in Kotlin (yyyy-MM-dd)
         const now = new Date();
         const isoDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        import('../services/islamicCalendar').then(({ getHijriAdjustment }) => {
-          MediaBridge.updateWidgetData({
+        MediaBridge.updateWidgetData({
             hijriDay: toArabicDigits(hijriData.day),
             hijriMonth: MONTH_MAP[hijriData.month] || '',
             hijriYear: toArabicDigits(hijriData.year),
@@ -165,7 +161,6 @@ export const Home: React.FC = () => {
             nextPrayerName: '',  // Will be updated by calculateNextPrayer
             nextPrayerTime: '',
             hijriAdjustment: getHijriAdjustment().toString()
-          });
         }).catch(e => console.log('Widget update skipped:', e));
       }
     }

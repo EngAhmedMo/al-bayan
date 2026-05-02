@@ -44,7 +44,6 @@ import {
 } from '../services/prayerCalculator';
 import { getHijriAdjustment, setHijriAdjustment, formatHijriDate, gregorianToHijri } from '../services/islamicCalendar';
 import { LocationManager, POPULAR_CITIES, CityData } from '../services/LocationManager';
-import { isAutoSyncEnabled, setAutoSyncEnabled, forceSyncHijriDate, getLastSyncResult, SyncResult } from '../services/hijriAutoSync';
 
 export const NotificationSettingsPage: React.FC = () => {
     const navigate = useNavigate();
@@ -66,12 +65,6 @@ export const NotificationSettingsPage: React.FC = () => {
     const [highLatRule, setHighLatRule] = useState(getHighLatitudeRule());
     const [adjustments, setAdjustments] = useState<PrayerAdjustments>(getPrayerAdjustments());
     const [hijriAdj, setHijriAdj] = useState(getHijriAdjustment());
-    const [isManualOverride, setIsManualOverride] = useState(localStorage.getItem('hijri_manual_override') === 'true');
-    
-    // Hijri Auto Sync
-    const [autoSyncEnabled, setAutoSyncEnabledState] = useState(isAutoSyncEnabled());
-    const [syncResult, setSyncResult] = useState<SyncResult | null>(getLastSyncResult());
-    const [isSyncing, setIsSyncing] = useState(false);
 
     // Manual Location Settings
     const [isManualLocation, setIsManualLocation] = useState(LocationManager.hasManualLocation());
@@ -1759,12 +1752,10 @@ export const NotificationSettingsPage: React.FC = () => {
                                 <div className="space-y-3">
                                     <div className="flex items-center justify-between">
                                         <label className="text-sm font-bold text-navy-800 dark:text-white">تصحيح التاريخ الهجري (يدوي)</label>
-                                        <span className={`text-xs font-bold px-2 py-1 rounded-lg ${isManualOverride ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' : hijriAdj === 0 ? 'bg-navy-100 dark:bg-navy-800 text-navy-600 dark:text-navy-300' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'}`}>
-                                            {isManualOverride 
-                                                ? `يدوي: ${hijriAdj > 0 ? '+' : ''}${hijriAdj} يوم` 
-                                                : hijriAdj === 0 
-                                                    ? 'افتراضي/تلقائي' 
-                                                    : `تلقائي: ${hijriAdj > 0 ? '+' : ''}${hijriAdj} يوم`}
+                                        <span className={`text-xs font-bold px-2 py-1 rounded-lg ${hijriAdj === 0 ? 'bg-navy-100 dark:bg-navy-800 text-navy-600 dark:text-navy-300' : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'}`}>
+                                            {hijriAdj === 0 
+                                                ? 'افتراضي' 
+                                                : `يدوي: ${hijriAdj > 0 ? '+' : ''}${hijriAdj} يوم`}
                                         </span>
                                     </div>
 
@@ -1775,7 +1766,6 @@ export const NotificationSettingsPage: React.FC = () => {
                                                     const newVal = hijriAdj - 1;
                                                     setHijriAdj(newVal);
                                                     setHijriAdjustment(newVal);
-                                                    setIsManualOverride(newVal !== 0);
                                                 }
                                             }}
                                             disabled={hijriAdj <= -2}
@@ -1810,7 +1800,6 @@ export const NotificationSettingsPage: React.FC = () => {
                                                     const newVal = hijriAdj + 1;
                                                     setHijriAdj(newVal);
                                                     setHijriAdjustment(newVal);
-                                                    setIsManualOverride(newVal !== 0);
                                                 }
                                             }}
                                             disabled={hijriAdj >= 2}
@@ -1824,88 +1813,7 @@ export const NotificationSettingsPage: React.FC = () => {
                                     </p>
                                 </div>
 
-                                {/* Auto Sync Feature */}
-                                <div className="space-y-3 pt-4 border-t border-navy-100 dark:border-navy-800">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h4 className="text-sm font-bold text-navy-800 dark:text-white">المزامنة التلقائية للتاريخ الهجري</h4>
-                                            <p className="text-[10px] text-navy-500 mt-1">يستخدم بيانات دار الإفتاء المصرية</p>
-                                        </div>
-                                        <button
-                                            onClick={() => {
-                                                const newVal = !autoSyncEnabled;
-                                                setAutoSyncEnabled(newVal);
-                                                setAutoSyncEnabledState(newVal);
-                                            }}
-                                            className={`relative w-12 h-6 rounded-full transition-colors ${autoSyncEnabled ? 'bg-gold-500' : 'bg-navy-200 dark:bg-navy-700'}`}
-                                        >
-                                            <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${autoSyncEnabled ? 'translate-x-6' : 'translate-x-0'}`}></span>
-                                        </button>
-                                    </div>
-                                    
-                                    {autoSyncEnabled && isManualOverride && (
-                                        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-800/30">
-                                            <div className="flex items-start gap-2 text-amber-700 dark:text-amber-400">
-                                                <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-                                                <p className="text-[10px] leading-relaxed">
-                                                    <strong className="font-bold">المزامنة التلقائية معطلة حالياً</strong><br />
-                                                    النظام الآن يعمل بـ (الضبط اليدوي). لعودة المزامنة التلقائية مع دار الإفتاء، اضغط على "مزامنة الآن" أو قُم بتصفير الضبط اليدوي.
-                                                </p>
-                                            </div>
-                                        </div>
-                                    )}
 
-                                    {autoSyncEnabled && (
-                                        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30">
-                                            <div className="flex justify-between items-center mb-2">
-                                                <span className="text-xs font-bold text-blue-800 dark:text-blue-300">حالة المزامنة:</span>
-                                                {syncResult ? (
-                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full ${syncResult.success ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400'}`}>
-                                                        {syncResult.success ? 'متزامن ✅' : 'خطأ ❌'}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-navy-100 text-navy-600 dark:bg-navy-800 dark:text-navy-400">
-                                                        {isSyncing ? 'جاري الفحص ⏳' : 'لم يتم الفحص بعد'}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            
-                                            {syncResult && syncResult.success && (
-                                                <div className="text-[10px] space-y-1 text-blue-700 dark:text-blue-400 mt-2 p-2 bg-white/50 dark:bg-navy-950/50 rounded-lg">
-                                                    <div className="flex justify-between">
-                                                        <span>تاريخ الإفتاء:</span>
-                                                        <span dir="rtl">{syncResult.apiDate?.day} {syncResult.apiDate?.month} {syncResult.apiDate?.year}</span>
-                                                    </div>
-                                                    <div className="flex justify-between">
-                                                        <span>قيمة التصحيح:</span>
-                                                        <span dir="ltr" className="font-mono">{syncResult.appliedAdjustment !== undefined ? `${syncResult.appliedAdjustment > 0 ? '+' : ''}${syncResult.appliedAdjustment}` : '0'} يوم</span>
-                                                    </div>
-                                                    <div className="flex justify-between text-navy-400 mt-1 border-t border-blue-200/50 dark:border-blue-800/50 pt-1">
-                                                        <span>آخر فحص:</span>
-                                                        <span>{new Date(syncResult.timestamp).toLocaleString('ar')}</span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            
-
-                                            <button
-                                                onClick={async () => {
-                                                    setIsSyncing(true);
-                                                    const res = await forceSyncHijriDate();
-                                                    setSyncResult(res);
-                                                    setIsManualOverride(false);
-                                                    setHijriAdj(getHijriAdjustment()); // Update UI
-                                                    setIsSyncing(false);
-                                                }}
-                                                disabled={isSyncing}
-                                                className="mt-3 w-full py-2 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-100 text-xs font-bold rounded-lg flex items-center justify-center gap-2 disabled:opacity-50 transition-colors hover:bg-blue-200 dark:hover:bg-blue-700"
-                                            >
-                                                {isSyncing ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                                                مزامنة الآن
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
                             </div>
                         )}
                     </div>

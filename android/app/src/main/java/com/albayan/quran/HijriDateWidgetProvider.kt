@@ -205,7 +205,9 @@ class HijriDateWidgetProvider : AppWidgetProvider() {
 
             // Display-only format for the Gregorian label shown in the widget
             val displayDateFormat = java.text.SimpleDateFormat("EEEE، d MMMM", java.util.Locale("ar"))
-            val displayDate = displayDateFormat.format(now)
+            val rawDisplayDate = displayDateFormat.format(now)
+            // Convert to Arabic digits (e.g. "2" -> "٢")
+            val displayDate = toArabicDigitsString(rawDisplayDate)
 
             // Only run HijriUtil fallback if the app (TypeScript) has NOT already written
             // a fresh Hijri date for today. This respects the TS as the source of truth.
@@ -214,9 +216,9 @@ class HijriDateWidgetProvider : AppWidgetProvider() {
                 val editor = prefs.edit()
                 
                 // القيمة الفعلية المحسوبة من TypeScript — المصدر الوحيد للحقيقة
-                // تشمل: auto-sync drift أو manual override بشكل صحيح
-                val persistencePrefs = context.getSharedPreferences("AlBayanPersistence", Context.MODE_PRIVATE)
-                val adjustment = persistencePrefs.getInt("hijriEffectiveAdjustment", 0)
+                val defaultPrefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
+                val adjustmentStr = defaultPrefs.getString("hijri_adjustment", "0") ?: "0"
+                val adjustment = adjustmentStr.toIntOrNull() ?: 0
 
                 // Calculate fresh Hijri Date using HijriUtil (fallback)
                 val hijriDate = HijriUtil.getHijriDate(now, adjustment)

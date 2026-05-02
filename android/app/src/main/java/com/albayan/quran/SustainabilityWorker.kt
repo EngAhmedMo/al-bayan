@@ -49,43 +49,23 @@ class SustainabilityWorker(
             // Only recalculate Hijri if it's a new day or data is missing.
             // This prevents overwriting the accurate app-set (Intl.DateTimeFormat) date with HijriUtil.
             val isDateFresh = savedGregorianDate == todayStr && hijriDay.isNotEmpty()
-            val persistencePrefs = applicationContext.getSharedPreferences("AlBayanPersistence", Context.MODE_PRIVATE)
+            val defaultPrefs = applicationContext.getSharedPreferences("${applicationContext.packageName}_preferences", Context.MODE_PRIVATE)
+            val adjustmentStr = defaultPrefs.getString("hijri_adjustment", "0") ?: "0"
+            val effectiveAdjustment = adjustmentStr.toIntOrNull() ?: 0
 
             if (!isDateFresh) {
-                Log.d("SustainabilityWorker", "📅 New day detected — refreshing Hijri date")
+                Log.d("SustainabilityWorker", "📅 New day detected — refreshing Hijri date via HijriUtil")
                 
-                // محاولة جلب التاريخ من API (تخضع لشروط HijriAutoSyncNative داخلياً)
-                val apiDate = HijriAutoSyncNative.fetchAndParseHijriDate(applicationContext)
-
-                if (apiDate != null) {
-                    hijriDay   = apiDate.day
-                    hijriMonth = apiDate.month
-                    hijriYear  = apiDate.year
-
-                    val dayInt = hijriDay.map { c ->
-                        val arabicChars = "٠١٢٣٤٥٦٧٨٩"
-                        val idx = arabicChars.indexOf(c)
-                        if (idx >= 0) idx.digitToChar() else c
-                    }.joinToString("").toIntOrNull() ?: 1
-                    val rawRemaining = 30 - dayInt
-                    daysRemainingAr = HijriDateWidgetProvider.toArabicDigits(
-                        if (rawRemaining < 0) 0 else rawRemaining
-                    )
-                    Log.d("SustainabilityWorker", "✅ Auto-Synced from API: $hijriDay $hijriMonth $hijriYear")
-                } else {
-                    // Fallback: HijriUtil + hijriEffectiveAdjustment الموحّد
-                    // لا نقرأ من _preferences القديم — نقرأ من AlBayanPersistence
-                    val effectiveAdjustment = persistencePrefs.getInt("hijriEffectiveAdjustment", 0)
-                    val hijriDate = HijriUtil.getHijriDate(now, effectiveAdjustment)
-                    hijriDay   = HijriDateWidgetProvider.toArabicDigits(hijriDate.day)
-                    hijriMonth = hijriDate.monthName
-                    hijriYear  = HijriDateWidgetProvider.toArabicDigits(hijriDate.year)
-                    val rawRemaining = 30 - hijriDate.day
-                    daysRemainingAr = HijriDateWidgetProvider.toArabicDigits(
-                        if (rawRemaining < 0) 0 else rawRemaining
-                    )
-                    Log.d("SustainabilityWorker", "⚠️ HijriUtil fallback (adj=$effectiveAdjustment): $hijriDay $hijriMonth $hijriYear")
-                }
+                // Use HijriUtil + hijriEffectiveAdjustment
+                val hijriDate = HijriUtil.getHijriDate(now, effectiveAdjustment)
+                hijriDay   = HijriDateWidgetProvider.toArabicDigits(hijriDate.day)
+                hijriMonth = hijriDate.monthName
+                hijriYear  = HijriDateWidgetProvider.toArabicDigits(hijriDate.year)
+                val rawRemaining = 30 - hijriDate.day
+                daysRemainingAr = HijriDateWidgetProvider.toArabicDigits(
+                    if (rawRemaining < 0) 0 else rawRemaining
+                )
+                Log.d("SustainabilityWorker", "✅ HijriUtil fallback (adj=$effectiveAdjustment): $hijriDay $hijriMonth $hijriYear")
             } else {
                 Log.d("SustainabilityWorker", "✅ App-set Hijri Date is fresh for today. Skipping native recalculation.")
             }

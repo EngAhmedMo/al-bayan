@@ -26,58 +26,17 @@ export interface HijriDate {
     monthName: string;
 }
 
-/**
- * Get the effective adjustment value (days)
- * Priority:
- *   1. Manual override (user explicitly set via +/- buttons) — highest priority
- *   2. Auto-sync adjustment (from Dar Al-Ifta API) — if enabled and no manual override
- *   3. Default: 0
- */
 export function getHijriAdjustment(): number {
     try {
-        // 1. Check for manual override (user explicitly adjusted)
-        const isManualOverride = localStorage.getItem('hijri_manual_override') === 'true';
-        if (isManualOverride) {
-            const manual = localStorage.getItem(KEY_HIJRI_ADJUSTMENT);
-            return manual ? parseInt(manual) : 0;
-        }
-
-        // 2. Check for auto-sync adjustment
-        const autoEnabled = localStorage.getItem('hijri_auto_sync_enabled') === 'true';
-        if (autoEnabled) {
-            const autoAdj = localStorage.getItem('hijri_auto_adjustment');
-            if (autoAdj !== null) return parseInt(autoAdj);
-        }
-
-        // 3. Default: no adjustment
-        return 0;
+        const manual = localStorage.getItem(KEY_HIJRI_ADJUSTMENT);
+        return manual ? parseInt(manual) : 0;
     } catch {
         return 0;
     }
 }
 
-
-/**
- * Set the adjustment value.
- * Behavior (Option B):
- *   - Pressing +/- CANCELS Auto-Sync and takes FULL manual control.
- *   - 'days' is an absolute offset relative to raw Umm al-Qura.
- *   - Setting to 0 returns to auto mode (clears manual override).
- *
- * @param days number of days to shift (absolute from Umm al-Qura)
- * @param silent if true, skip widget update (used internally during sync)
- */
 export function setHijriAdjustment(days: number, silent = false): void {
     localStorage.setItem(KEY_HIJRI_ADJUSTMENT, days.toString());
-
-    if (days !== 0) {
-        // User took manual control — CANCEL auto-sync influence
-        localStorage.setItem('hijri_manual_override', 'true');
-        localStorage.removeItem('hijri_auto_adjustment'); // stop auto from interfering
-    } else {
-        // User reset to 0 = "go back to automatic"
-        localStorage.removeItem('hijri_manual_override');
-    }
 
     // Dispatch event for reactive updates in UI
     window.dispatchEvent(new Event('hijri-date-changed'));

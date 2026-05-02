@@ -795,8 +795,6 @@ class MediaBridge : Plugin() {
         val ramadanSettingsJson = call.getString("ramadanSettingsJson")
         
         // NEW: Hijri Auto-Sync Persistence for Native Widget
-        val hijriAutoSyncEnabled = call.getBoolean("hijriAutoSyncEnabled") ?: false
-        val hijriManualOverride = call.getBoolean("hijriManualOverride") ?: false
         // hijriEffectiveAdjustment: القيمة الفعلية (manual أو auto) التي يحسبها TypeScript
         val hijriEffectiveAdjustment = call.getInt("hijriEffectiveAdjustment") ?: 0
 
@@ -814,9 +812,6 @@ class MediaBridge : Plugin() {
             putString("highLatitudeRule", highLatitudeRule ?: "middle_of_night")
             putString("adjustmentsJson", adjustmentsJson ?: "{}")
             
-            // Save Hijri Auto-Sync Settings
-            putBoolean("hijriAutoSyncEnabled", hijriAutoSyncEnabled)
-            putBoolean("hijriManualOverride", hijriManualOverride)
             // effectiveAdjustment: يكتبها TypeScript — Kotlin تقرأها فقط
             putInt("hijriEffectiveAdjustment", hijriEffectiveAdjustment)
             
@@ -1832,15 +1827,6 @@ class MediaBridge : Plugin() {
             val prefs = context.getSharedPreferences("AlBayanPersistence", Context.MODE_PRIVATE)
             val ret = JSObject()
 
-            if (prefs.contains("hijriAutoAdjustment")) {
-                ret.put("hijriAutoAdjustment", prefs.getInt("hijriAutoAdjustment", 0))
-            }
-            if (prefs.contains("hijriAutoSyncEnabled")) {
-                ret.put("hijriAutoSyncEnabled", prefs.getBoolean("hijriAutoSyncEnabled", false))
-            }
-            if (prefs.contains("hijriManualOverride")) {
-                ret.put("hijriManualOverride", prefs.getBoolean("hijriManualOverride", false))
-            }
             // hijriEffectiveAdjustment: القيمة الفعلية المطبّقة (كتبها TypeScript)
             if (prefs.contains("hijriEffectiveAdjustment")) {
                 ret.put("hijriEffectiveAdjustment", prefs.getInt("hijriEffectiveAdjustment", 0))
@@ -1852,24 +1838,5 @@ class MediaBridge : Plugin() {
         }
     }
 
-    @PluginMethod
-    fun fetchHijriDate(call: PluginCall) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val res = HijriAutoSyncNative.performFetch()
-                if (res != null) {
-                    val ret = JSObject()
-                    ret.put("day", res.day)
-                    ret.put("month", res.month)
-                    ret.put("year", res.year)
-                    call.resolve(ret)
-                } else {
-                    call.reject("API_FETCH_FAILED")
-                }
-            } catch (e: Exception) {
-                Log.e("MediaBridge", "fetchHijriDate failed", e)
-                call.reject("UNEXPECTED_ERROR: ${e.message}")
-            }
-        }
-    }
+
 }

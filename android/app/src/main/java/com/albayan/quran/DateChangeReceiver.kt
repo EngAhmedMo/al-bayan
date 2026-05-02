@@ -45,40 +45,21 @@ class DateChangeReceiver : BroadcastReceiver() {
                 var daysRemainingAr: String = ""
 
                 // المصدر الموحّد للـ adjustment — يكتبه TypeScript فقط
-                val persistencePrefs = context.getSharedPreferences("AlBayanPersistence", Context.MODE_PRIVATE)
-                val effectiveAdjustment = persistencePrefs.getInt("hijriEffectiveAdjustment", 0)
+                val defaultPrefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
+                val adjustmentStr = defaultPrefs.getString("hijri_adjustment", "0") ?: "0"
+                val effectiveAdjustment = adjustmentStr.toIntOrNull() ?: 0
 
-                // محاولة جلب التاريخ من API (تعمل فقط إذا كان auto-sync مفعّلاً وبدون manual override)
-                val apiDate = HijriAutoSyncNative.fetchAndParseHijriDate(context)
+                // Use HijriUtil + hijriEffectiveAdjustment
+                val hijriDate = HijriUtil.getHijriDate(now, effectiveAdjustment)
+                hijriDay   = HijriDateWidgetProvider.toArabicDigits(hijriDate.day)
+                hijriMonth = hijriDate.monthName
+                hijriYear  = HijriDateWidgetProvider.toArabicDigits(hijriDate.year)
 
-                if (apiDate != null) {
-                    hijriDay   = apiDate.day
-                    hijriMonth = apiDate.month
-                    hijriYear  = apiDate.year
-
-                    val dayInt = hijriDay.map { c ->
-                        val arabicChars = "٠١٢٣٤٥٦٧٨٩"
-                        val idx = arabicChars.indexOf(c)
-                        if (idx >= 0) idx.digitToChar() else c
-                    }.joinToString("").toIntOrNull() ?: 1
-                    val rawRemaining = 30 - dayInt
-                    daysRemainingAr = HijriDateWidgetProvider.toArabicDigits(
-                        if (rawRemaining < 0) 0 else rawRemaining
-                    )
-                    Log.d(TAG, "✅ Hijri (Dar Al-Ifta API): Day=$hijriDay Month=$hijriMonth")
-                } else {
-                    // Fallback: HijriUtil + hijriEffectiveAdjustment الموحّد
-                    val hijriDate = HijriUtil.getHijriDate(now, effectiveAdjustment)
-                    hijriDay   = HijriDateWidgetProvider.toArabicDigits(hijriDate.day)
-                    hijriMonth = hijriDate.monthName
-                    hijriYear  = HijriDateWidgetProvider.toArabicDigits(hijriDate.year)
-
-                    val rawRemaining = 30 - hijriDate.day
-                    daysRemainingAr = HijriDateWidgetProvider.toArabicDigits(
-                        if (rawRemaining < 0) 0 else rawRemaining
-                    )
-                    Log.d(TAG, "✅ Hijri (HijriUtil fallback, adj=$effectiveAdjustment): Day=$hijriDay Month=$hijriMonth")
-                }
+                val rawRemaining = 30 - hijriDate.day
+                daysRemainingAr = HijriDateWidgetProvider.toArabicDigits(
+                    if (rawRemaining < 0) 0 else rawRemaining
+                )
+                Log.d(TAG, "✅ Hijri (HijriUtil fallback, adj=$effectiveAdjustment): Day=$hijriDay Month=$hijriMonth")
 
                 // ── 2. Get next prayer time ────────────────────────────────────────────
                 val nextPrayer = NativePrayerScheduler.getNextPrayer(context)
