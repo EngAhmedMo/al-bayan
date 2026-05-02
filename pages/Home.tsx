@@ -536,7 +536,7 @@ export const Home: React.FC = () => {
       {/* Top Bar */}
       <div className="flex justify-between items-center px-5 sm:px-6 pt-6 pb-2 relative z-10">
         <div className="flex items-center gap-3">
-          <button onClick={openSidebar} className={`${headerBtnClass} xl:hidden`} title="القائمة الجانبية">
+          <button onClick={openSidebar} className={`${headerBtnClass}`} title="القائمة الجانبية">
             <Menu size={20} />
           </button>
           <div className="flex items-center gap-2.5 cursor-pointer group select-none" onClick={() => navigate('/about')} title="عن التطبيق">

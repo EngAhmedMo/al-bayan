@@ -1732,10 +1732,9 @@ export const Layout: React.FC = () => {
           <AudioContext.Provider value={{ currentTrack, isPlaying, autoAdvance, repeatCount, continuousRepeat, surahRepeat, pageRepeat, playTrack, playNext: () => manualChangeTrack(1), playPrev: () => manualChangeTrack(-1), pauseTrack, closePlayer, togglePlay }}>
             <RadioContext.Provider value={{ activeStation: radioStation, isPlaying: isRadioPlaying, isLoading: radioLoading, error: radioError, playStation, stopRadio, toggleRadio, playNextStation: () => changeStation('next'), playPrevStation: () => changeStation('prev') }}>
               <NavigationContext.Provider value={{ navigateToAyah: (s, a, p) => { navigate(`/reader?page=${p}&highlight=${s}:${a}`); setSidebarOpen(false); }, openSidebar: () => setSidebarOpen(true), isFullscreen, setIsFullscreen }}>
-                <div className={`flex justify-center w-full min-h-[100dvh] bg-gray-100 dark:bg-[#0a0f1c]`}>
+                <div className="flex justify-center w-full min-h-[100dvh] bg-gold-50 dark:bg-navy-950">
                   <div 
-                    className={`flex h-[100dvh] overflow-hidden bg-gold-50 dark:bg-navy-950 transition-colors duration-500 ease-in-out ${!Capacitor.isNativePlatform() ? 'w-full max-w-[768px] relative shadow-[0_0_50px_rgba(0,0,0,0.1)] dark:shadow-[0_0_50px_rgba(0,0,0,0.5)] border-x border-navy-100 dark:border-navy-800' : 'w-full'}`}
-                    style={!Capacitor.isNativePlatform() ? { transform: 'translateZ(0)' } : undefined}
+                    className="flex h-[100dvh] overflow-hidden bg-gold-50 dark:bg-navy-950 transition-colors duration-500 ease-in-out w-full"
                     dir="rtl"
                   >
                   {/* Offline Banner - REMOVED: was covering UI content */}
