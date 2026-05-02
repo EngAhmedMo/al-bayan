@@ -304,6 +304,41 @@ async function fetchEgyptianHijriDate(): Promise<HijriApiDate | null> {
         if (parsed) return parsed;
     }
 
+    // WEB-SPECIFIC CORS FALLBACK: Aladhan API
+    // Since Dar Al-Ifta API blocks cross-origin requests (CORS), it will fail on the web.
+    // We fall back to the Aladhan API (Umm al-Qura) to ensure the web version can still sync successfully.
+    if (!Capacitor.isNativePlatform()) {
+        console.log('[HijriSync] 🌐 Web CORS/Fetch failed for Dar Al-Ifta, using Aladhan API fallback...');
+        const fallbackDate = await fetchFallbackAladhanHijriDate();
+        if (fallbackDate) return fallbackDate;
+    }
+
+    return null;
+}
+
+/**
+ * Fallback to Aladhan API for Web users
+ */
+async function fetchFallbackAladhanHijriDate(): Promise<HijriApiDate | null> {
+    try {
+        const today = new Date();
+        const dd = String(today.getDate()).padStart(2, '0');
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const yyyy = today.getFullYear();
+        
+        const res = await fetch(`https://api.aladhan.com/v1/gToH?date=${dd}-${mm}-${yyyy}`);
+        const json = await res.json();
+        
+        if (json.code === 200 && json.data && json.data.hijri) {
+            return {
+                day: parseInt(json.data.hijri.day),
+                month: json.data.hijri.month.number,
+                year: parseInt(json.data.hijri.year)
+            };
+        }
+    } catch (e) {
+        console.warn('[HijriSync] Fallback Aladhan API failed:', e);
+    }
     return null;
 }
 
