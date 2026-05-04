@@ -45,6 +45,7 @@ export interface MediaBridgePlugin {
         nextPrayerTime?: string;
         nextPrayerTimestamp?: number;
         hijriAdjustment?: string;
+        hijriDatesJson?: string;
     }): Promise<void>;
     savePersistenceData(options: {
         lat: number;

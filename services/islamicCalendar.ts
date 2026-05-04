@@ -35,6 +35,50 @@ export function getHijriAdjustment(): number {
     }
 }
 
+export function getFutureHijriDatesJSON(): string {
+    const hijriDatesMap: Record<string, any> = {};
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    
+    // Cache the next 35 days (covers a full month + safety buffer)
+    for(let i = 0; i <= 35; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        const hDate = gregorianToHijri(d);
+        const remaining = 30 - hDate.day;
+        const iso = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        
+        hijriDatesMap[iso] = {
+            day: toArabicDigits(hDate.day),
+            month: HIJRI_MONTHS[hDate.month - 1] || hDate.monthName,
+            year: toArabicDigits(hDate.year),
+            remaining: toArabicDigits(remaining < 0 ? 0 : remaining)
+        };
+    }
+    return JSON.stringify(hijriDatesMap);
+}
+
+export function syncHijriDatesToNative() {
+    if (!Capacitor.isNativePlatform()) return;
+    
+    try {
+        const hijri = gregorianToHijri(new Date());
+        const now = new Date();
+        const displayDateFormat = new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
+        const displayDate = toArabicDigits(displayDateFormat.format(now));
+        
+        MediaBridge.updateWidgetData({
+            hijriDay: toArabicDigits(hijri.day),
+            hijriMonth: hijri.monthName,
+            hijriYear: toArabicDigits(hijri.year),
+            gregorianDate: displayDate,
+            hijriAdjustment: getHijriAdjustment().toString(),
+            hijriDatesJson: getFutureHijriDatesJSON()
+        });
+    } catch (e) {
+        console.error('Widget update failed', e);
+    }
+}
+
 export function setHijriAdjustment(days: number, silent = false): void {
     localStorage.setItem(KEY_HIJRI_ADJUSTMENT, days.toString());
 
@@ -43,24 +87,8 @@ export function setHijriAdjustment(days: number, silent = false): void {
 
     if (silent) return;
 
-    // Update Android Widget immediately with ISO date key
-    if (Capacitor.isNativePlatform()) {
-        const hijri = gregorianToHijri(new Date());
-        const now = new Date();
-        const displayDateFormat = new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
-        const displayDate = toArabicDigits(displayDateFormat.format(now));
-        try {
-            MediaBridge.updateWidgetData({
-                hijriDay: toArabicDigits(hijri.day),
-                hijriMonth: hijri.monthName,
-                hijriYear: toArabicDigits(hijri.year),
-                gregorianDate: displayDate, // Display format for widget
-                hijriAdjustment: days.toString()
-            });
-        } catch (e) {
-            console.error('Widget update failed', e);
-        }
-    }
+    // Update Android Widget immediately with ISO date key and 30-day map
+    syncHijriDatesToNative();
 }
 
 /**

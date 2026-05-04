@@ -25,7 +25,7 @@ import { PrayerTimesModal } from '../components/PrayerTimesModal';
 import { GPSPromptModal } from '../components/GPSPromptModal';
 import { CitySearchModal } from '../components/CitySearchModal';
 import { useHijriDate } from '../hooks/useHijriDate';
-import { getHijriAdjustment } from '../services/islamicCalendar';
+import { getHijriAdjustment, getFutureHijriDatesJSON } from '../services/islamicCalendar';
 
 // ... existing imports
 
@@ -161,7 +161,8 @@ export const Home: React.FC = () => {
             gregorianDate: displayDate,  // Display format for widget
             nextPrayerName: '',  // Will be updated by calculateNextPrayer
             nextPrayerTime: '',
-            hijriAdjustment: getHijriAdjustment().toString()
+            hijriAdjustment: getHijriAdjustment().toString(),
+            hijriDatesJson: getFutureHijriDatesJSON()
         }).catch(e => console.log('Widget update skipped:', e));
       }
     }

@@ -6,6 +6,7 @@ import { toArabicDigits } from '../services/normalization';
 import { getLastTasbihTarget, setLastTasbihTarget, getCustomTasbihs, addCustomTasbih, deleteCustomTasbih, getTasbihState, saveTasbihState, clearTasbihState, getLifetimeTasbihTotal, addLifetimeTasbihTotal } from '../services/storage';
 import { useSettings } from '../components/Layout';
 import { TasbihItem } from '../types';
+import { hapticTap, hapticMedium, hapticSuccess } from '../services/haptics';
 
 // Default built-in Adhkar (Updated and Verified)
 const BASE_ADHKAR_ITEMS: TasbihItem[] = [
@@ -202,7 +203,7 @@ export const Tasbih: React.FC = () => {
       setTarget(allTasbihs[newIndex].target);
     }
 
-    if (navigator.vibrate) navigator.vibrate(10);
+    hapticMedium();
   };
 
   const selectTasbihFromList = (index: number) => {
@@ -251,12 +252,7 @@ export const Tasbih: React.FC = () => {
     setDeleteConfirmItem(null);
   };
 
-  // Haptic Feedback Helper
-  const triggerHaptic = (pattern: number | number[] = 10) => {
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(pattern);
-    }
-  };
+
 
   const handleTap = () => {
     // 1. SECURITY LOCK: Prevent rapid taps from messing up the logic during transition
@@ -281,7 +277,7 @@ export const Tasbih: React.FC = () => {
       // Lock immediately to ignore any extra taps (Ghost touch prevention)
       isTransitioning.current = true;
 
-      triggerHaptic([30, 50, 30]);
+      hapticSuccess();
       setCount(target); // Visually reach the target
 
       // Short delay to show completion, then switch
@@ -307,13 +303,13 @@ export const Tasbih: React.FC = () => {
       }, 400); // 400ms transition delay
     } else {
       // --- NORMAL INCREMENT ---
-      triggerHaptic(8);
+      hapticTap();
       setCount(newCount);
     }
   };
 
   const confirmReset = () => {
-    triggerHaptic(20);
+    hapticMedium();
     setCount(0);
     setRounds(0);
     isTransitioning.current = false;
@@ -472,8 +468,13 @@ export const Tasbih: React.FC = () => {
                   className={`font-quran font-bold text-navy-900 dark:text-white leading-[1.8] text-center break-words w-full transition-all duration-300 ${isTransitioning.current ? 'opacity-80 scale-95' : 'opacity-100 scale-100'}`}
                   style={{ fontSize: `${Math.max(22, Math.min(fontSize * 1.2, 34))}px` }}
                 >
-                  {displayLabel}
+                  {currentTasbih.sequenceMode ? currentTasbih.label : displayLabel}
                 </h2>
+                {currentTasbih.sequenceMode && (
+                  <div className={`mt-3 text-2xl font-bold text-gold-600 dark:text-gold-400 font-quran transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 ${isTransitioning.current ? 'opacity-0' : 'opacity-100'}`}>
+                    {displayLabel}
+                  </div>
+                )}
                 {currentTasbih.virtue && (
                   <div className="mt-3.5 flex items-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 pl-1 pr-3 py-1.5 rounded-xl text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50 shadow-sm animate-in fade-in max-w-[95%] mx-auto">
                     <span className="flex-shrink-0"><CheckCircle2 size={13} /></span>

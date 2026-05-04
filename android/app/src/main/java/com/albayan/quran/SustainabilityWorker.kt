@@ -54,18 +54,29 @@ class SustainabilityWorker(
             val effectiveAdjustment = adjustmentStr.toIntOrNull() ?: 0
 
             if (!isDateFresh) {
-                Log.d("SustainabilityWorker", "📅 New day detected — refreshing Hijri date via HijriUtil")
+                Log.d("SustainabilityWorker", "📅 New day detected — refreshing Hijri date checking multi-tier system...")
                 
-                // Use HijriUtil + hijriEffectiveAdjustment
-                val hijriDate = HijriUtil.getHijriDate(now, effectiveAdjustment)
-                hijriDay   = HijriDateWidgetProvider.toArabicDigits(hijriDate.day)
-                hijriMonth = hijriDate.monthName
-                hijriYear  = HijriDateWidgetProvider.toArabicDigits(hijriDate.year)
-                val rawRemaining = 30 - hijriDate.day
-                daysRemainingAr = HijriDateWidgetProvider.toArabicDigits(
-                    if (rawRemaining < 0) 0 else rawRemaining
-                )
-                Log.d("SustainabilityWorker", "✅ HijriUtil fallback (adj=$effectiveAdjustment): $hijriDay $hijriMonth $hijriYear")
+                // Try Tier 1: Precalculated TS JSON Cache
+                val preCalc = HijriUtil.getPrecalculatedHijriDate(applicationContext, todayStr)
+                
+                if (preCalc != null) {
+                    hijriDay = preCalc.day
+                    hijriMonth = preCalc.month
+                    hijriYear = preCalc.year
+                    daysRemainingAr = preCalc.remaining
+                    Log.d("SustainabilityWorker", "✅ Hijri (Tier 1 TS Cache): Day=$hijriDay Month=$hijriMonth")
+                } else {
+                    // Try Tier 2/3: Native Umm Al-Qura / Tabular Fallback
+                    val hijriDate = HijriUtil.getHijriDate(now, effectiveAdjustment)
+                    hijriDay   = HijriDateWidgetProvider.toArabicDigits(hijriDate.day)
+                    hijriMonth = hijriDate.monthName
+                    hijriYear  = HijriDateWidgetProvider.toArabicDigits(hijriDate.year)
+                    val rawRemaining = 30 - hijriDate.day
+                    daysRemainingAr = HijriDateWidgetProvider.toArabicDigits(
+                        if (rawRemaining < 0) 0 else rawRemaining
+                    )
+                    Log.d("SustainabilityWorker", "✅ Native Fallback (adj=$effectiveAdjustment): $hijriDay $hijriMonth $hijriYear")
+                }
             } else {
                 Log.d("SustainabilityWorker", "✅ App-set Hijri Date is fresh for today. Skipping native recalculation.")
             }

@@ -44,22 +44,35 @@ class DateChangeReceiver : BroadcastReceiver() {
                 var hijriYear: String = ""
                 var daysRemainingAr: String = ""
 
-                // المصدر الموحّد للـ adjustment — يكتبه TypeScript فقط
-                val defaultPrefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
-                val adjustmentStr = defaultPrefs.getString("hijri_adjustment", "0") ?: "0"
-                val effectiveAdjustment = adjustmentStr.toIntOrNull() ?: 0
+                val isoFormat     = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+                val todayIso      = isoFormat.format(now)
 
-                // Use HijriUtil + hijriEffectiveAdjustment
-                val hijriDate = HijriUtil.getHijriDate(now, effectiveAdjustment)
-                hijriDay   = HijriDateWidgetProvider.toArabicDigits(hijriDate.day)
-                hijriMonth = hijriDate.monthName
-                hijriYear  = HijriDateWidgetProvider.toArabicDigits(hijriDate.year)
+                // Try Tier 1: Precalculated TS JSON Cache
+                val preCalc = HijriUtil.getPrecalculatedHijriDate(context, todayIso)
+                
+                if (preCalc != null) {
+                    hijriDay = preCalc.day
+                    hijriMonth = preCalc.month
+                    hijriYear = preCalc.year
+                    daysRemainingAr = preCalc.remaining
+                    Log.d(TAG, "✅ Hijri (Tier 1 TS Cache): Day=$hijriDay Month=$hijriMonth")
+                } else {
+                    // Try Tier 2/3: Native Umm Al-Qura / Tabular Fallback
+                    val defaultPrefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
+                    val adjustmentStr = defaultPrefs.getString("hijri_adjustment", "0") ?: "0"
+                    val effectiveAdjustment = adjustmentStr.toIntOrNull() ?: 0
 
-                val rawRemaining = 30 - hijriDate.day
-                daysRemainingAr = HijriDateWidgetProvider.toArabicDigits(
-                    if (rawRemaining < 0) 0 else rawRemaining
-                )
-                Log.d(TAG, "✅ Hijri (HijriUtil fallback, adj=$effectiveAdjustment): Day=$hijriDay Month=$hijriMonth")
+                    val hijriDate = HijriUtil.getHijriDate(now, effectiveAdjustment)
+                    hijriDay   = HijriDateWidgetProvider.toArabicDigits(hijriDate.day)
+                    hijriMonth = hijriDate.monthName
+                    hijriYear  = HijriDateWidgetProvider.toArabicDigits(hijriDate.year)
+
+                    val rawRemaining = 30 - hijriDate.day
+                    daysRemainingAr = HijriDateWidgetProvider.toArabicDigits(
+                        if (rawRemaining < 0) 0 else rawRemaining
+                    )
+                    Log.d(TAG, "✅ Hijri (Native Fallback, adj=$effectiveAdjustment): Day=$hijriDay Month=$hijriMonth")
+                }
 
                 // ── 2. Get next prayer time ────────────────────────────────────────────
                 val nextPrayer = NativePrayerScheduler.getNextPrayer(context)
@@ -68,7 +81,6 @@ class DateChangeReceiver : BroadcastReceiver() {
             // KEY FIX: كتابة ISO date في KEY_GREGORIAN_DATE (ليس عربي) حتى تعمل
             // آلية Source-of-Truth lock في HijriDateWidgetProvider بشكل صحيح.
             // KEY_GREGORIAN_DATE_DISPLAY يحتوي على الصيغة العربية للعرض فقط.
-            val isoFormat     = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
             val displayFormat = java.text.SimpleDateFormat("EEEE، d MMMM", java.util.Locale("ar"))
             val editor = widgetPrefs.edit()
 

@@ -937,6 +937,15 @@ class MediaBridge : Plugin() {
             }
         }
         
+        // Sync the 30-day precalculated TS json cache
+        if (call.hasOption("hijriDatesJson")) {
+            val hijriDatesJson = call.getString("hijriDatesJson")
+            if (hijriDatesJson != null) {
+                val persistencePrefs = context.getSharedPreferences("AlBayanPersistence", Context.MODE_PRIVATE)
+                persistencePrefs.edit().putString("hijriDatesJson", hijriDatesJson).apply()
+            }
+        }
+        
         editor.apply()
         
         android.util.Log.d("MediaBridge", "✅ Widget data saved (partial update)")

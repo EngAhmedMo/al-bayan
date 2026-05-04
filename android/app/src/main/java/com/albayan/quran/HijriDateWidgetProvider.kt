@@ -212,33 +212,43 @@ class HijriDateWidgetProvider : AppWidgetProvider() {
             // Only run HijriUtil fallback if the app (TypeScript) has NOT already written
             // a fresh Hijri date for today. This respects the TS as the source of truth.
             if (todayIso != storedIsoDate) {
-                Log.d(TAG, "🌙 Autonomous Update: New day detected ($storedIsoDate → $todayIso), using HijriUtil fallback...")
+                Log.d(TAG, "🌙 Autonomous Update: New day detected ($storedIsoDate → $todayIso), checking multi-tier system...")
                 val editor = prefs.edit()
                 
-                // القيمة الفعلية المحسوبة من TypeScript — المصدر الوحيد للحقيقة
-                val defaultPrefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
-                val adjustmentStr = defaultPrefs.getString("hijri_adjustment", "0") ?: "0"
-                val adjustment = adjustmentStr.toIntOrNull() ?: 0
-
-                // Calculate fresh Hijri Date using HijriUtil (fallback)
-                val hijriDate = HijriUtil.getHijriDate(now, adjustment)
-                val newHijriDay = toArabicDigits(hijriDate.day)
-                val newHijriMonth = hijriDate.monthName
-                val newHijriYear = toArabicDigits(hijriDate.year)
+                // Try to get precalculated TS date first (Tier 1)
+                val preCalc = HijriUtil.getPrecalculatedHijriDate(context, todayIso)
                 
-                val rawRemaining = 30 - hijriDate.day
-                val newDaysRemaining = toArabicDigits(if (rawRemaining < 0) 0 else rawRemaining)
+                if (preCalc != null) {
+                    editor.putString(KEY_HIJRI_DAY, preCalc.day)
+                    editor.putString(KEY_HIJRI_MONTH, preCalc.month)
+                    editor.putString(KEY_HIJRI_YEAR, preCalc.year)
+                    editor.putString(KEY_HIJRI_DAYS_REMAINING, preCalc.remaining)
+                    Log.d(TAG, "✅ Autonomous Update: Used Precalculated TS Data (Tier 1) for $todayIso -> ${preCalc.day} ${preCalc.month}")
+                } else {
+                    // Fallback to Native engines (Tier 2/3)
+                    val defaultPrefs = context.getSharedPreferences("${context.packageName}_preferences", Context.MODE_PRIVATE)
+                    val adjustmentStr = defaultPrefs.getString("hijri_adjustment", "0") ?: "0"
+                    val adjustment = adjustmentStr.toIntOrNull() ?: 0
+
+                    val hijriDate = HijriUtil.getHijriDate(now, adjustment)
+                    val newHijriDay = toArabicDigits(hijriDate.day)
+                    val newHijriMonth = hijriDate.monthName
+                    val newHijriYear = toArabicDigits(hijriDate.year)
+                    
+                    val rawRemaining = 30 - hijriDate.day
+                    val newDaysRemaining = toArabicDigits(if (rawRemaining < 0) 0 else rawRemaining)
+
+                    editor.putString(KEY_HIJRI_DAY, newHijriDay)
+                    editor.putString(KEY_HIJRI_MONTH, newHijriMonth)
+                    editor.putString(KEY_HIJRI_YEAR, newHijriYear)
+                    editor.putString(KEY_HIJRI_DAYS_REMAINING, newDaysRemaining)
+                    Log.d(TAG, "✅ Autonomous Fallback: $newHijriDay $newHijriMonth $newHijriYear (adj: $adjustment)")
+                }
 
                 // Save with the unified ISO date key so TS writes will be correctly detected
-                editor.putString(KEY_HIJRI_DAY, newHijriDay)
-                editor.putString(KEY_HIJRI_MONTH, newHijriMonth)
-                editor.putString(KEY_HIJRI_YEAR, newHijriYear)
-                editor.putString(KEY_HIJRI_DAYS_REMAINING, newDaysRemaining)
                 editor.putString(KEY_GREGORIAN_DATE, todayIso)
                 editor.putString(KEY_GREGORIAN_DATE_DISPLAY, displayDate)
                 editor.apply()
-                
-                Log.d(TAG, "✅ Autonomous Fallback: $newHijriDay $newHijriMonth $newHijriYear (adj: $adjustment)")
             } else {
                 Log.d(TAG, "✅ App-set date is fresh for $todayIso — skipping HijriUtil override")
             }

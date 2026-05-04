@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { App } from '@capacitor/app';
+import { hapticTap, hapticSuccess } from '../services/haptics';
 import { TopBar } from '../components/TopBar';
 import { ADHKAR_DATA } from '../services/adhkarData';
 import { CATEGORY_GROUPS, countAdhkarInGroup, getSubCategoriesForGroup } from '../services/categoryGroups';
@@ -705,7 +706,7 @@ const ZekrCard: React.FC<{
     setCount(prev => {
       const next = prev + 1;
       // Haptic
-      if (navigator.vibrate) navigator.vibrate(next >= target ? [40, 30, 40] : 8);
+      if (next >= target) hapticSuccess(); else hapticTap();
       if (next >= target) {
         setLastUsedZekrId(data.id);
         if (onComplete) onComplete(data.id);

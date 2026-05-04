@@ -8,6 +8,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         // Register custom plugins BEFORE calling super.onCreate()
         registerPlugin(MediaBridge.class);
+        registerPlugin(NativeHaptics.class);
         
         super.onCreate(savedInstanceState);
     }
