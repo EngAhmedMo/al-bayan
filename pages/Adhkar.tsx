@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { App } from '@capacitor/app';
 import { TopBar } from '../components/TopBar';
@@ -591,6 +591,62 @@ const CategoryDetail: React.FC<{
   );
 };
 
+// ────────────────────────────────────────────────────────────
+// Burst Particles Component — shown on ZekrCard completion
+// ────────────────────────────────────────────────────────────
+const BURST_COLORS = ['#f59e0b','#10b981','#6366f1','#ef4444','#8b5cf6','#0ea5e9','#f97316','#14b8a6'];
+const ZekrBurst: React.FC = () => (
+  <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-20 overflow-hidden rounded-3xl">
+    {Array.from({ length: 8 }, (_, i) => (
+      <div
+        key={i}
+        className="absolute w-2.5 h-2.5 rounded-full animate-burst-particle"
+        style={{
+          backgroundColor: BURST_COLORS[i % BURST_COLORS.length],
+          ['--burst-angle' as string]: `${i * 45}deg`,
+          animationDelay: `${i * 25}ms`,
+        }}
+      />
+    ))}
+  </div>
+);
+
+// ────────────────────────────────────────────────────────────
+// Smart Allah Diacritics Restorer
+// Fixes لفظ الجلالة in text that lacks proper tashkeel
+// ────────────────────────────────────────────────────────────
+const restoreAllahDiacritics = (text: string): string => {
+  return text
+    // ① Protect already-correct fully-diacriticized forms
+    .replace(/اللَّهُ/g, '\x00RAF\x00')
+    .replace(/اللَّهِ/g, '\x00JAR\x00')
+    .replace(/اللَّهَ/g, '\x00NAS\x00')
+    // ② Fix: shadda-only on second lam (اللّه) + i'rab on ha
+    .replace(/اللّهُ/g, '\x00RAF\x00')
+    .replace(/اللّهِ/g, '\x00JAR\x00')
+    .replace(/اللّهَ/g, '\x00NAS\x00')
+    // ③ Fix: no shadda on second lam (الله) + i'rab on ha
+    .replace(/اللهُ/g, '\x00RAF\x00')
+    .replace(/اللهِ/g, '\x00JAR\x00')
+    .replace(/اللهَ/g, '\x00NAS\x00')
+    // ④ Fix: bare forms with no i'rab at all → default to رفع (damma)
+    .replace(/اللّه(?![\u064B-\u065F])/g, '\x00RAF\x00')
+    .replace(/الله(?![\u064B-\u065F])/g, '\x00RAF\x00')
+    // ⑤ Restore with correct Unicode diacritical forms
+    .replace(/\x00RAF\x00/g, 'اللَّهُ')
+    .replace(/\x00JAR\x00/g, 'اللَّهِ')
+    .replace(/\x00NAS\x00/g, 'اللَّهَ');
+};
+
+// ────────────────────────────────────────────────────────────
+// ZekrCard — Interactive Dhikr Card
+// ────────────────────────────────────────────────────────────
+const COMPLETION_MESSAGES = [
+  'أحسنتَ! 🌟', 'بارك الله فيك ✨', 'جزاك الله خيراً 💚',
+  'ما شاء الله 🤲', 'تقبّل الله منك 🌙', 'الله يكتب لك أجره 🌿',
+  'واصل ولا تتوقف 🏆', 'اللهم تقبّل 🤍',
+];
+
 const ZekrCard: React.FC<{
   data: Zekr;
   isFav: boolean;
@@ -601,111 +657,233 @@ const ZekrCard: React.FC<{
   onEdit?: () => void;
 }> = React.memo(({ data, isFav, onToggleFav, onComplete, onProgress, onDelete, onEdit }) => {
   const target = parseInt(data.count) || 1;
-  const [count, setCount] = useState(0);
+  const [count, setCount]         = useState(0);
+  const [isPressed, setIsPressed] = useState(false);
+  const [showBurst, setShowBurst] = useState(false);
+  const [countKey, setCountKey]   = useState(0);   // retriggers count-pop animation
+  const [glowing,  setGlowing]    = useState(false);
   const completed = count >= target;
   const { fontSize } = useSettings();
+  const pressRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // Smart text cleaner: Removes unwanted brackets, indexes, and verse numbers
-  const cleanText = (text: string) => {
-    return text
-      .replace(/[{}]/g, '')                    // Remove curly brackets
-      .replace(/[﴿﴾]/g, '')                    // Remove Quran brackets
-      .replace(/[\u0660-\u0669]/g, '')         // Remove Arabic-Indic digits
-      .replace(/[١٢٣٤٥٦٧٨٩٠]/g, '')           // Remove Eastern Arabic numerals
-      .replace(/\[\d+\]/g, '')                 // Remove [1] style references
-      .replace(/\(\d+\)/g, '')                 // Remove (1) style references
-      .replace(/\s*\*\s*/g, ' ')               // Remove asterisks
-      .replace(/\s+/g, ' ')                    // Normalize whitespace
+  // Smart text cleaner + Allah diacritics restoration
+  const cleanText = useCallback((text: string): string => {
+    let cleaned = text
+      .replace(/[{}]/g,              '')   // curly brackets
+      .replace(/[﴿﴾]/g,             '')   // Quran brackets
+      .replace(/[\u0660-\u0669]/g,   '')   // Arabic-Indic digits
+      .replace(/[١٢٣٤٥٦٧٨٩٠]/g,    '')   // Eastern-Arabic numerals
+      .replace(/\[\d+\]/g,           '')   // [1] footnotes
+      .replace(/\(\d+\)/g,           '')   // (1) footnotes
+      .replace(/\s*\*\s*/g,          ' ')  // asterisks
+      .replace(/\s+/g,               ' ')  // collapse whitespace
       .trim();
-  };
+    return restoreAllahDiacritics(cleaned);
+  }, []);
+
+  const completionMsg = COMPLETION_MESSAGES[data.id % COMPLETION_MESSAGES.length];
+  const progressPercent = Math.min(100, (count / target) * 100);
+
+  // SVG circular progress ring dimensions
+  const RING_R = 20;
+  const RING_C = 2 * Math.PI * RING_R;
+  const ringOffset = RING_C * (1 - progressPercent / 100);
+  const gradId = `zg-${data.id}`;
 
   const handleTap = useCallback(() => {
-    // Notify parent that user has started this zekr
     if (onProgress) onProgress(data.id);
+    if (completed) return;
 
-    if (!completed) {
-      setCount(prev => {
-        const next = prev + 1;
-        if (navigator.vibrate) navigator.vibrate(next === target ? [50, 50, 50] : 10);
-        if (next === target) {
-          setLastUsedZekrId(data.id);
-          // Notify parent that this dhikr is completed
-          if (onComplete) onComplete(data.id);
-        }
-        return next;
-      });
-    }
+    // Visual press feedback
+    setIsPressed(true);
+    clearTimeout(pressRef.current);
+    pressRef.current = setTimeout(() => setIsPressed(false), 130);
+
+    // Animate count badge
+    setCountKey(k => k + 1);
+
+    setCount(prev => {
+      const next = prev + 1;
+      // Haptic
+      if (navigator.vibrate) navigator.vibrate(next >= target ? [40, 30, 40] : 8);
+      if (next >= target) {
+        setLastUsedZekrId(data.id);
+        if (onComplete) onComplete(data.id);
+        // Completion celebrations
+        setShowBurst(true);
+        setGlowing(true);
+        setTimeout(() => setShowBurst(false), 700);
+        setTimeout(() => setGlowing(false),   800);
+      }
+      return next;
+    });
   }, [completed, target, data.id, onComplete, onProgress]);
 
-  const progressPercent = Math.min(100, (count / target) * 100);
+  // Cleanup timeout on unmount
+  useEffect(() => () => { clearTimeout(pressRef.current); }, []);
 
   return (
     <div
       onClick={handleTap}
-      className={`relative rounded-3xl transition-all duration-300 cursor-pointer select-none overflow-hidden border-2 ${completed
-        ? 'bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/20 border-emerald-300 dark:border-emerald-700 shadow-xl shadow-emerald-500/10'
-        : 'bg-white/95 dark:bg-navy-900/95 backdrop-blur-sm border-gold-100 dark:border-navy-700 shadow-lg shadow-navy-900/5 dark:shadow-navy-950/30 hover:shadow-xl hover:shadow-gold-500/10 hover:border-gold-300 dark:hover:border-gold-600/50'
-        }`}
+      className={[
+        'relative rounded-3xl transition-all duration-300 cursor-pointer select-none overflow-hidden border-2',
+        completed
+          ? 'bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/20 border-emerald-300 dark:border-emerald-700 shadow-xl shadow-emerald-500/10'
+          : 'bg-white/95 dark:bg-navy-900/95 backdrop-blur-sm border-gold-100 dark:border-navy-700 shadow-lg shadow-navy-900/5 dark:shadow-navy-950/30 hover:shadow-xl hover:shadow-gold-500/10 hover:border-gold-300 dark:hover:border-gold-600/50 animate-card-breathe',
+        isPressed ? 'scale-[0.984]' : 'scale-100',
+        glowing   ? 'animate-completion-glow' : '',
+      ].join(' ')}
     >
-      {/* Progress Bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-2 bg-gold-100/50 dark:bg-navy-800/50 overflow-hidden">
+      {/* ── Completion confetti burst ── */}
+      {showBurst && <ZekrBurst />}
+
+      {/* ── Press ripple overlay ── */}
+      {isPressed && (
+        <div className="absolute inset-0 pointer-events-none rounded-3xl bg-gold-300/10 dark:bg-gold-400/5 animate-ping-once z-10" />
+      )}
+
+      {/* ── Subtle emerald overlay when done ── */}
+      {completed && (
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-green-500/5 pointer-events-none" />
+      )}
+
+      {/* ── Bottom Progress Bar ── */}
+      <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gold-100/50 dark:bg-navy-800/50 overflow-hidden">
         <div
-          className={`h-full transition-all duration-500 ease-out rounded-full ${completed ? 'bg-gradient-to-r from-emerald-500 to-green-500' : 'bg-gradient-to-r from-gold-500 to-amber-500'}`}
+          className={`h-full transition-all duration-500 ease-out ${completed ? 'bg-gradient-to-r from-emerald-500 to-green-500' : 'bg-gradient-to-r from-gold-500 to-amber-500'}`}
           style={{ width: `${progressPercent}%` }}
         />
       </div>
-      {completed && <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-green-500/5 pointer-events-none" />}
 
-      {/* Header Actions */}
-      <div className="flex justify-between items-center px-5 md:px-6 pt-5 mb-3 relative z-10">
+      {/* ══════════════ HEADER ══════════════ */}
+      <div className="flex justify-between items-center px-4 md:px-6 pt-5 mb-2 relative z-10">
+
+        {/* Left: action buttons */}
         <div className="flex gap-2">
           <button
-            onClick={(e) => { e.stopPropagation(); onToggleFav(data.id); }}
-            className={`p-2.5 rounded-xl transition-all shadow-sm border ${isFav
-              ? 'bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-900/30 dark:to-pink-900/20 text-rose-500 border-rose-200 dark:border-rose-700'
-              : 'bg-gold-50/80 dark:bg-navy-800 text-navy-400 border-gold-100/50 dark:border-navy-700 hover:text-rose-400'}`}
+            onClick={e => { e.stopPropagation(); onToggleFav(data.id); }}
+            className={`p-2.5 rounded-xl transition-all shadow-sm border ${
+              isFav
+                ? 'bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-900/30 dark:to-pink-900/20 text-rose-500 border-rose-200 dark:border-rose-700'
+                : 'bg-gold-50/80 dark:bg-navy-800 text-navy-400 border-gold-100/50 dark:border-navy-700 hover:text-rose-400'
+            }`}
           >
-            <Heart size={18} fill={isFav ? "currentColor" : "none"} />
+            <Heart size={18} fill={isFav ? 'currentColor' : 'none'} />
           </button>
           {onEdit && (
-            <button onClick={(e) => { e.stopPropagation(); onEdit(); }} className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-500 shadow-sm border border-blue-100 dark:border-blue-800"><Edit2 size={18} /></button>
+            <button
+              onClick={e => { e.stopPropagation(); onEdit(); }}
+              className="p-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-500 shadow-sm border border-blue-100 dark:border-blue-800"
+            >
+              <Edit2 size={18} />
+            </button>
           )}
           {onDelete && (
-            <button onClick={(e) => { e.stopPropagation(); if (confirm('حذف الذكر؟')) onDelete(); }} className="p-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 shadow-sm border border-red-100 dark:border-red-800"><Trash2 size={18} /></button>
+            <button
+              onClick={e => { e.stopPropagation(); if (confirm('حذف الذكر؟')) onDelete(); }}
+              className="p-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-500 shadow-sm border border-red-100 dark:border-red-800"
+            >
+              <Trash2 size={18} />
+            </button>
           )}
         </div>
 
-        <div className={`px-4 py-2 rounded-xl text-sm font-bold font-sans border shadow-sm ${completed
-          ? 'bg-gradient-to-r from-emerald-100 to-green-100 dark:from-emerald-900/30 dark:to-green-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700'
-          : 'bg-gradient-to-r from-gold-50 to-amber-50 dark:from-navy-800 dark:to-navy-900 text-gold-700 dark:text-gold-400 border-gold-100 dark:border-navy-700'
-          }`}>
-          {completed ? '✓ تم' : `${toArabicDigits(count)} / ${toArabicDigits(target)}`}
+        {/* Right: Circular SVG Progress Ring + Count */}
+        <div className="relative w-[60px] h-[60px] flex items-center justify-center shrink-0">
+          <svg
+            className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none"
+            viewBox="0 0 50 50"
+          >
+            {/* Track ring */}
+            <circle
+              cx="25" cy="25" r={RING_R}
+              fill="none" stroke="currentColor" strokeWidth="3"
+              className="text-gold-100 dark:text-navy-700"
+            />
+            {/* Progress ring */}
+            <circle
+              cx="25" cy="25" r={RING_R}
+              fill="none"
+              stroke={`url(#${gradId})`}
+              strokeWidth="3"
+              strokeDasharray={RING_C}
+              strokeDashoffset={ringOffset}
+              strokeLinecap="round"
+              className="transition-all duration-400 ease-out drop-shadow-sm"
+            />
+            <defs>
+              <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%"   stopColor={completed ? '#10b981' : '#f59e0b'} />
+                <stop offset="100%" stopColor={completed ? '#22c55e' : '#d97706'} />
+              </linearGradient>
+            </defs>
+          </svg>
+
+          {/* Count display inside the ring */}
+          <div
+            key={countKey}
+            className={`relative z-10 flex flex-col items-center justify-center leading-none ${countKey > 0 ? 'animate-count-pop' : ''}`}
+          >
+            {completed ? (
+              <div className="animate-check-bounce">
+                <CheckCircle2 size={24} className="text-emerald-500" />
+              </div>
+            ) : (
+              <>
+                <span className="text-base font-black text-navy-800 dark:text-white tabular-nums">
+                  {toArabicDigits(count)}
+                </span>
+                <div className="w-5 h-px bg-gold-300 dark:bg-navy-600 my-0.5" />
+                <span className="text-[9px] font-bold text-navy-400 dark:text-navy-500 tabular-nums">
+                  {toArabicDigits(target)}
+                </span>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="px-5 md:px-6 pb-8 text-center relative z-10">
+      {/* ══════════════ BODY ══════════════ */}
+      <div className="px-4 md:px-6 pb-7 text-center relative z-10">
+
+        {/* Dhikr text */}
         <p
-          className="font-quran text-navy-900 dark:text-white mb-6 leading-[2.4] text-center"
+          className="font-quran text-navy-900 dark:text-white mb-5 leading-[2.5] text-center"
           style={{ fontSize: `${fontSize}px` }}
         >
           {cleanText(data.zekr)}
         </p>
 
-        {data.description && (
-          <div className="flex gap-3 items-start text-right bg-gradient-to-r from-gold-50/80 to-amber-50/50 dark:from-navy-800/80 dark:to-navy-900/50 p-4 rounded-2xl border border-gold-100/50 dark:border-navy-700 mb-4 shadow-sm">
-            <div className="w-6 h-6 bg-gradient-to-br from-gold-400 to-amber-400 rounded-lg flex items-center justify-center shrink-0 shadow-sm">
-              <Star size={12} className="text-white fill-white" />
+        {/* Completion motivational message */}
+        {completed && (
+          <div className="mb-4 py-2.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-500 text-white font-bold text-sm shadow-lg shadow-emerald-500/30 animate-msg-slide-up flex items-center justify-center gap-2">
+            <CheckCircle2 size={15} />
+            <span>{completionMsg}</span>
+          </div>
+        )}
+
+        {/* Description / virtue */}
+        {data.description && !completed && (
+          <div className="flex gap-3 items-start text-right bg-gradient-to-r from-gold-50/80 to-amber-50/50 dark:from-navy-800/80 dark:to-navy-900/50 p-3.5 rounded-2xl border border-gold-100/50 dark:border-navy-700 mb-4 shadow-sm">
+            <div className="w-5 h-5 bg-gradient-to-br from-gold-400 to-amber-400 rounded-md flex items-center justify-center shrink-0 shadow-sm mt-0.5">
+              <Star size={10} className="text-white fill-white" />
             </div>
             <span className="text-xs font-bold text-navy-600 dark:text-navy-300 leading-relaxed">{data.description}</span>
           </div>
         )}
 
-        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gold-100/50 dark:border-navy-700">
-          <span className="text-[10px] font-bold text-navy-400 dark:text-navy-500">{data.reference || 'مرجع غير محدد'}</span>
-          {!completed && (
-            <span className="text-xs text-gold-600 dark:text-gold-400 animate-pulse font-bold bg-gold-50/80 dark:bg-gold-900/20 px-3 py-1 rounded-lg">
-              المس للعد 👆
+        {/* Footer: reference + tap hint */}
+        <div className="flex justify-between items-center mt-3 pt-3 border-t border-gold-100/50 dark:border-navy-700/60">
+          <span className="text-[10px] font-medium text-navy-400 dark:text-navy-500 text-right leading-snug max-w-[60%]">
+            {data.reference || 'مرجع غير محدد'}
+          </span>
+          {!completed ? (
+            <span className="text-[11px] text-gold-600 dark:text-gold-400 animate-pulse font-bold bg-gold-50 dark:bg-gold-900/20 px-2.5 py-1 rounded-lg border border-gold-100 dark:border-gold-900/30 whitespace-nowrap">
+              اضغط للعد 👆
+            </span>
+          ) : (
+            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/30 whitespace-nowrap">
+              ✓ مكتمل
             </span>
           )}
         </div>
