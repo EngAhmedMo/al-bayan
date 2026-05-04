@@ -6,7 +6,7 @@ import { toArabicDigits } from '../services/normalization';
 import { getLastTasbihTarget, setLastTasbihTarget, getCustomTasbihs, addCustomTasbih, deleteCustomTasbih, getTasbihState, saveTasbihState, clearTasbihState, getLifetimeTasbihTotal, addLifetimeTasbihTotal } from '../services/storage';
 import { useSettings } from '../components/Layout';
 import { TasbihItem } from '../types';
-import { hapticTap, hapticMedium, hapticSuccess } from '../services/haptics';
+import { hapticTap, hapticMedium, hapticSuccess, hapticWarning } from '../services/haptics';
 
 // Default built-in Adhkar (Updated and Verified)
 const BASE_ADHKAR_ITEMS: TasbihItem[] = [
@@ -15,17 +15,26 @@ const BASE_ADHKAR_ITEMS: TasbihItem[] = [
     label: "أذكار بعد الصلاة (مجمّعة)", 
     count: 0, 
     target: 100, 
-    virtue: "تُقال بعد الصلوات المكتوبة (33 تسبيح، 33 تحميد، 34 تكبير، وختاماً التهليل)",
-    hadithSource: "عَنْ أَبِي هُرَيْرَةَ عَنْ رَسُولِ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ قَالَ: مَنْ سَبَّحَ اللَّهَ فِي دُبُرِ كُلِّ صَلَاةٍ ثَلَاثًا وَثَلَاثِينَ، وَحَمِدَ اللَّهَ ثَلَاثًا وَثَلَاثِينَ، وَكَبَّرَ اللَّهَ ثَلَاثًا وَثَلَاثِينَ، فَتْلِكَ تِسْعَةٌ وَتِسْعُونَ، وَقَالَ تَمَامَ الْمِائَةِ: لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ غُفِرَتْ خَطَايَاهُ وَإِنْ كَانَتْ مِثْلَ زَبَدِ الْبَحْرِ. (رواه مسلم)",
+    virtue: "تُقال بعد الصلوات المكتوبة (33 تسبيح، 33 تحميد، 33 تكبير، وختاماً التهليل لتمام المائة). وفضل مفرداتها: التسبيح يُكتب به ألف حسنة، والحمد يملأ الميزان، والتكبير خير من خادم.",
+    hadithSource: "- فضل الذكر المجمع: عَنْ أَبِي هُرَيْرَةَ قَالَ: مَنْ سَبَّحَ اللَّهَ فِي دُبُرِ كُلِّ صَلَاةٍ ثَلَاثًا وَثَلَاثِينَ، وَحَمِدَ اللَّهَ ثَلَاثًا وَثَلَاثِينَ، وَكَبَّرَ اللَّهَ ثَلَاثًا وَثَلَاثِينَ، فَتْلِكَ تِسْعَةٌ وَتِسْعُونَ، وَقَالَ تَمَامَ الْمِائَةِ: لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ... غُفِرَتْ خَطَايَاهُ... (رواه مسلم)\n- فضل التسبيح: أَيَعْجِزُ أَحَدُكُمْ أَنْ يَكْسِبَ... يُسَبِّحُ مِائَةَ تَسْبِيحَةٍ، فَيُكْتَبُ لَهُ أَلْفُ حَسَنَةٍ... (رواه مسلم)\n- فضل التحميد: الطُّهُورُ شَطْرُ الْإِيمَانِ، وَالْحَمْدُ لِلَّهِ تَمْلَأُ الْمِيزَانَ... (رواه مسلم)\n- فضل التكبير: فَكَبِّرَا ثَلَاثًا وَثَلَاثِينَ، وَسَبِّحَا ثَلَاثًا وَثَلَاثِينَ، وَاحْمَدَا ثَلَاثًا وَثَلَاثِينَ، فَهَذَا خَيْرٌ لَكُمَا مِنْ خَادِمٍ. (متفق عليه)",
     sequenceMode: true
   },
-  { id: "std_1", label: "سُبْحَانَ اللَّهِ", count: 0, target: 100, virtue: "تُكتب له ألف حسنة أو تُحط عنه ألف خطيئة", hadithSource: "عَنْ سَعْدِ بْنِ أَبِي وَقَّاصٍ، قَالَ: كُنَّا عِنْدَ رَسُولِ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ فَقَالَ: «أَيَعْجِزُ أَحَدُكُمْ أَنْ يَكْسِبَ، كُلَّ يَوْمٍ أَلْفَ حَسَنَةٍ؟» فَسَأَلَهُ سَائِلٌ مِنْ جُلَسَائِهِ: كَيْفَ يَكْسِبُ أَحَدُنَا أَلْفَ حَسَنَةٍ؟ قَالَ: «يُسَبِّحُ مِائَةَ تَسْبِيحَةٍ، فَيُكْتَبُ لَهُ أَلْفُ حَسَنَةٍ، أَوْ يُحَطُّ عَنْهُ أَلْفُ خَطِيئَةٍ». (رواه مسلم)" },
-  { id: "std_2", label: "الْحَمْدُ لِلَّهِ", count: 0, target: 33, virtue: "تَمْلَأُ الْمِيزَانَ", hadithSource: "عَنْ أَبِي مَالِكٍ الْأَشْعَرِيِّ قَالَ: قَالَ رَسُولُ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ: «الطُّهُورُ شَطْرُ الْإِيمَانِ، وَالْحَمْدُ لِلَّهِ تَمْلَأُ الْمِيزَانَ...» (رواه مسلم)" },
-  { id: "std_3", label: "لَا إِلَهَ إِلَّا اللَّهُ", count: 0, target: 100, virtue: "أَفْضَلُ الذِّكْرِ", hadithSource: "عَنْ جَابِرِ بْنِ عَبْدِ اللَّهِ يَقُولُ: سَمِعْتُ رَسُولَ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ يَقُولُ: «أَفْضَلُ الذِّكْرِ لَا إِلَهَ إِلَّا اللَّهُ، وَأَفْضَلُ الدُّعَاءِ الْحَمْدُ لِلَّهِ». (رواه الترمذي وحسنه الألباني)" },
-  { id: "std_4", label: "اللَّهُ أَكْبَرُ", count: 0, target: 34, virtue: "خيرٌ من خادم (عند النوم)", hadithSource: "عَنْ عَلِيٍّ أَنَّ فَاطِمَةَ عَلَيْهَا السَّلَامُ شَكَتْ مَا تَلْقَى مِنْ أَثَرِ الرَّحَى... فَقَالَ رَسُولُ اللَّهِ: «أَلَا أَدُلُّكُمَا عَلَى مَا هُوَ خَيْرٌ لَكُمَا مِنْ خَادِمٍ؟ إِذَا أَوَيْتُمَا إِلَى فِرَاشِكُمَا، أَوْ أَخَذْتُمَا مَضَاجِعَكُمَا، فَكَبِّرَا ثَلَاثًا وَثَلَاثِينَ، وَسَبِّحَا ثَلَاثًا وَثَلَاثِينَ، وَاحْمَدَا ثَلَاثًا وَثَلَاثِينَ، فَهَذَا خَيْرٌ لَكُمَا مِنْ خَادِمٍ». (متفق عليه)" },
-  { id: "std_new_1", label: "سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَلَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ", count: 0, target: 100, virtue: "أَحَبُّ الْكَلَامِ إِلَى اللَّهِ", hadithSource: "عَنْ سَمُرَةَ بْنِ جُنْدَبٍ، قَالَ: قَالَ رَسُولُ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ: «أَحَبُّ الْكَلَامِ إِلَى اللَّهِ أَرْبَعٌ: سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَلَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ، لَا يَضُرُّكَ بِأَيِّهِنَّ بَدَأْتَ». (رواه مسلم)" },
-  { id: "std_5", label: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ", count: 0, target: 100, virtue: "حُطَّتْ خَطَايَاهُ وَإِنْ كَانَتْ مِثْلَ زَبَدِ الْبَحْرِ", hadithSource: "عَنْ أَبِي هُرَيْرَةَ رَضِيَ اللَّهُ عَنْهُ، أَنَّ رَسُولَ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ قَالَ: «مَنْ قَالَ: سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، فِي يَوْمٍ مِائَةَ مَرَّةٍ، حُطَّتْ خَطَايَاهُ، وَإِنْ كَانَتْ مِثْلَ زَبَدِ الْبَحْرِ». (متفق عليه)" },
-  { id: "std_6", label: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ", count: 0, target: 100, virtue: "كَلِمَتَانِ خَفِيفَتَانِ عَلَى اللِّسَانِ، ثَقِيلَتَانِ فِي الْمِيزَانِ", hadithSource: "عَنْ أَبِي هُرَيْرَةَ رَضِيَ اللَّهُ عَنْهُ قَالَ: قَالَ النَّبِيُّ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ: «كَلِمَتَانِ حَبِيبَتَانِ إِلَى الرَّحْمَنِ، خَفِيفَتَانِ عَلَى اللِّسَانِ، ثَقِيلَتَانِ فِي الْمِيزَانِ: سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ». (متفق عليه)" },
+  { 
+    id: "std_new_1", 
+    label: "سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَلَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ", 
+    count: 0, 
+    target: 100, 
+    virtue: "أَحَبُّ الْكَلَامِ إِلَى اللَّهِ، ومفرداتها تتضمن أفضل الذكر (لَا إِلَهَ إِلَّا اللَّهُ).", 
+    hadithSource: "- فضل الباقيات: قَالَ ﷺ: «أَحَبُّ الْكَلَامِ إِلَى اللَّهِ أَرْبَعٌ: سُبْحَانَ اللَّهِ، وَالْحَمْدُ لِلَّهِ، وَلَا إِلَهَ إِلَّا اللَّهُ، وَاللَّهُ أَكْبَرُ...». (رواه مسلم)\n- فضل التهليل: قَالَ ﷺ: «أَفْضَلُ الذِّكْرِ لَا إِلَهَ إِلَّا اللَّهُ...». (رواه الترمذي وحسنه)" 
+  },
+  { 
+    id: "std_6", 
+    label: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، سُبْحَانَ اللَّهِ الْعَظِيمِ", 
+    count: 0, 
+    target: 100, 
+    virtue: "كَلِمَتَانِ خَفِيفَتَانِ عَلَى اللِّسَانِ، ثَقِيلَتَانِ فِي الْمِيزَانِ، ومَنْ قَالَهَا حُطَّتْ خَطَايَاهُ وَإِنْ كَانَتْ مِثْلَ زَبَدِ الْبَحْرِ.", 
+    hadithSource: "- فضل الذكر: قَالَ ﷺ: «كَلِمَتَانِ حَبِيبَتَانِ إِلَى الرَّحْمَنِ، خَفِيفَتَانِ عَلَى اللِّسَانِ، ثَقِيلَتَانِ فِي الْمِيزَانِ...». (متفق عليه)\n- فضل سبحان الله وبحمده: قَالَ ﷺ: «مَنْ قَالَ: سُبْحَانَ اللَّهِ وَبِحَمْدِهِ، فِي يَوْمٍ مِائَةَ مَرَّةٍ، حُطَّتْ خَطَايَاهُ...». (متفق عليه)" 
+  },
   { id: "std_7", label: "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ", count: 0, target: 100, virtue: "كَانَتْ لَهُ عَدْلَ عَشْرِ رِقَابٍ، وَكُتِبَتْ لَهُ مِائَةُ حَسَنَةٍ...", hadithSource: "عَنْ أَبِي هُرَيْرَةَ رَضِيَ اللَّهُ عَنْهُ، أَنَّ رَسُولَ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ قَالَ: «مَنْ قَالَ لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ فِي يَوْمٍ مِائَةَ مَرَّةٍ، كَانَتْ لَهُ عَدْلَ عَشْرِ رِقَابٍ، وَكُتِبَتْ لَهُ مِائَةُ حَسَنَةٍ، وَمُحِيَتْ عَنْهُ مِائَةُ سَيِّئَةٍ، وَكَانَتْ لَهُ حِرْزًا مِنَ الشَّيْطَانِ يَوْمَهُ ذَلِكَ حَتَّى يُمْسِيَ». (متفق عليه)" },
   { id: "std_8", label: "لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ", count: 0, target: 100, virtue: "كَنْزٌ مِنْ كُنُوزِ الْجَنَّةِ", hadithSource: "عَنْ أَبِي مُوسَى الْأَشْعَرِيِّ، أَنَّ النَّبِيَّ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ قَالَ لَهُ: «يَا عَبْدَ اللَّهِ بْنَ قَيْسٍ أَلَا أَدُلُّكَ عَلَى كَنْزٍ مِنْ كُنُوزِ الْجَنَّةِ؟»، فَقُلْتُ: بَلَى يَا رَسُولَ اللَّهِ، قَالَ: «قُلْ لَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ». (متفق عليه)" },
   { id: "std_9", label: "أَسْتَغْفِرُ اللَّهَ وَأَتُوبُ إِلَيْهِ", count: 0, target: 100, virtue: "طُوبَى لِمَنْ وَجَدَ فِي صَحِيفَتِهِ اسْتِغْفَارًا كَثِيرًا", hadithSource: "قَالَ رَسُولُ اللَّهِ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ: «إِنَّهُ لَيُغَانُ عَلَى قَلْبِي، وَإِنِّي لَأَسْتَغْفِرُ اللَّهَ فِي الْيَوْمِ مِائَةَ مَرَّةٍ». (رواه مسلم)\nوقوله: «طُوبَى لِمَنْ وَجَدَ فِي صَحِيفَتِهِ اسْتِغْفَارًا كَثِيرًا». (رواه ابن ماجه وصححه الألباني)" },
@@ -75,18 +84,18 @@ export const Tasbih: React.FC = () => {
 
   const currentTasbih = allTasbihs[currentIndex] || BASE_ADHKAR_ITEMS[0];
 
-  // Dynamic Label for Sequence Mode
   const getDynamicLabel = (item: TasbihItem, currentCount: number) => {
     if (item.sequenceMode && item.id === 'std_post_prayer') {
       if (currentCount < 33) return "سُبْحَانَ اللَّهِ";
       if (currentCount < 66) return "الْحَمْدُ لِلَّهِ";
-      if (currentCount < 100) return "اللَّهُ أَكْبَرُ";
+      if (currentCount < 99) return "اللَّهُ أَكْبَرُ";
       return "لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ";
     }
     return item.label;
   };
 
   const displayLabel = getDynamicLabel(currentTasbih, count);
+  const isEnding = target > 0 && count === target - 1;
 
   // Initialize: Restore preferences & Load Custom
   useEffect(() => {
@@ -303,7 +312,11 @@ export const Tasbih: React.FC = () => {
       }, 400); // 400ms transition delay
     } else {
       // --- NORMAL INCREMENT ---
-      hapticTap();
+      if (target > 0 && newCount === target - 1) {
+        hapticWarning(); // Special haptic alert for the final count
+      } else {
+        hapticTap();
+      }
       setCount(newCount);
     }
   };
@@ -507,37 +520,37 @@ export const Tasbih: React.FC = () => {
               }}
             >
               {/* Outer Glow Effect */}
-              <div className={`absolute inset-0 rounded-full transition-opacity duration-150 ${isPressed
+              <div className={`absolute inset-0 rounded-full transition-opacity duration-300 ${isPressed
                 ? 'scale-[1.15] opacity-100'
                 : 'scale-100 opacity-0 group-hover:opacity-30 group-hover:scale-110'}`}>
-                <div className="w-full h-full rounded-full bg-gradient-to-r from-gold-400 to-amber-500 blur-2xl"></div>
+                <div className={`w-full h-full rounded-full blur-2xl transition-colors duration-500 ${isEnding ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : 'bg-gradient-to-r from-gold-400 to-amber-500'}`}></div>
               </div>
 
               {/* Main Button */}
               <div className={`
                    relative w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72 rounded-full 
-                   bg-gradient-to-br from-white via-gold-50 to-amber-50 dark:from-navy-800 dark:via-navy-850 dark:to-navy-900
+                   bg-gradient-to-br ${isEnding ? 'from-emerald-50 via-teal-50 to-emerald-100 dark:from-emerald-900 dark:via-emerald-950 dark:to-teal-900' : 'from-white via-gold-50 to-amber-50 dark:from-navy-800 dark:via-navy-850 dark:to-navy-900'}
                    shadow-[0_15px_50px_-15px_rgba(0,0,0,0.15),inset_0_-8px_20px_rgba(0,0,0,0.04)] 
                    dark:shadow-[0_15px_50px_-15px_rgba(0,0,0,0.5),inset_0_2px_2px_rgba(255,255,255,0.05)]
-                   border-[6px] border-white/80 dark:border-navy-700/80
+                   border-[6px] ${isEnding ? 'border-emerald-200/80 dark:border-emerald-700/80 shadow-emerald-500/20' : 'border-white/80 dark:border-navy-700/80'}
                    flex flex-col items-center justify-center
-                   transition-transform duration-100 ease-out will-change-transform
+                   transition-all duration-300 ease-out will-change-transform
                    ${isPressed ? 'scale-[0.96]' : 'scale-100 group-hover:scale-[1.02]'}
                 `}>
 
                 {/* Inner Highlight Ring */}
-                <div className="absolute inset-4 rounded-full border-2 border-gold-200/30 dark:border-gold-500/10"></div>
+                <div className={`absolute inset-4 rounded-full border-2 transition-colors duration-300 ${isEnding ? 'border-emerald-500/20 dark:border-emerald-400/20' : 'border-gold-200/30 dark:border-gold-500/10'}`}></div>
 
                 {/* Counter Display */}
-                <span className="text-7xl sm:text-8xl font-sans font-black text-navy-800 dark:text-white tracking-tighter drop-shadow-sm select-none tabular-nums">
+                <span className={`text-7xl sm:text-8xl font-sans font-black tracking-tighter drop-shadow-sm select-none tabular-nums transition-colors duration-300 ${isEnding ? 'text-emerald-700 dark:text-emerald-300' : 'text-navy-800 dark:text-white'}`}>
                   {toArabicDigits(count)}
                 </span>
 
                 {/* Target Info */}
-                <div className="flex items-center gap-2 mt-3 bg-navy-50/80 dark:bg-navy-700/80 px-4 py-1.5 rounded-full">
-                  <Target size={12} className="text-gold-500" />
-                  <span className="text-xs font-bold text-navy-500 dark:text-navy-400">
-                    الهدف: {target === 0 ? '∞' : toArabicDigits(target)}
+                <div className={`flex items-center gap-2 mt-3 px-4 py-1.5 rounded-full transition-colors duration-300 ${isEnding ? 'bg-emerald-100 dark:bg-emerald-800/80' : 'bg-navy-50/80 dark:bg-navy-700/80'}`}>
+                  <Target size={12} className={isEnding ? 'text-emerald-600 dark:text-emerald-400' : 'text-gold-500'} />
+                  <span className={`text-xs font-bold ${isEnding ? 'text-emerald-700 dark:text-emerald-300' : 'text-navy-500 dark:text-navy-400'}`}>
+                    {isEnding ? 'ختام المائة' : `الهدف: ${target === 0 ? '∞' : toArabicDigits(target)}`}
                   </span>
                 </div>
               </div>
@@ -565,8 +578,8 @@ export const Tasbih: React.FC = () => {
                 />
                 <defs>
                   <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#f59e0b" />
-                    <stop offset="100%" stopColor="#d97706" />
+                    <stop offset="0%" stopColor={isEnding ? "#10b981" : "#f59e0b"} className="transition-colors duration-300" />
+                    <stop offset="100%" stopColor={isEnding ? "#059669" : "#d97706"} className="transition-colors duration-300" />
                   </linearGradient>
                 </defs>
               </svg>
