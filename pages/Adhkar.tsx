@@ -390,6 +390,7 @@ const CategoryDetail: React.FC<{
   // Track completion state for exit confirmation
   // We track individual Zekr progress to know if "started"
   const [completedIds, setCompletedIds] = useState<Set<number>>(new Set());
+  const completedIdsRef = useRef<Set<number>>(completedIds);
   const [startedIds, setStartedIds] = useState<Set<number>>(new Set());
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
@@ -404,7 +405,34 @@ const CategoryDetail: React.FC<{
 
   const handleComplete = useCallback((id: number) => {
     setCompletedIds(prev => new Set([...prev, id]));
-  }, []);
+    
+    // Auto-scroll to the next uncompleted Zekr after animations finish
+    setTimeout(() => {
+      const currentIndex = adhkarList.findIndex(z => z.id === id);
+      if (currentIndex !== -1) {
+        let nextZekr = null;
+        for (let i = currentIndex + 1; i < adhkarList.length; i++) {
+          if (!completedIdsRef.current.has(adhkarList[i].id) && adhkarList[i].id !== id) {
+            nextZekr = adhkarList[i];
+            break;
+          }
+        }
+        
+        if (nextZekr) {
+          const nextElement = document.getElementById(`zekr-${nextZekr.id}`);
+          if (nextElement) {
+            nextElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Briefly highlight the next card
+            nextElement.classList.add('ring-2', 'ring-gold-500', 'ring-offset-2', 'dark:ring-offset-navy-900', 'transition-all', 'duration-500');
+            setTimeout(() => {
+              nextElement.classList.remove('ring-2', 'ring-gold-500', 'ring-offset-2', 'dark:ring-offset-navy-900');
+            }, 1500);
+          }
+        }
+      }
+    }, 800);
+  }, [adhkarList]);
 
   const handleBackClick = useCallback(() => {
     // Logic: If user has STARTED (interacted) but NOT completed ALL items -> Confirm
@@ -419,6 +447,10 @@ const CategoryDetail: React.FC<{
     setShowExitConfirm(false);
     onBack();
   }, [onBack]);
+
+  useEffect(() => {
+    completedIdsRef.current = completedIds;
+  }, [completedIds]);
 
   useEffect(() => {
     // Reset Scroll on Mount/Category Change
@@ -534,16 +566,17 @@ const CategoryDetail: React.FC<{
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 md:space-y-6 pb-24 custom-scrollbar">
         {adhkarList.map(zekr => (
-          <ZekrCard
-            key={zekr.id}
-            data={zekr}
-            isFav={favIds.includes(zekr.id)}
-            onToggleFav={onToggleFav}
-            onComplete={handleComplete}
-            onProgress={handleTapProgress}
-            onDelete={category === "أذكاري الخاصة" ? () => onDeleteCustom(zekr.id) : undefined}
-            onEdit={category === "أذكاري الخاصة" ? () => onEditCustom(zekr) : undefined}
-          />
+          <div key={zekr.id} id={`zekr-${zekr.id}`} className="rounded-3xl">
+            <ZekrCard
+              data={zekr}
+              isFav={favIds.includes(zekr.id)}
+              onToggleFav={onToggleFav}
+              onComplete={handleComplete}
+              onProgress={handleTapProgress}
+              onDelete={category === "أذكاري الخاصة" ? () => onDeleteCustom(zekr.id) : undefined}
+              onEdit={category === "أذكاري الخاصة" ? () => onEditCustom(zekr) : undefined}
+            />
+          </div>
         ))}
 
         {/* Helper Padding at bottom */}

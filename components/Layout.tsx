@@ -42,7 +42,10 @@ interface AudioContextType {
   continuousRepeat: number;
   surahRepeat: number;
   pageRepeat: number;
-  playTrack: (url: string, title: string, subtitle: string, globalAyahNumber?: number, shouldAutoAdvance?: boolean, repeatCount?: number, forceReciterId?: string, continuousRepeat?: number, surahRepeat?: number, pageRepeat?: number) => void;
+  rangeStart: number;
+  rangeEnd: number;
+  rangeRepeat: number;
+  playTrack: (url: string, title: string, subtitle: string, globalAyahNumber?: number, shouldAutoAdvance?: boolean, repeatCount?: number, forceReciterId?: string, continuousRepeat?: number, surahRepeat?: number, pageRepeat?: number, rangeStartGlobal?: number, rangeEndGlobal?: number, rangeRepeatCount?: number) => void;
   playNext: () => void;
   playPrev: () => void;
   pauseTrack: () => void;
@@ -57,6 +60,9 @@ export const AudioContext = createContext<AudioContextType>({
   continuousRepeat: 0,
   surahRepeat: 0,
   pageRepeat: 0,
+  rangeStart: 0,
+  rangeEnd: 0,
+  rangeRepeat: 0,
   playTrack: () => { },
   playNext: () => { },
   playPrev: () => { },
@@ -141,7 +147,7 @@ export const useNetwork = () => useContext(NetworkContext);
 
 // Audio Player Bar
 const AudioPlayerBar = () => {
-  const { currentTrack, isPlaying, autoAdvance, repeatCount, continuousRepeat, surahRepeat, pageRepeat, togglePlay, playNext, playPrev, playTrack, closePlayer } = useAudio();
+  const { currentTrack, isPlaying, autoAdvance, repeatCount, continuousRepeat, surahRepeat, pageRepeat, rangeStart, rangeEnd, rangeRepeat, togglePlay, playNext, playPrev, playTrack, closePlayer } = useAudio();
   const { isFullscreen } = useContext(NavigationContext);
   const { reciterId, setReciterId } = useSettings();
   const [showReciterMenu, setShowReciterMenu] = useState(false);
@@ -172,8 +178,18 @@ const AudioPlayerBar = () => {
     }
   };
 
-  // Determine which repeat badge to show (priority: ayah > continuous > page > surah > autoAdvance)
+  // Determine which repeat badge to show (priority: range > ayah > continuous > page > surah > autoAdvance)
   const renderRepeatBadge = () => {
+    if (rangeRepeat > 0) {
+      // Range repeat (نطاق آيات)
+      const startMeta = rangeStart > 0 ? getMetadataFromGlobalAyah(rangeStart) : null;
+      const endMeta = rangeEnd > 0 ? getMetadataFromGlobalAyah(rangeEnd) : null;
+      return (
+        <span className="flex items-center gap-0.5 text-orange-600 dark:text-orange-400 font-bold bg-orange-50 dark:bg-orange-900/20 px-1.5 py-0.5 rounded-full">
+          <Repeat size={10} /> نطاق {startMeta ? toArabicDigits(startMeta.ayahInSurah) : '?'}-{endMeta ? toArabicDigits(endMeta.ayahInSurah) : '?'} ×{rangeRepeat >= 100 ? '∞' : rangeRepeat}
+        </span>
+      );
+    }
     if (repeatCount > 0 && continuousRepeat === 0) {
       // Single ayah repeat (no auto-advance)
       return (
@@ -490,6 +506,12 @@ export const Layout: React.FC = () => {
   const surahRepeatRef = useRef(0);
   const [pageRepeat, setPageRepeat] = useState(0);
   const pageRepeatRef = useRef(0);
+  const [rangeStart, setRangeStart] = useState(0);
+  const rangeStartRef = useRef(0);
+  const [rangeEnd, setRangeEnd] = useState(0);
+  const rangeEndRef = useRef(0);
+  const [rangeRepeat, setRangeRepeat] = useState(0);
+  const rangeRepeatRef = useRef(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const preloadAudioRef = useRef<HTMLAudioElement | null>(null);
   const playTrackId = useRef<number>(0);
@@ -768,6 +790,9 @@ export const Layout: React.FC = () => {
   useEffect(() => { continuousRepeatRef.current = continuousRepeat; }, [continuousRepeat]);
   useEffect(() => { surahRepeatRef.current = surahRepeat; }, [surahRepeat]);
   useEffect(() => { pageRepeatRef.current = pageRepeat; }, [pageRepeat]);
+  useEffect(() => { rangeStartRef.current = rangeStart; }, [rangeStart]);
+  useEffect(() => { rangeEndRef.current = rangeEnd; }, [rangeEnd]);
+  useEffect(() => { rangeRepeatRef.current = rangeRepeat; }, [rangeRepeat]);
   useEffect(() => { reciterRef.current = reciterId; }, [reciterId]);
 
   useEffect(() => {
@@ -1135,6 +1160,8 @@ export const Layout: React.FC = () => {
     let tempSurahRepeat = surahRepeatRef.current;
     let tempPageRepeat = pageRepeatRef.current;
 
+    let tempRangeRepeat = rangeRepeatRef.current;
+
     for (let i = 1; i <= depth; i++) {
       const currentMeta = getMetadataFromGlobalAyah(current);
       const surahLength = SURAH_AYAH_COUNTS[currentMeta.surahNumber - 1];
@@ -1144,8 +1171,13 @@ export const Layout: React.FC = () => {
       const currentPage = getApproxPageFromGlobalAyah(current);
       const pageRange = getPageGlobalAyahRangeSync(currentPage);
 
-      // Predict loop
-      if (pageRange && current === pageRange.lastGlobal && tempPageRepeat > 0) {
+      // Predict loop: Range > Page > Surah
+      if (rangeStartRef.current > 0 && rangeEndRef.current > 0 && current === rangeEndRef.current && tempRangeRepeat > 0) {
+          nextGlobal = rangeStartRef.current;
+          if (tempRangeRepeat !== 100) tempRangeRepeat -= 1;
+      } else if (rangeStartRef.current > 0 && rangeEndRef.current > 0 && current === rangeEndRef.current && tempRangeRepeat === 0) {
+          break; // Range finished
+      } else if (pageRange && current === pageRange.lastGlobal && tempPageRepeat > 0) {
           nextGlobal = pageRange.firstGlobal;
           if (tempPageRepeat !== 100) tempPageRepeat -= 1;
       } else if (currentMeta.ayahInSurah === surahLength && tempSurahRepeat > 0) {
@@ -1189,15 +1221,28 @@ export const Layout: React.FC = () => {
     let nextGlobal = currentGlobal + 1;
     let newSurahRepeat = surahRepeatRef.current;
     let newPageRepeat = pageRepeatRef.current;
+    let newRangeRepeat = rangeRepeatRef.current;
     
     const currentMeta = getMetadataFromGlobalAyah(currentGlobal);
     const surahLength = SURAH_AYAH_COUNTS[currentMeta.surahNumber - 1];
     
-    // REPEAT LOGIC: Page Repeat vs Surah Repeat
+    // REPEAT LOGIC: Range Repeat (highest priority) > Page Repeat > Surah Repeat
     const currentPage = getApproxPageFromGlobalAyah(currentGlobal);
     const pageRange = getPageGlobalAyahRangeSync(currentPage);
 
-    if (pageRange && currentGlobal === pageRange.lastGlobal && newPageRepeat > 0) {
+    // Range Repeat: loop from rangeEnd back to rangeStart
+    if (rangeStartRef.current > 0 && rangeEndRef.current > 0 && currentGlobal === rangeEndRef.current && newRangeRepeat > 0) {
+      if (newRangeRepeat !== 100) newRangeRepeat -= 1;
+      setRangeRepeat(newRangeRepeat);
+      rangeRepeatRef.current = newRangeRepeat;
+      nextGlobal = rangeStartRef.current;
+    } else if (rangeStartRef.current > 0 && rangeEndRef.current > 0 && currentGlobal === rangeEndRef.current && newRangeRepeat === 0) {
+      // Range finished - stop playback
+      setIsPlaying(false);
+      setRangeStart(0); rangeStartRef.current = 0;
+      setRangeEnd(0); rangeEndRef.current = 0;
+      return;
+    } else if (pageRange && currentGlobal === pageRange.lastGlobal && newPageRepeat > 0) {
       if (newPageRepeat !== 100) newPageRepeat -= 1;
       setPageRepeat(newPageRepeat);
       pageRepeatRef.current = newPageRepeat;
@@ -1302,18 +1347,24 @@ export const Layout: React.FC = () => {
     }
   };
 
-  const playTrack = async (url: string, title: string, subtitle: string, globalAyahNumber?: number, shouldAutoAdvance = false, repeat = 0, forceReciterId?: string, continuousRepeatCount = 0, surahRepeatCount = 0, pageRepeatCount = 0) => {
+  const playTrack = async (url: string, title: string, subtitle: string, globalAyahNumber?: number, shouldAutoAdvance = false, repeat = 0, forceReciterId?: string, continuousRepeatCount = 0, surahRepeatCount = 0, pageRepeatCount = 0, rangeStartGlobal = 0, rangeEndGlobal = 0, rangeRepeatCount = 0) => {
     if (radioStation) stopRadio();
     if (previewPlayingId && azhanPreviewRef.current) { azhanPreviewRef.current.pause(); setPreviewPlayingId(null); }
     const requestId = ++playTrackId.current;
     
-    // Set continuous, surah, and page repeat flags
+    // Set continuous, surah, page, and range repeat flags
     setContinuousRepeat(continuousRepeatCount);
     continuousRepeatRef.current = continuousRepeatCount;
     setSurahRepeat(surahRepeatCount);
     surahRepeatRef.current = surahRepeatCount;
     setPageRepeat(pageRepeatCount);
     pageRepeatRef.current = pageRepeatCount;
+    setRangeStart(rangeStartGlobal);
+    rangeStartRef.current = rangeStartGlobal;
+    setRangeEnd(rangeEndGlobal);
+    rangeEndRef.current = rangeEndGlobal;
+    setRangeRepeat(rangeRepeatCount);
+    rangeRepeatRef.current = rangeRepeatCount;
 
     const targetReciterId = forceReciterId || reciterId;
     let finalUrl = url;
@@ -1427,6 +1478,9 @@ export const Layout: React.FC = () => {
     setCurrentTrack(null);
     setAutoAdvance(false);
     setRepeatCount(0);
+    setRangeStart(0); rangeStartRef.current = 0;
+    setRangeEnd(0); rangeEndRef.current = 0;
+    setRangeRepeat(0); rangeRepeatRef.current = 0;
     consecutiveErrors.current = 0;
   };
 
@@ -1729,7 +1783,7 @@ export const Layout: React.FC = () => {
     <ThemeContext.Provider value={themeContextValue}>
       <SettingsContext.Provider value={settingsContextValue}>
         <NetworkContext.Provider value={networkContextValue}>
-          <AudioContext.Provider value={{ currentTrack, isPlaying, autoAdvance, repeatCount, continuousRepeat, surahRepeat, pageRepeat, playTrack, playNext: () => manualChangeTrack(1), playPrev: () => manualChangeTrack(-1), pauseTrack, closePlayer, togglePlay }}>
+          <AudioContext.Provider value={{ currentTrack, isPlaying, autoAdvance, repeatCount, continuousRepeat, surahRepeat, pageRepeat, rangeStart, rangeEnd, rangeRepeat, playTrack, playNext: () => manualChangeTrack(1), playPrev: () => manualChangeTrack(-1), pauseTrack, closePlayer, togglePlay }}>
             <RadioContext.Provider value={{ activeStation: radioStation, isPlaying: isRadioPlaying, isLoading: radioLoading, error: radioError, playStation, stopRadio, toggleRadio, playNextStation: () => changeStation('next'), playPrevStation: () => changeStation('prev') }}>
               <NavigationContext.Provider value={{ navigateToAyah: (s, a, p) => { navigate(`/reader?page=${p}&highlight=${s}:${a}`); setSidebarOpen(false); }, openSidebar: () => setSidebarOpen(true), isFullscreen, setIsFullscreen }}>
                 <div className="flex justify-center w-full min-h-[100dvh] bg-gold-50 dark:bg-navy-950">

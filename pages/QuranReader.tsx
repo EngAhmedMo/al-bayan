@@ -8,7 +8,7 @@ import { toArabicDigits } from '../services/normalization';
 import { SURAH_START_PAGES, SURAH_AYAH_COUNTS, getGlobalAyahNumber, getApproxPageFromGlobalAyah } from '../services/quranStaticData';
 import { TopBar } from '../components/TopBar';
 import { useAudio, useSettings, NavigationContext, useTheme } from '../components/Layout';
-import { ChevronLeft, ChevronRight, PlayCircle, BookOpen, X, Copy, Bookmark, BookmarkPlus, BookmarkCheck, Settings, Type, Mic, FileEdit, Save, Maximize2, Minimize2, Share2, Grid, Book, Hash, Repeat, Play, Infinity as InfinityIcon, LogOut, Plus, Minus, Sun, Moon, RotateCcw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, PlayCircle, BookOpen, X, Copy, Bookmark, BookmarkPlus, BookmarkCheck, Settings, Type, Mic, FileEdit, Save, Maximize2, Minimize2, Share2, Grid, Book, Hash, Repeat, Play, Infinity as InfinityIcon, LogOut, Plus, Minus, Sun, Moon, RotateCcw, ArrowDownUp } from 'lucide-react';
 import {
   toggleAyahBookmark,
   isAyahBookmarked,
@@ -99,6 +99,10 @@ export const QuranReader: React.FC = () => {
   const [isNavOpen, setIsNavOpen] = useState(false); // Navigation Modal State
   const [navTab, setNavTab] = useState<'surahs' | 'parts' | 'pages'>('surahs');
   const pageInputRef = useRef<HTMLInputElement>(null);
+
+  // Range Repeat State
+  const [rangeFromAyah, setRangeFromAyah] = useState(1);
+  const [rangeToAyah, setRangeToAyah] = useState(1);
 
   // Immersive Controls State
   const [showImmersiveControls, setShowImmersiveControls] = useState(true);
@@ -760,6 +764,12 @@ export const QuranReader: React.FC = () => {
     setShowNoteInput(false);
     setIsModalOpen(true);
     setTafsirData(null);
+    // Initialize range selectors with the clicked ayah
+    const surahNum = (ayah as any).surah?.number;
+    if (surahNum) {
+      setRangeFromAyah(ayah.numberInSurah);
+      setRangeToAyah(ayah.numberInSurah);
+    }
   };
 
   const playFromHere = (autoAdvance: boolean, repeatCount: number = 0, continuousRepeat: number = 0, surahRepeat: number = 0, pageRepeat: number = 0) => {
@@ -789,6 +799,44 @@ export const QuranReader: React.FC = () => {
       setIsModalOpen(false);
       setSelectedAyah(null);
     }
+  };
+
+  const playRangeRepeat = (repeatCount: number) => {
+    if (!selectedAyah) return;
+    const surahNum = (selectedAyah as any).surah?.number;
+    if (!surahNum) return;
+    const maxAyahs = SURAH_AYAH_COUNTS[surahNum - 1];
+    const fromAyah = Math.max(1, Math.min(rangeFromAyah, maxAyahs));
+    const toAyah = Math.max(fromAyah, Math.min(rangeToAyah, maxAyahs));
+    const rangeStartGlobal = getGlobalAyahNumber(surahNum, fromAyah);
+    const rangeEndGlobal = getGlobalAyahNumber(surahNum, toAyah);
+    const audioUrl = getAudioUrl(reciterId, rangeStartGlobal);
+
+    AnalyticsService.logEvent('play_range_repeat', {
+      surah_number: surahNum,
+      from_ayah: fromAyah,
+      to_ayah: toAyah,
+      repeat_count: repeatCount,
+      reciter_id: reciterId
+    });
+
+    playTrack(
+      audioUrl,
+      (selectedAyah as any).surah?.name,
+      `الآية ${toArabicDigits(fromAyah)} - ${toArabicDigits(toAyah)}`,
+      rangeStartGlobal,
+      true,  // autoAdvance within range
+      0,     // no single-ayah repeat
+      reciterId,
+      0,     // no continuous repeat
+      0,     // no surah repeat
+      0,     // no page repeat
+      rangeStartGlobal,
+      rangeEndGlobal,
+      repeatCount
+    );
+    setIsModalOpen(false);
+    setSelectedAyah(null);
   };
 
   const playFullSurah = (surahNumber: number, surahName: string) => {
@@ -1661,6 +1709,73 @@ export const QuranReader: React.FC = () => {
                             </button>
                           ))}
                         </div>
+                      </div>
+                    </div>
+
+                    {/* 5. Range Repeat (تكرار نطاق آيات) — Full Width */}
+                    <div className="col-span-2 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/10 rounded-xl p-3 border border-orange-200/60 dark:border-orange-800/40 shadow-sm">
+                      <div className="flex items-center gap-1.5 mb-3">
+                        <div className="w-5 h-5 rounded-md bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
+                          <ArrowDownUp size={12} className="text-orange-600 dark:text-orange-400" />
+                        </div>
+                        <span className="text-[10px] font-bold text-navy-700 dark:text-navy-200 leading-tight">تكرار نطاق آيات</span>
+                      </div>
+
+                      {/* From/To Inputs */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <div className="flex-1 flex items-center gap-1.5 bg-white dark:bg-navy-900 rounded-lg border border-orange-200/50 dark:border-navy-700 px-2 py-1.5">
+                          <span className="text-[9px] font-bold text-navy-400 dark:text-navy-500 whitespace-nowrap">من آية</span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1}
+                            value={rangeFromAyah}
+                            onChange={(e) => {
+                              const v = parseInt(e.target.value) || 1;
+                              setRangeFromAyah(v);
+                              if (v > rangeToAyah) setRangeToAyah(v);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full text-center text-sm font-bold text-navy-800 dark:text-white bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          />
+                        </div>
+                        <span className="text-xs font-bold text-orange-500 dark:text-orange-400">→</span>
+                        <div className="flex-1 flex items-center gap-1.5 bg-white dark:bg-navy-900 rounded-lg border border-orange-200/50 dark:border-navy-700 px-2 py-1.5">
+                          <span className="text-[9px] font-bold text-navy-400 dark:text-navy-500 whitespace-nowrap">إلى آية</span>
+                          <input
+                            type="number"
+                            min={rangeFromAyah}
+                            max={SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1}
+                            value={rangeToAyah}
+                            onChange={(e) => {
+                              const v = parseInt(e.target.value) || rangeFromAyah;
+                              setRangeToAyah(Math.max(v, rangeFromAyah));
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-full text-center text-sm font-bold text-navy-800 dark:text-white bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Ayah count info */}
+                      <div className="text-center mb-2">
+                        <span className="text-[9px] font-bold text-orange-600/70 dark:text-orange-400/60">
+                          {rangeToAyah >= rangeFromAyah ? `${toArabicDigits(rangeToAyah - rangeFromAyah + 1)} آية` : 'حدد النطاق'}
+                        </span>
+                      </div>
+
+                      {/* Repeat Count Buttons */}
+                      <div className="grid grid-cols-4 gap-1">
+                        {[3, 5, 10, 100].map((count) => (
+                          <button
+                            key={`range-${count}`}
+                            onClick={() => playRangeRepeat(count)}
+                            disabled={rangeToAyah < rangeFromAyah}
+                            className="py-1.5 bg-white dark:bg-navy-800 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 rounded-lg text-[11px] font-bold text-navy-600 dark:text-navy-300 transition-all active:scale-95 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed border border-orange-100/50 dark:border-navy-700"
+                          >
+                            {count === 100 ? <InfinityIcon size={13} /> : count}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
