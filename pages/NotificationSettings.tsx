@@ -1030,35 +1030,37 @@ export const NotificationSettingsPage: React.FC = () => {
                         <SectionHeader title="الصلاة على النبي ﷺ" icon={<span className="text-lg">🤲</span>} section="salawat" />
                         {expandedSection === 'salawat' && (
                             <div className="mt-2 p-5 md:p-6 bg-white/70 dark:bg-navy-900/70 backdrop-blur-md rounded-3xl border border-white/50 dark:border-navy-700/50 space-y-6 shadow-sm animate-in fade-in slide-in-from-top-4 duration-300">
-                    {/* Web-only notice: Salawat audio reminders require the Android app */}
-                    {!Capacitor.isNativePlatform() && (
-                        <div className="mt-2 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-200 dark:border-amber-700 flex items-start gap-3">
-                            <span className="text-2xl mt-0.5">📱</span>
-                            <div>
-                                <p className="text-sm font-bold text-amber-800 dark:text-amber-200 mb-1">
-                                    متاح على تطبيق الأندرويد فقط
-                                </p>
-                                <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
-                                    التنبيهات الصوتية للصلاة على النبي ﷺ تحتاج إلى نظام جدولة نيتف لا يتوفر في المتصفح.
-                                    حمّل تطبيق البيان على الأندرويد للاستفادة الكاملة من هذه الميزة.
-                                </p>
-                            </div>
-                        </div>
-                    )}
 
-                                {/* Header Toggle */}
-                                <div className="flex items-center justify-between">
+                                {/* Web-only notice: Salawat audio reminders require the Android app */}
+                                {!Capacitor.isNativePlatform() && (
+                                    <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-200 dark:border-amber-700 flex items-start gap-3">
+                                        <span className="text-2xl mt-0.5">📱</span>
+                                        <div>
+                                            <p className="text-sm font-bold text-amber-800 dark:text-amber-200 mb-1">
+                                                متاح على تطبيق الأندرويد فقط
+                                            </p>
+                                            <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-relaxed">
+                                                التنبيهات الصوتية للصلاة على النبي ﷺ تحتاج إلى نظام جدولة نيتف لا يتوفر في المتصفح.
+                                                حمّل تطبيق البيان على الأندرويد للاستفادة الكاملة من هذه الميزة.
+                                            </p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Header Toggle — disabled and greyed-out on web */}
+                                <div className={`flex items-center justify-between ${!Capacitor.isNativePlatform() ? 'opacity-40 pointer-events-none select-none' : ''}`}>
                                     <div>
                                         <span className="text-navy-700 dark:text-navy-200 font-bold block mb-1">تفعيل التذكير</span>
                                         <p className="text-[10px] text-navy-500 dark:text-navy-400">تنبيهات صوتية للصلاة على النبي ﷺ على مدار اليوم</p>
                                     </div>
                                     <ToggleSwitch
-                                        enabled={settings.salawat?.enabled ?? false}
-                                        onChange={(val) => setSettings({ ...settings, salawat: { ...settings.salawat, enabled: val } })}
+                                        enabled={Capacitor.isNativePlatform() ? (settings.salawat?.enabled ?? false) : false}
+                                        onChange={(val) => { if (Capacitor.isNativePlatform()) setSettings({ ...settings, salawat: { ...settings.salawat, enabled: val } }); }}
                                     />
                                 </div>
 
-                                {settings.salawat?.enabled && (
+                                {/* Inner settings — hidden entirely on web (pointless without native scheduling) */}
+                                {Capacitor.isNativePlatform() && settings.salawat?.enabled && (
                                     <>
                                         {/* Mode Selection Tabs */}
                                         <div className="space-y-3">
