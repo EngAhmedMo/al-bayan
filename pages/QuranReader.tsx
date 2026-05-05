@@ -1759,10 +1759,83 @@ export const QuranReader: React.FC = () => {
                         </div>
                       </div>
 
+                      {/* Dual Range Slider */}
+                      {(() => {
+                        const rangeMax = SURAH_AYAH_COUNTS[(selectedAyah as any)?.surah?.number - 1] || 1;
+                        if (rangeMax <= 1) return null;
+                        const sliderDenom = Math.max(1, rangeMax - 1);
+                        const rightPercent = ((rangeFromAyah - 1) / sliderDenom) * 100;
+                        const leftPercent = ((rangeMax - rangeToAyah) / sliderDenom) * 100;
+                        return (
+                          <div className="relative h-6 mt-1 mb-4 px-2 flex items-center" dir="rtl">
+                            {/* Track background */}
+                            <div className="absolute left-2 right-2 h-1.5 bg-navy-100 dark:bg-navy-800 rounded-full" />
+                            {/* Active Track */}
+                            <div 
+                              className="absolute h-1.5 bg-rose-400 dark:bg-rose-500 rounded-full pointer-events-none"
+                              style={{ left: `calc(0.5rem + ${leftPercent}%)`, right: `calc(0.5rem + ${rightPercent}%)` }}
+                            />
+                            {/* Input Start (From) */}
+                            <input 
+                              type="range"
+                              min={1}
+                              max={rangeMax}
+                              value={rangeFromAyah}
+                              onChange={(e) => {
+                                const v = Math.min(parseInt(e.target.value) || 1, rangeMax);
+                                setRangeFromAyah(v);
+                                if (v > rangeToAyah) setRangeToAyah(v);
+                              }}
+                              className="absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rose-600 dark:[&::-webkit-slider-thumb]:bg-rose-400 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-navy-900 z-10"
+                            />
+                            {/* Input End (To) */}
+                            <input 
+                              type="range"
+                              min={1}
+                              max={rangeMax}
+                              value={rangeToAyah}
+                              onChange={(e) => {
+                                const v = Math.min(parseInt(e.target.value) || 1, rangeMax);
+                                setRangeToAyah(Math.max(v, rangeFromAyah));
+                              }}
+                              className="absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rose-600 dark:[&::-webkit-slider-thumb]:bg-rose-400 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-navy-900 z-20"
+                            />
+                          </div>
+                        );
+                      })()}
+
+                      {/* Live Ayah Preview Cards */}
+                      {(() => {
+                        const startAyah = ayahs.find(a => a.numberInSurah === rangeFromAyah);
+                        const endAyah = ayahs.find(a => a.numberInSurah === rangeToAyah);
+                        return (
+                          <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                            <div className="flex-1 bg-navy-50/50 dark:bg-navy-900/30 rounded-lg p-2.5 border border-navy-100 dark:border-navy-800">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold">بداية التكرار</span>
+                                <span className="text-[9px] font-bold text-navy-500 dark:text-navy-400 bg-navy-100 dark:bg-navy-800 px-1.5 py-0.5 rounded">آية {toArabicDigits(rangeFromAyah)}</span>
+                              </div>
+                              <div className="text-[11px] font-quran text-navy-800 dark:text-navy-200 line-clamp-2 leading-relaxed">
+                                {startAyah ? (startAyah as any).aya_text || cleanTajweedTags(startAyah.text) : ''}
+                              </div>
+                            </div>
+                            <div className="flex-1 bg-navy-50/50 dark:bg-navy-900/30 rounded-lg p-2.5 border border-navy-100 dark:border-navy-800">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold">نهاية التكرار</span>
+                                <span className="text-[9px] font-bold text-navy-500 dark:text-navy-400 bg-navy-100 dark:bg-navy-800 px-1.5 py-0.5 rounded">آية {toArabicDigits(rangeToAyah)}</span>
+                              </div>
+                              <div className="text-[11px] font-quran text-navy-800 dark:text-navy-200 line-clamp-2 leading-relaxed">
+                                {endAyah ? (endAyah as any).aya_text || cleanTajweedTags(endAyah.text) : ''}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       {/* Ayah count info */}
-                      <div className="text-center mb-2">
-                        <span className="text-[9px] font-bold text-navy-500 dark:text-navy-400 bg-navy-50 dark:bg-navy-800 px-2 py-0.5 rounded-md">
-                          {rangeToAyah >= rangeFromAyah ? `${toArabicDigits(rangeToAyah - rangeFromAyah + 1)} آية` : 'حدد النطاق'}
+                      <div className="text-center mb-3">
+                        <span className="text-[9px] font-bold text-navy-600 dark:text-navy-300 bg-navy-100 dark:bg-navy-800 px-2.5 py-1 rounded-full">
+                          النطاق المحدد: {rangeToAyah >= rangeFromAyah ? `${toArabicDigits(rangeToAyah - rangeFromAyah + 1)} آية` : 'حدد النطاق'}
                         </span>
                       </div>
 
