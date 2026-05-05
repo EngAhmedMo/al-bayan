@@ -185,7 +185,7 @@ const AudioPlayerBar = () => {
       const startMeta = rangeStart > 0 ? getMetadataFromGlobalAyah(rangeStart) : null;
       const endMeta = rangeEnd > 0 ? getMetadataFromGlobalAyah(rangeEnd) : null;
       return (
-        <span className="flex items-center gap-0.5 text-orange-600 dark:text-orange-400 font-bold bg-orange-50 dark:bg-orange-900/20 px-1.5 py-0.5 rounded-full">
+        <span className="flex items-center gap-0.5 text-rose-600 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-900/20 px-1.5 py-0.5 rounded-full">
           <Repeat size={10} /> نطاق {startMeta ? toArabicDigits(startMeta.ayahInSurah) : '?'}-{endMeta ? toArabicDigits(endMeta.ayahInSurah) : '?'} ×{rangeRepeat >= 100 ? '∞' : rangeRepeat}
         </span>
       );
@@ -1051,7 +1051,14 @@ export const Layout: React.FC = () => {
           const currentPage = getApproxPageFromGlobalAyah(currentGlobal);
           const pageRange = getPageGlobalAyahRangeSync(currentPage);
 
-          if (pageRepeatRef.current > 0 && pageRange && currentGlobal === pageRange.lastGlobal && newGlobalAyah === pageRange.firstGlobal) {
+          if (rangeStartRef.current > 0 && rangeEndRef.current > 0 && currentGlobal === rangeEndRef.current && newGlobalAyah === rangeStartRef.current) {
+            if (rangeRepeatRef.current > 0 && rangeRepeatRef.current !== 100) {
+              const newRepeat = rangeRepeatRef.current - 1;
+              setRangeRepeat(newRepeat);
+              rangeRepeatRef.current = newRepeat;
+              console.log('[Layout] 🔁 Wrapped around Range! Remaining repeats:', newRepeat);
+            }
+          } else if (pageRepeatRef.current > 0 && pageRange && currentGlobal === pageRange.lastGlobal && newGlobalAyah === pageRange.firstGlobal) {
             const newRepeat = pageRepeatRef.current - 1;
             setPageRepeat(newRepeat);
             pageRepeatRef.current = newRepeat;
@@ -1315,7 +1322,11 @@ export const Layout: React.FC = () => {
         const afterNextPage = getApproxPageFromGlobalAyah(nextGlobal);
         const afterNextPageRange = getPageGlobalAyahRangeSync(afterNextPage);
 
-        if (afterNextPageRange && nextGlobal === afterNextPageRange.lastGlobal && newPageRepeat > 0) {
+        if (rangeStartRef.current > 0 && rangeEndRef.current > 0 && nextGlobal === rangeEndRef.current && newRangeRepeat > 0) {
+            afterNextGlobal = rangeStartRef.current;
+        } else if (rangeStartRef.current > 0 && rangeEndRef.current > 0 && nextGlobal === rangeEndRef.current && newRangeRepeat === 0) {
+            afterNextGlobal = 6237; // Out of bounds so it doesn't preload
+        } else if (afterNextPageRange && nextGlobal === afterNextPageRange.lastGlobal && newPageRepeat > 0) {
             afterNextGlobal = afterNextPageRange.firstGlobal;
         } else if (afterNextMeta.ayahInSurah === afterNextSurahLength && newSurahRepeat > 0) {
             afterNextGlobal = getSurahGlobalAyahRange(afterNextMeta.surahNumber).firstGlobal;
@@ -1422,7 +1433,13 @@ export const Layout: React.FC = () => {
               const currentPage = getApproxPageFromGlobalAyah(globalAyahNumber);
               const pageRange = getPageGlobalAyahRangeSync(currentPage);
 
-              if (pageRange && globalAyahNumber === pageRange.lastGlobal && tempPageRepeat > 0) {
+              let tempRangeRepeat = rangeRepeatCount;
+
+              if (rangeStartGlobal > 0 && rangeEndGlobal > 0 && globalAyahNumber === rangeEndGlobal && tempRangeRepeat > 0) {
+                  nextGlobal = rangeStartGlobal;
+              } else if (rangeStartGlobal > 0 && rangeEndGlobal > 0 && globalAyahNumber === rangeEndGlobal && tempRangeRepeat === 0) {
+                  nextGlobal = 6237; // Out of bounds
+              } else if (pageRange && globalAyahNumber === pageRange.lastGlobal && tempPageRepeat > 0) {
                   nextGlobal = pageRange.firstGlobal;
               } else if (currentMeta.ayahInSurah === surahLength && tempSurahRepeat > 0) {
                   nextGlobal = getSurahGlobalAyahRange(currentMeta.surahNumber).firstGlobal;

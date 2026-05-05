@@ -1713,17 +1713,17 @@ export const QuranReader: React.FC = () => {
                     </div>
 
                     {/* 5. Range Repeat (تكرار نطاق آيات) — Full Width */}
-                    <div className="col-span-2 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/10 rounded-xl p-3 border border-orange-200/60 dark:border-orange-800/40 shadow-sm">
+                    <div className="col-span-2 bg-white dark:bg-navy-900 rounded-xl p-3 border border-navy-100 dark:border-navy-800 shadow-sm mt-1">
                       <div className="flex items-center gap-1.5 mb-3">
-                        <div className="w-5 h-5 rounded-md bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center flex-shrink-0">
-                          <ArrowDownUp size={12} className="text-orange-600 dark:text-orange-400" />
+                        <div className="w-5 h-5 rounded-md bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center flex-shrink-0">
+                          <ArrowDownUp size={12} className="text-rose-500 dark:text-rose-400" />
                         </div>
                         <span className="text-[10px] font-bold text-navy-700 dark:text-navy-200 leading-tight">تكرار نطاق آيات</span>
                       </div>
 
                       {/* From/To Inputs */}
                       <div className="flex items-center gap-2 mb-3">
-                        <div className="flex-1 flex items-center gap-1.5 bg-white dark:bg-navy-900 rounded-lg border border-orange-200/50 dark:border-navy-700 px-2 py-1.5">
+                        <div className="flex-1 flex items-center gap-1.5 bg-navy-50 dark:bg-navy-950 rounded-lg border border-navy-100 dark:border-navy-800 px-2 py-1.5 transition-colors focus-within:border-rose-300 dark:focus-within:border-rose-800">
                           <span className="text-[9px] font-bold text-navy-400 dark:text-navy-500 whitespace-nowrap">من آية</span>
                           <input
                             type="number"
@@ -1739,8 +1739,8 @@ export const QuranReader: React.FC = () => {
                             className="w-full text-center text-sm font-bold text-navy-800 dark:text-white bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           />
                         </div>
-                        <span className="text-xs font-bold text-orange-500 dark:text-orange-400">→</span>
-                        <div className="flex-1 flex items-center gap-1.5 bg-white dark:bg-navy-900 rounded-lg border border-orange-200/50 dark:border-navy-700 px-2 py-1.5">
+                        <span className="text-xs font-bold text-navy-300 dark:text-navy-600">→</span>
+                        <div className="flex-1 flex items-center gap-1.5 bg-navy-50 dark:bg-navy-950 rounded-lg border border-navy-100 dark:border-navy-800 px-2 py-1.5 transition-colors focus-within:border-rose-300 dark:focus-within:border-rose-800">
                           <span className="text-[9px] font-bold text-navy-400 dark:text-navy-500 whitespace-nowrap">إلى آية</span>
                           <input
                             type="number"
@@ -1759,7 +1759,7 @@ export const QuranReader: React.FC = () => {
 
                       {/* Ayah count info */}
                       <div className="text-center mb-2">
-                        <span className="text-[9px] font-bold text-orange-600/70 dark:text-orange-400/60">
+                        <span className="text-[9px] font-bold text-navy-500 dark:text-navy-400 bg-navy-50 dark:bg-navy-800 px-2 py-0.5 rounded-md">
                           {rangeToAyah >= rangeFromAyah ? `${toArabicDigits(rangeToAyah - rangeFromAyah + 1)} آية` : 'حدد النطاق'}
                         </span>
                       </div>
@@ -1771,7 +1771,7 @@ export const QuranReader: React.FC = () => {
                             key={`range-${count}`}
                             onClick={() => playRangeRepeat(count)}
                             disabled={rangeToAyah < rangeFromAyah}
-                            className="py-1.5 bg-white dark:bg-navy-800 hover:bg-orange-500 hover:text-white dark:hover:bg-orange-500 rounded-lg text-[11px] font-bold text-navy-600 dark:text-navy-300 transition-all active:scale-95 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed border border-orange-100/50 dark:border-navy-700"
+                            className="py-1.5 bg-navy-50 dark:bg-navy-800 hover:bg-rose-500 hover:text-white dark:hover:bg-rose-500 rounded-lg text-[11px] font-bold text-navy-600 dark:text-navy-300 transition-all active:scale-95 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
                           >
                             {count === 100 ? <InfinityIcon size={13} /> : count}
                           </button>
