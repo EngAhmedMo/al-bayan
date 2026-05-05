@@ -1731,7 +1731,8 @@ export const QuranReader: React.FC = () => {
                             max={SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1}
                             value={rangeFromAyah}
                             onChange={(e) => {
-                              const v = parseInt(e.target.value) || 1;
+                              const maxAyahs = SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1;
+                              const v = Math.max(1, Math.min(parseInt(e.target.value) || 1, maxAyahs));
                               setRangeFromAyah(v);
                               if (v > rangeToAyah) setRangeToAyah(v);
                             }}
@@ -1748,8 +1749,9 @@ export const QuranReader: React.FC = () => {
                             max={SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1}
                             value={rangeToAyah}
                             onChange={(e) => {
-                              const v = parseInt(e.target.value) || rangeFromAyah;
-                              setRangeToAyah(Math.max(v, rangeFromAyah));
+                              const maxAyahs = SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1;
+                              const v = Math.max(rangeFromAyah, Math.min(parseInt(e.target.value) || rangeFromAyah, maxAyahs));
+                              setRangeToAyah(v);
                             }}
                             onClick={(e) => e.stopPropagation()}
                             className="w-full text-center text-sm font-bold text-navy-800 dark:text-white bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"

@@ -1058,6 +1058,13 @@ export const Layout: React.FC = () => {
               rangeRepeatRef.current = newRepeat;
               console.log('[Layout] 🔁 Wrapped around Range! Remaining repeats:', newRepeat);
             }
+          } else if (rangeStartRef.current > 0 && rangeEndRef.current > 0 && currentGlobal === rangeEndRef.current && rangeRepeatRef.current === 0) {
+            console.log('[Layout] 🛑 Range Repeat Finished. Stopping playback.');
+            MediaBridge.stop();
+            setIsPlaying(false);
+            setRangeStart(0); rangeStartRef.current = 0;
+            setRangeEnd(0); rangeEndRef.current = 0;
+            return;
           } else if (pageRepeatRef.current > 0 && pageRange && currentGlobal === pageRange.lastGlobal && newGlobalAyah === pageRange.firstGlobal) {
             const newRepeat = pageRepeatRef.current - 1;
             setPageRepeat(newRepeat);
@@ -1122,7 +1129,7 @@ export const Layout: React.FC = () => {
       setRepeatCount(nextRepeat);
       if (isAndroid) {
         if (trackRef.current) {
-          playTrack(trackRef.current.url, trackRef.current.title, trackRef.current.subtitle, trackRef.current.globalAyahNumber, autoAdvanceRef.current, nextRepeat, reciterRef.current, continuousRepeatRef.current);
+          playTrack(trackRef.current.url, trackRef.current.title, trackRef.current.subtitle, trackRef.current.globalAyahNumber, autoAdvanceRef.current, nextRepeat, reciterRef.current, continuousRepeatRef.current, surahRepeatRef.current, pageRepeatRef.current, rangeStartRef.current, rangeEndRef.current, rangeRepeatRef.current);
         }
       } else if (audioRef.current) {
         audioRef.current.currentTime = 0;
@@ -1133,7 +1140,8 @@ export const Layout: React.FC = () => {
     consecutiveErrors.current = 0;
     if (autoAdvanceRef.current && trackRef.current && trackRef.current.globalAyahNumber) {
 
-      if (isAndroid && continuousRepeatRef.current === 0) {
+      // Protect range repeat from early exit
+      if (isAndroid && continuousRepeatRef.current === 0 && rangeStartRef.current === 0) {
         // GAPLESS SOLUTION: Trust Native Queue 100% ONLY IF NOT REPEATING
         // ExoPlayer handles transitions automatically via its internal queue.
         console.log('[Layout] Android: Trusting native gapless queue. No JS intervention.');
@@ -1352,7 +1360,7 @@ export const Layout: React.FC = () => {
         return;
       }
 
-      playTrack(nextUrl, `سورة ${nextMeta.surahName}`, `الآية ${toArabicDigits(nextMeta.ayahInSurah)}`, nextGlobal, true, newRepeatCount, currentReciterId, continuousRepeatRef.current, surahRepeatRef.current, pageRepeatRef.current);
+      playTrack(nextUrl, `سورة ${nextMeta.surahName}`, `الآية ${toArabicDigits(nextMeta.ayahInSurah)}`, nextGlobal, true, newRepeatCount, currentReciterId, continuousRepeatRef.current, surahRepeatRef.current, pageRepeatRef.current, rangeStartRef.current, rangeEndRef.current, rangeRepeatRef.current);
     } else {
       setIsPlaying(false);
     }
@@ -1539,7 +1547,8 @@ export const Layout: React.FC = () => {
       window.dispatchEvent(event);
     }
 
-    playTrack(nextUrl, `سورة ${nextMeta.surahName}`, `الآية ${toArabicDigits(nextMeta.ayahInSurah)}`, nextAyahNum, autoAdvance, 0, currentReciterId, continuousRepeatRef.current, surahRepeatRef.current, pageRepeatRef.current);  };
+    playTrack(nextUrl, `سورة ${nextMeta.surahName}`, `الآية ${toArabicDigits(nextMeta.ayahInSurah)}`, nextAyahNum, autoAdvance, 0, currentReciterId, continuousRepeatRef.current, surahRepeatRef.current, pageRepeatRef.current, rangeStartRef.current, rangeEndRef.current, rangeRepeatRef.current);
+  };
 
   const playStation = (station: RadioStation) => {
     if (currentTrack) closePlayer();
