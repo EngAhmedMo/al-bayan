@@ -185,7 +185,7 @@ const AudioPlayerBar = () => {
       const startMeta = rangeStart > 0 ? getMetadataFromGlobalAyah(rangeStart) : null;
       const endMeta = rangeEnd > 0 ? getMetadataFromGlobalAyah(rangeEnd) : null;
       return (
-        <span className="flex items-center gap-0.5 text-rose-600 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-900/20 px-1.5 py-0.5 rounded-full">
+        <span className="flex items-center gap-0.5 text-rose-600 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
           <Repeat size={10} /> نطاق {startMeta ? toArabicDigits(startMeta.ayahInSurah) : '?'}-{endMeta ? toArabicDigits(endMeta.ayahInSurah) : '?'} ×{rangeRepeat >= 100 ? '∞' : rangeRepeat}
         </span>
       );
@@ -193,7 +193,7 @@ const AudioPlayerBar = () => {
     if (repeatCount > 0 && continuousRepeat === 0) {
       // Single ayah repeat (no auto-advance)
       return (
-        <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full">
+        <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
           <Repeat size={10} /> {repeatCount >= 100 ? '∞' : repeatCount}
         </span>
       );
@@ -201,28 +201,28 @@ const AudioPlayerBar = () => {
     if (repeatCount > 0 && continuousRepeat > 0) {
       // Continuous repeat (مع الاستمرار) — show repeat count per ayah
       return (
-        <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full">
+        <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
           <Repeat size={10} /> ×{repeatCount >= 100 ? '∞' : repeatCount} متصل
         </span>
       );
     }
     if (pageRepeat > 0) {
       return (
-        <span className="flex items-center gap-0.5 text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded-full">
+        <span className="flex items-center gap-0.5 text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
           <Repeat size={10} /> صفحة {pageRepeat >= 100 ? '∞' : pageRepeat}
         </span>
       );
     }
     if (surahRepeat > 0) {
       return (
-        <span className="flex items-center gap-0.5 text-purple-600 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded-full">
+        <span className="flex items-center gap-0.5 text-purple-600 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
           <Repeat size={10} /> سورة {surahRepeat >= 100 ? '∞' : surahRepeat}
         </span>
       );
     }
     if (autoAdvance) {
       return (
-        <span className="flex items-center gap-0.5 text-gold-600 dark:text-gold-500 font-bold bg-gold-50 dark:bg-gold-900/20 px-1.5 py-0.5 rounded-full">
+        <span className="flex items-center gap-0.5 text-gold-600 dark:text-gold-500 font-bold bg-gold-50 dark:bg-gold-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
           <Repeat size={10} /> متابعة
         </span>
       );
@@ -306,10 +306,10 @@ const AudioPlayerBar = () => {
               <span className="text-sm md:text-base font-bold text-navy-900 dark:text-white truncate group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors">
                 {currentTrack.title}
               </span>
-              <div className="flex items-center gap-2 text-[10px] md:text-xs text-navy-500 dark:text-navy-300 truncate">
-                <span>{currentTrack.subtitle}</span>
+              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-navy-500 dark:text-navy-300 min-w-0 w-full">
+                <span className="truncate shrink">{currentTrack.subtitle}</span>
                 {renderRepeatBadge()}
-                <span className="font-bold text-navy-400 group-hover:text-gold-500 transition-colors">• تغيير القارئ</span>
+                <span className="font-bold text-navy-400 group-hover:text-gold-500 transition-colors hidden sm:inline shrink-0">• تغيير القارئ</span>
               </div>
             </div>
           </div>
