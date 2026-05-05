@@ -102,7 +102,21 @@ export const requestNotificationPermission = async () => {
           visibility: 1,
           vibration: true,
         });
-      }
+
+        // 🤲 Dedicated Salawat channel — higher priority than general alerts
+        // Sound comes from AlarmManager (AudioPlaybackService), this channel controls the visual notification only.
+        await LocalNotifications.createChannel({
+          id: 'bayan_salawat',
+          name: '🤲 الصلاة على النبي ﷺ',
+          description: 'تذكيرات الصلاة على النبي محمد ﷺ',
+          importance: 4,   // IMPORTANCE_HIGH — shows heads-up banner
+          visibility: 1,   // PUBLIC — shows on lock screen
+          vibration: true,
+          // Note: no sound here — audio handled by AudioPlaybackService (AlarmManager)
+        });
+
+      } // end if (perm.display === 'granted')
+
     } else if ('Notification' in window) {
       await Notification.requestPermission();
     }
@@ -995,14 +1009,14 @@ export const scheduleAllNotifications = async (
               shouldResume: true // 🎵 SMART RESUME
             });
 
-            // Visual notification (only for first 3 days or ~40 notifs to fit within limit)
-            if (salawatNotifications.length < 40) {
+            // Visual notification — higher priority salawat channel (max 45 to stay within Android's 50 limit)
+            if (salawatNotifications.length < 45) {
               salawatNotifications.push({
                 id: uniqueId,
                 title: '🤲 صلّ على النبي ﷺ',
                 body: 'اللهم صلِّ وسلم على نبينا محمد',
                 schedule: { at: candidateTime },
-                channelId: 'bayan_alerts_v2',
+                channelId: 'bayan_salawat',
                 smallIcon: 'ic_launcher',
                 extra: { type: 'salawat_reminder' }
               });

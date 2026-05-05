@@ -925,7 +925,7 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
         // Handle "Random" Selection with Smart Shuffle
         var targetSoundId = soundId
         if (targetSoundId == "random") {
-            val availableSounds = listOf("salawat_one", "salawat_two", "salawat_three")
+            val availableSounds = listOf("salawat_one", "salawat_two", "salawat_three", "salawat_four", "salawat_five")
             val prefs = getSharedPreferences("AlBayanPrefs", Context.MODE_PRIVATE)
             val lastPlayed = prefs.getString("last_salawat_sound", "")
             

@@ -967,28 +967,21 @@ export const Layout: React.FC = () => {
       setIsPlaying(false);
     });
 
-    // Listen for Salawat end - resume Quran playback
+    // Listen for Salawat end - restore UI state only
+    // IMPORTANT: Native (AudioPlaybackService) handles the actual audio resume via savedMediaItem.
+    // JS must NOT call playTrack() here to avoid Double Resume (audio starting twice).
     const salawatEndPromise = MediaBridge.addListener('salawatFinished', () => {
-      console.log('[Layout] \u{1F932} Salawat Finished');
+      console.log('[Layout] \u{1F932} Salawat Finished - restoring UI state only (native handles audio resume)');
 
-      // Check if we had a track playing before Salawat
       const saved = savedTrackBeforeAzhanRef.current;
-      if (saved && saved.wasPlaying && saved.track && saved.track.globalAyahNumber) {
-        console.log('[Layout] \u{25B6}\u{FE0F} Resuming Quran from Ayah:', saved.track.globalAyahNumber);
-
-        // Resume playback from where we left off
-        playTrack(
-          saved.track.url,
-          saved.track.title,
-          saved.track.subtitle,
-          saved.track.globalAyahNumber,
-          saved.autoAdvance,
-          0, // Reset repeat count
-          saved.reciterId
-        );
+      if (saved && saved.wasPlaying) {
+        // Restore UI playback indicator so player controls appear correctly.
+        // The actual audio was already resumed by AudioPlaybackService.stopSalawat().
+        console.log('[Layout] \u{1F3AE} Restoring UI playing state after Salawat');
+        setIsPlaying(true);
       }
 
-      // Clear saved state
+      // Always clear saved state
       savedTrackBeforeAzhanRef.current = null;
     });
 
