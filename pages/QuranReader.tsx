@@ -5,7 +5,7 @@ import { Ayah, Surah, TafsirResponse } from '../types';
 import { fetchPage, fetchTafsir, fetchSurahs, RECITERS, getAudioUrl } from '../services/api';
 import { loadSingleAyahTafsir, TAFSIR_SOURCES } from '../services/tafsirService';
 import { toArabicDigits } from '../services/normalization';
-import { SURAH_START_PAGES, SURAH_AYAH_COUNTS, getGlobalAyahNumber, getApproxPageFromGlobalAyah } from '../services/quranStaticData';
+import { SURAH_START_PAGES, SURAH_AYAH_COUNTS, getGlobalAyahNumber, getApproxPageFromGlobalAyah, getAyahById } from '../services/quranStaticData';
 import { TopBar } from '../components/TopBar';
 import { useAudio, useSettings, NavigationContext, useTheme } from '../components/Layout';
 import { ChevronLeft, ChevronRight, PlayCircle, BookOpen, X, Copy, Bookmark, BookmarkPlus, BookmarkCheck, Settings, Type, Mic, FileEdit, Save, Maximize2, Minimize2, Share2, Grid, Book, Hash, Repeat, Play, Infinity as InfinityIcon, LogOut, Plus, Minus, Sun, Moon, RotateCcw, ArrowDownUp } from 'lucide-react';
@@ -103,6 +103,28 @@ export const QuranReader: React.FC = () => {
   // Range Repeat State
   const [rangeFromAyah, setRangeFromAyah] = useState(1);
   const [rangeToAyah, setRangeToAyah] = useState(1);
+  const [rangeStartText, setRangeStartText] = useState('');
+  const [rangeEndText, setRangeEndText] = useState('');
+
+  // Async fetch for live preview to support ayahs on other pages
+  useEffect(() => {
+    if (selectedAyah && isModalOpen) {
+      const surahNum = (selectedAyah as any).surah?.number;
+      if (!surahNum) return;
+
+      const fetchTexts = async () => {
+        try {
+          const start = await getAyahById(`${surahNum}:${rangeFromAyah}`);
+          const end = await getAyahById(`${surahNum}:${rangeToAyah}`);
+          if (start) setRangeStartText((start as any).aya_text || start.text);
+          if (end) setRangeEndText((end as any).aya_text || end.text);
+        } catch (e) {
+          console.error('Failed to fetch range ayahs text', e);
+        }
+      };
+      fetchTexts();
+    }
+  }, [rangeFromAyah, rangeToAyah, selectedAyah, isModalOpen]);
 
   // Immersive Controls State
   const [showImmersiveControls, setShowImmersiveControls] = useState(true);
@@ -1806,8 +1828,6 @@ export const QuranReader: React.FC = () => {
 
                       {/* Live Ayah Preview Cards */}
                       {(() => {
-                        const startAyah = ayahs.find(a => a.numberInSurah === rangeFromAyah);
-                        const endAyah = ayahs.find(a => a.numberInSurah === rangeToAyah);
                         return (
                           <div className="flex flex-col sm:flex-row gap-2 mb-3">
                             <div className="flex-1 bg-navy-50/50 dark:bg-navy-900/30 rounded-lg p-2.5 border border-navy-100 dark:border-navy-800">
@@ -1816,7 +1836,7 @@ export const QuranReader: React.FC = () => {
                                 <span className="text-[9px] font-bold text-navy-500 dark:text-navy-400 bg-navy-100 dark:bg-navy-800 px-1.5 py-0.5 rounded">آية {toArabicDigits(rangeFromAyah)}</span>
                               </div>
                               <div className="text-[11px] font-quran text-navy-800 dark:text-navy-200 line-clamp-2 leading-relaxed">
-                                {startAyah ? (startAyah as any).aya_text || cleanTajweedTags(startAyah.text) : ''}
+                                {rangeStartText ? cleanTajweedTags(rangeStartText) : 'جاري التحميل...'}
                               </div>
                             </div>
                             <div className="flex-1 bg-navy-50/50 dark:bg-navy-900/30 rounded-lg p-2.5 border border-navy-100 dark:border-navy-800">
@@ -1825,7 +1845,7 @@ export const QuranReader: React.FC = () => {
                                 <span className="text-[9px] font-bold text-navy-500 dark:text-navy-400 bg-navy-100 dark:bg-navy-800 px-1.5 py-0.5 rounded">آية {toArabicDigits(rangeToAyah)}</span>
                               </div>
                               <div className="text-[11px] font-quran text-navy-800 dark:text-navy-200 line-clamp-2 leading-relaxed">
-                                {endAyah ? (endAyah as any).aya_text || cleanTajweedTags(endAyah.text) : ''}
+                                {rangeEndText ? cleanTajweedTags(rangeEndText) : 'جاري التحميل...'}
                               </div>
                             </div>
                           </div>
