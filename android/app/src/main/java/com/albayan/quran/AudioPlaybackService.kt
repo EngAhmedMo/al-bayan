@@ -113,11 +113,10 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
     private val alpha = 0.85f
     private val gravity = FloatArray(3)
     private var faceDownStartTime = 0L
-    private var wasFaceUpBeforeFlip = false
     private var gestureControlsEnabled = true
     private var flipToStopEnabled = true
     private var volumeToStopEnabled = true
-    // Volume interception handled by Media3 PLAYBACK_TYPE_REMOTE via RadioForwardingPlayer
+    private var volumeObserver: VolumeObserver? = null
 
     // Audio Fade Logic
     private var fadeHandler = android.os.Handler(android.os.Looper.getMainLooper())
@@ -149,6 +148,37 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
         fadeHandler.post(fadeRunnable!!)
     }
 
+
+    private inner class VolumeObserver : android.database.ContentObserver(android.os.Handler(android.os.Looper.getMainLooper())) {
+        private var initialVolume: Int = -1
+
+        fun register() {
+            if (audioManager != null) {
+                initialVolume = audioManager!!.getStreamVolume(AudioManager.STREAM_ALARM)
+            }
+            contentResolver.registerContentObserver(
+                android.provider.Settings.System.CONTENT_URI,
+                true,
+                this
+            )
+        }
+
+        fun unregister() {
+            contentResolver.unregisterContentObserver(this)
+        }
+
+        override fun onChange(selfChange: Boolean) {
+            super.onChange(selfChange)
+            if (!isPlayingAzhan || !volumeToStopEnabled) return
+            
+            val currentVolume = audioManager?.getStreamVolume(AudioManager.STREAM_ALARM) ?: -1
+            if (currentVolume != -1 && initialVolume != -1 && currentVolume != initialVolume) {
+                // Volume changed (button pressed), stop azhan
+                logToCatalog("🔉 Volume Button Stop Triggered")
+                triggerGestureStop("VOLUME_BUTTON")
+            }
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -272,8 +302,6 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
                 .add(Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM)
                 .add(Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM)
                 .add(Player.COMMAND_CHANGE_MEDIA_ITEMS) // Allow adding items
-                .add(Player.COMMAND_ADJUST_DEVICE_VOLUME)
-                .add(Player.COMMAND_SET_DEVICE_VOLUME)
                 .build()
         }
         
@@ -283,38 +311,9 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
                 Player.COMMAND_SEEK_TO_PREVIOUS,
                 Player.COMMAND_SEEK_TO_NEXT_MEDIA_ITEM,
                 Player.COMMAND_SEEK_TO_PREVIOUS_MEDIA_ITEM,
-                Player.COMMAND_CHANGE_MEDIA_ITEMS,
-                Player.COMMAND_ADJUST_DEVICE_VOLUME,
-                Player.COMMAND_SET_DEVICE_VOLUME -> true
+                Player.COMMAND_CHANGE_MEDIA_ITEMS -> true
                 else -> super.isCommandAvailable(command)
             }
-        }
-
-        override fun getDeviceInfo(): androidx.media3.common.DeviceInfo {
-            if (isPlayingAzhan && volumeToStopEnabled) {
-                return androidx.media3.common.DeviceInfo.Builder(androidx.media3.common.DeviceInfo.PLAYBACK_TYPE_REMOTE)
-                    .setMinVolume(0)
-                    .setMaxVolume(100)
-                    .build()
-            }
-            return super.getDeviceInfo()
-        }
-
-        override fun getDeviceVolume(): Int = 50
-
-        override fun setDeviceVolume(volume: Int, flags: Int) {
-            if (isPlayingAzhan && volumeToStopEnabled) triggerGestureStop("VOLUME_BUTTON")
-            else super.setDeviceVolume(volume, flags)
-        }
-
-        override fun increaseDeviceVolume(flags: Int) {
-            if (isPlayingAzhan && volumeToStopEnabled) triggerGestureStop("VOLUME_BUTTON")
-            else super.increaseDeviceVolume(flags)
-        }
-
-        override fun decreaseDeviceVolume(flags: Int) {
-            if (isPlayingAzhan && volumeToStopEnabled) triggerGestureStop("VOLUME_BUTTON")
-            else super.decreaseDeviceVolume(flags)
         }
         
         override fun seekToNext() {
@@ -652,7 +651,6 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
         acquireWakeLock()
         requestAudioFocusForAzhan()
         isPlayingAzhan = true
-        wasFaceUpBeforeFlip = false
         
         // Read gesture setting and register sensors
         val prefs = getSharedPreferences("AlBayanPrefs", Context.MODE_PRIVATE)
@@ -666,7 +664,12 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
                     accelerometer?.let { sm.registerListener(this, it, SensorManager.SENSOR_DELAY_NORMAL) }
                 }
             }
-            // Volume interception is handled by Media3 PLAYBACK_TYPE_REMOTE via RadioForwardingPlayer
+            if (volumeToStopEnabled) {
+                if (volumeObserver == null) {
+                    volumeObserver = VolumeObserver()
+                }
+                volumeObserver?.register()
+            }
         }
 
         val alarmAttributes = AudioAttributes.Builder()
@@ -999,10 +1002,10 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
         player?.stop()
         
         sensorManager?.unregisterListener(this)
+        volumeObserver?.unregister()
         // Reset gesture state for next azhan
         gravity[0] = 0f; gravity[1] = 0f; gravity[2] = 0f
         faceDownStartTime = 0L
-        wasFaceUpBeforeFlip = false
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             azhanFocusRequest?.let { audioManager?.abandonAudioFocusRequest(it) }
@@ -1230,13 +1233,7 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
                 gravity[1] = alpha * gravity[1] + (1 - alpha) * event.values[1]
                 gravity[2] = alpha * gravity[2] + (1 - alpha) * event.values[2]
                 
-                // Transition Logic: Phone must be face up/tilted up during Azhan to allow a flip to stop
-                if (gravity[2] > 0) {
-                    wasFaceUpBeforeFlip = true
-                }
-                
-                // Industry Standard Flip-to-Mute threshold (-8.5f ensures phone is flat)
-                if (gravity[2] < -8.5f && wasFaceUpBeforeFlip) {
+                if (gravity[2] < -7.0f) {
                     if (faceDownStartTime == 0L) faceDownStartTime = System.currentTimeMillis()
                     else if (System.currentTimeMillis() - faceDownStartTime >= 500) {
                         triggerGestureStop("FLIP")
@@ -1253,9 +1250,10 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
     private fun triggerGestureStop(source: String) {
         if (!isPlayingAzhan) return
         
-        // GUARD: Immediately prevent re-entry
+        // GUARD: Immediately prevent re-entry during fade out
         // Unregister sensors FIRST to stop further callbacks
         sensorManager?.unregisterListener(this)
+        volumeObserver?.unregister()
         
         // Haptic Feedback (200ms pulse)
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
