@@ -734,8 +734,8 @@ export const generatePhase2QuizChunked = (
     difficulty: QuizDifficulty = 'medium'
 ): AyahReorderQuestion[] => {
     const sortedAyahs = [...ayahs].sort((a, b) => a.number - b.number);
-    // Based on user feedback, we ALWAYS show numbers to prevent Mutashabihat (identical ayahs) confusion.
-    const showNumbers = true; 
+    // Hide numbers in Medium and Hard difficulties to make it a real test.
+    const showNumbers = difficulty === 'easy';
 
     // Dynamic Chunk Sizing based on difficulty
     let dynamicChunkSize = 10; // Default Medium
