@@ -687,6 +687,13 @@ export const generatePhase1Quiz = (ayahs: Ayah[], difficulty: QuizDifficulty = '
         }
     }
 
+    // Dynamic Difficulty Scaling:
+    // Easy: Sequential order (as generated)
+    // Medium / Hard: Randomize the order of questions to break sequential memory
+    if (difficulty === 'medium' || difficulty === 'hard') {
+        return shuffleArr(questions);
+    }
+
     return questions;
 };
 
@@ -724,17 +731,22 @@ const buildReorderChunk = (chunk: Ayah[], chunkIdx: number, showNumbers: boolean
  */
 export const generatePhase2QuizChunked = (
     ayahs: Ayah[],
-    difficulty: QuizDifficulty = 'medium',
-    chunkSize: number = 10
+    difficulty: QuizDifficulty = 'medium'
 ): AyahReorderQuestion[] => {
     const sortedAyahs = [...ayahs].sort((a, b) => a.number - b.number);
-    const showNumbers = difficulty === 'easy';
+    // Based on user feedback, we ALWAYS show numbers to prevent Mutashabihat (identical ayahs) confusion.
+    const showNumbers = true; 
+
+    // Dynamic Chunk Sizing based on difficulty
+    let dynamicChunkSize = 10; // Default Medium
+    if (difficulty === 'easy') dynamicChunkSize = 5;
+    if (difficulty === 'hard') dynamicChunkSize = 15;
 
     if (sortedAyahs.length === 0) return [];
 
     const chunks: AyahReorderQuestion[] = [];
-    for (let i = 0; i < sortedAyahs.length; i += chunkSize) {
-        chunks.push(buildReorderChunk(sortedAyahs.slice(i, i + chunkSize), chunks.length, showNumbers));
+    for (let i = 0; i < sortedAyahs.length; i += dynamicChunkSize) {
+        chunks.push(buildReorderChunk(sortedAyahs.slice(i, i + dynamicChunkSize), chunks.length, showNumbers));
     }
     return chunks;
 };
@@ -750,10 +762,17 @@ export const generatePhase2Quiz = (ayahs: Ayah[]): AyahReorderQuestion => {
  * Phase 3: Generates a Word reorder challenge.
  * For each ayah, its words are extracted and shuffled. User restores the correct order.
  */
-export const generatePhase3Quiz = (ayahs: Ayah[]): WordReorderQuestion => {
-    const sortedAyahs = [...ayahs].sort((a, b) => a.number - b.number);
+export const generatePhase3Quiz = (ayahs: Ayah[], difficulty: QuizDifficulty = 'medium'): WordReorderQuestion => {
+    let processAyahs = [...ayahs].sort((a, b) => a.number - b.number);
+    
+    // Dynamic Difficulty Scaling
+    // Easy: Sequential order
+    // Medium / Hard: Randomize the order of ayahs presented to the user
+    if (difficulty === 'medium' || difficulty === 'hard') {
+        processAyahs = processAyahs.sort(() => 0.5 - Math.random());
+    }
 
-    const questionsAyahs = sortedAyahs.map(ayah => {
+    const questionsAyahs = processAyahs.map(ayah => {
         // Simple function to clean basic tajweed, but ideally we use the plain text
         const rawText = ayah.aya_text || ayah.text;
         const cleanText = rawText.replace(/[\u064B-\u065F\u0670\u06D6-\u06DC\u06DF-\u06E4\u06E7\u06E8\u06EA-\u06ED]/g, ''); // fall back cleanup if needed

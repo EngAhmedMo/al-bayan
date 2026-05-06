@@ -160,12 +160,12 @@ export const QuranQuiz: React.FC = () => {
 
   // ── Start Phase 3 ──
   const startPhase3 = useCallback(() => {
-    const q = generatePhase3Quiz(ayahs);
+    const q = generatePhase3Quiz(ayahs, difficulty);
     setPhase3Quiz(q);
     setAyahMistakes([]);
     startTimeRef.current = Date.now();
     setPageState('phase3');
-  }, [ayahs]);
+  }, [ayahs, difficulty]);
 
   // ── Finish Phase 1 (called after last answer) ──
   const finishPhase1 = useCallback((finalAnswers: Record<string, boolean>) => {
