@@ -233,12 +233,12 @@ const AudioPlayerBar = () => {
   return (
     <div className={`fixed bottom-[70px] left-0 right-0 z-50 animate-in slide-in-from-bottom-10 pointer-events-auto`}>
       {showReciterMenu && (
-        <div className="absolute bottom-full left-0 right-0 md:left-6 md:right-auto md:w-80 mx-3 mb-2 bg-white dark:bg-navy-950 rounded-2xl shadow-2xl border border-navy-100 dark:border-navy-700 overflow-hidden animate-in zoom-in-95 origin-bottom">
+        <div className="absolute bottom-full left-2 right-2 md:left-6 md:right-auto md:w-[450px] lg:w-[500px] mb-2 bg-white/95 dark:bg-navy-950/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-navy-100 dark:border-navy-700 overflow-hidden animate-in zoom-in-95 duration-200 origin-bottom">
           <div className="p-3 border-b border-navy-100 dark:border-navy-800 flex justify-between items-center bg-navy-50 dark:bg-navy-900/50">
             <h4 className="text-xs font-bold text-navy-600 dark:text-white">اختر القارئ</h4>
-            <button onClick={() => setShowReciterMenu(false)}><X size={16} className="text-navy-400" /></button>
+            <button onClick={() => setShowReciterMenu(false)}><X size={16} className="text-navy-400 hover:text-red-500 transition-colors" /></button>
           </div>
-          <div className="grid grid-cols-3 gap-2 p-3 max-h-64 overflow-y-auto custom-scrollbar" ref={(el) => {
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-3 max-h-[50vh] md:max-h-[60vh] lg:max-h-[70vh] overflow-y-auto custom-scrollbar" ref={(el) => {
             if (el) {
               // Auto-scroll to selected reciter
               const selectedBtn = el.querySelector(`[data-selected="true"]`);
@@ -252,9 +252,9 @@ const AudioPlayerBar = () => {
                 key={r.id}
                 data-selected={reciterId === r.id}
                 onClick={() => handleReciterChange(r.id)}
-                className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all border min-h-[70px] justify-center relative ${reciterId === r.id
-                  ? 'bg-gold-50 border-gold-500 dark:bg-gold-900/20'
-                  : 'bg-white dark:bg-navy-900 border-transparent hover:bg-navy-50 dark:hover:bg-navy-800'
+                className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200 border min-h-[70px] justify-center relative ${reciterId === r.id
+                  ? 'bg-gold-50 border-gold-500 dark:bg-gold-900/40 scale-105 shadow-md shadow-gold-500/20'
+                  : 'bg-transparent dark:bg-transparent border-transparent hover:bg-navy-50 dark:hover:bg-navy-800 hover:scale-105'
                   }`}
               >
                 {downloadedReciters.includes(r.id) && (
@@ -303,7 +303,7 @@ const AudioPlayerBar = () => {
               </div>
             </button>
             <div className="flex flex-col min-w-0">
-              <span className="text-sm md:text-base font-bold text-navy-900 dark:text-white truncate group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors">
+              <span className="audio-surah-name text-navy-900 dark:text-gold-300 truncate group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors" dir="rtl">
                 {currentTrack.title}
               </span>
               <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-navy-500 dark:text-navy-300 min-w-0 w-full">

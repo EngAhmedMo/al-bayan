@@ -116,9 +116,9 @@ body {
 
 .quran-text {
   font-family: 'UthmanicHafs', serif;
-  line-height: 2.5;
-  /* text-align will be managed dynamically, default here is center */
-  text-align: center;
+  line-height: 2.3;
+  text-align: justify;
+  text-align-last: center;
   direction: rtl;
   /* Arabic Safe Typography Properties */
   text-justify: inter-word;
@@ -133,6 +133,69 @@ body {
   display: inline-block;
   margin: 0 4px;
   white-space: nowrap;
+}
+
+/* ==========================================
+   QURAN SURAH NAME — TopBar & Audio Bar
+   Premium display using UthmanicHafs font
+   ========================================== */
+
+/* TopBar surah name with tashkeel */
+.surah-name-topbar {
+  font-family: 'UthmanicHafs', serif;
+  direction: rtl;
+  line-height: 1.5;
+  letter-spacing: 0;
+  /* Prevent truncation of diacritics */
+  overflow: visible;
+}
+
+/* Audio player bar surah name with tashkeel */
+.audio-surah-name {
+  font-family: 'UthmanicHafs', serif;
+  direction: rtl;
+  line-height: 1.5;
+  letter-spacing: 0;
+}
+
+/* Mobile: Smaller font for tighter spaces */
+@media (max-width: 390px) {
+  .surah-name-topbar {
+    font-size: 1rem; /* 16px */
+  }
+  .audio-surah-name {
+    font-size: 1rem;
+  }
+}
+
+/* Tablet & up */
+@media (min-width: 640px) {
+  .surah-name-topbar {
+    font-size: 1.25rem; /* 20px */
+  }
+  .audio-surah-name {
+    font-size: 1.2rem;
+  }
+}
+
+/* Desktop */
+@media (min-width: 1024px) {
+  .surah-name-topbar {
+    font-size: 1.4rem;
+  }
+  .audio-surah-name {
+    font-size: 1.3rem;
+  }
+}
+
+/* Landscape phone: Keep readable without overflowing header */
+@media (orientation: landscape) and (max-height: 500px) {
+  .surah-name-topbar {
+    font-size: 0.95rem;
+  }
+  .audio-surah-name {
+    font-size: 0.95rem;
+  }
 }
 
 /* ==========================================

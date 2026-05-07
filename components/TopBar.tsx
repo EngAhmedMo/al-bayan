@@ -5,7 +5,7 @@ import { Moon, Sun, ArrowRight, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface TopBarProps {
-  title: string;
+  title: React.ReactNode;
   showBack?: boolean;
   onBack?: () => void; // Optional custom back handler
   extra?: React.ReactNode;
@@ -31,7 +31,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, showBack, onBack, extra }
             <Menu size={20} />
           </button>
         )}
-        <h1 className="text-xl font-bold text-navy-900 dark:text-white font-sans tracking-tight">{title}</h1>
+        <div className="text-xl font-bold text-navy-900 dark:text-white font-sans tracking-tight">{title}</div>
       </div>
 
       <div className="flex items-center gap-2">

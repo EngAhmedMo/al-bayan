@@ -54,6 +54,19 @@ export const Adhkar: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingZekr, setEditingZekr] = useState<Zekr | undefined>(undefined);
 
+  const [favoriteCompletedIds, setFavoriteCompletedIds] = useState<Set<number>>(new Set());
+  const favoriteCompletedIdsRef = useRef<Set<number>>(favoriteCompletedIds);
+
+  useEffect(() => {
+    favoriteCompletedIdsRef.current = favoriteCompletedIds;
+  }, [favoriteCompletedIds]);
+
+  useEffect(() => {
+    if (viewMode === 'favorites') {
+      setFavoriteCompletedIds(new Set());
+    }
+  }, [viewMode]);
+
   const refreshData = () => {
     setFavIds(getFavoriteAdhkarIds());
     setCustomAdhkar(getCustomAdhkar());
@@ -130,6 +143,37 @@ export const Adhkar: React.FC = () => {
 
   const allAdhkarCombined = useMemo(() => [...customAdhkar, ...ADHKAR_DATA], [customAdhkar]);
   const favoriteAdhkarList = useMemo(() => allAdhkarCombined.filter(item => favIds.includes(item.id)), [favIds, allAdhkarCombined]);
+
+  const handleFavoriteComplete = useCallback((id: number) => {
+    setFavoriteCompletedIds(prev => new Set([...prev, id]));
+    
+    // Auto-scroll to the next uncompleted Zekr after animations finish
+    setTimeout(() => {
+      const currentIndex = favoriteAdhkarList.findIndex(z => z.id === id);
+      if (currentIndex !== -1) {
+        let nextZekr = null;
+        for (let i = currentIndex + 1; i < favoriteAdhkarList.length; i++) {
+          if (!favoriteCompletedIdsRef.current.has(favoriteAdhkarList[i].id) && favoriteAdhkarList[i].id !== id) {
+            nextZekr = favoriteAdhkarList[i];
+            break;
+          }
+        }
+        
+        if (nextZekr) {
+          const nextElement = document.getElementById(`zekr-${nextZekr.id}`);
+          if (nextElement) {
+            nextElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Briefly highlight the next card
+            nextElement.classList.add('ring-2', 'ring-gold-500', 'ring-offset-2', 'dark:ring-offset-navy-900', 'transition-all', 'duration-500');
+            setTimeout(() => {
+              nextElement.classList.remove('ring-2', 'ring-gold-500', 'ring-offset-2', 'dark:ring-offset-navy-900');
+            }, 1500);
+          }
+        }
+      }
+    }, 800);
+  }, [favoriteAdhkarList]);
 
   const handleSaveZekr = (zekrData: any) => {
     if (editingZekr) {
@@ -336,12 +380,14 @@ export const Adhkar: React.FC = () => {
           <div className="space-y-4">
             {favoriteAdhkarList.length > 0 ? (
               favoriteAdhkarList.map(zekr => (
-                <ZekrCard
-                  key={zekr.id}
-                  data={zekr}
-                  isFav={true}
-                  onToggleFav={(id) => { toggleFavoriteAdhkar(id); refreshData(); }}
-                />
+                <div key={zekr.id} id={`zekr-${zekr.id}`} className="rounded-3xl">
+                  <ZekrCard
+                    data={zekr}
+                    isFav={true}
+                    onToggleFav={(id) => { toggleFavoriteAdhkar(id); refreshData(); }}
+                    onComplete={handleFavoriteComplete}
+                  />
+                </div>
               ))
             ) : (
               <div className="flex flex-col items-center justify-center py-20 text-center">

@@ -5,7 +5,7 @@ import { Ayah, Surah, TafsirResponse } from '../types';
 import { fetchPage, fetchTafsir, fetchSurahs, RECITERS, getAudioUrl } from '../services/api';
 import { loadSingleAyahTafsir, TAFSIR_SOURCES } from '../services/tafsirService';
 import { toArabicDigits } from '../services/normalization';
-import { SURAH_START_PAGES, SURAH_AYAH_COUNTS, getGlobalAyahNumber, getApproxPageFromGlobalAyah, getAyahById } from '../services/quranStaticData';
+import { SURAH_START_PAGES, SURAH_AYAH_COUNTS, SURAH_NAMES_TASHKEEL, getGlobalAyahNumber, getApproxPageFromGlobalAyah, getAyahById } from '../services/quranStaticData';
 import { TopBar } from '../components/TopBar';
 import { useAudio, useSettings, NavigationContext, useTheme } from '../components/Layout';
 import { ChevronLeft, ChevronRight, PlayCircle, BookOpen, X, Copy, Bookmark, BookmarkPlus, BookmarkCheck, Settings, Type, Mic, FileEdit, Save, Maximize2, Minimize2, Share2, Grid, Book, Hash, Repeat, Play, Infinity as InfinityIcon, LogOut, Plus, Minus, Sun, Moon, RotateCcw, ArrowDownUp } from 'lucide-react';
@@ -808,7 +808,11 @@ export const QuranReader: React.FC = () => {
 
       playTrack(
         audioUrl,
-        (selectedAyah as any).surah?.name,
+        (() => {
+          const sNum = (selectedAyah as any).surah?.number;
+          if (sNum && sNum >= 1 && sNum <= 114) return SURAH_NAMES_TASHKEEL[sNum - 1];
+          return (selectedAyah as any).surah?.name || '';
+        })(),
         `الآية ${toArabicDigits(selectedAyah.numberInSurah)}`,
         globalId,
         autoAdvance,
@@ -844,7 +848,7 @@ export const QuranReader: React.FC = () => {
 
     playTrack(
       audioUrl,
-      (selectedAyah as any).surah?.name,
+      surahNum >= 1 && surahNum <= 114 ? SURAH_NAMES_TASHKEEL[surahNum - 1] : ((selectedAyah as any).surah?.name || ''),
       `الآية ${toArabicDigits(fromAyah)} - ${toArabicDigits(toAyah)}`,
       rangeStartGlobal,
       true,  // autoAdvance within range
@@ -870,7 +874,10 @@ export const QuranReader: React.FC = () => {
       reciter_id: reciterId
     });
 
-    playTrack(url, surahName, `الآية ${toArabicDigits(1)}`, startGlobalId, true, 0, reciterId);
+    const tashkeelName = surahNumber >= 1 && surahNumber <= 114
+      ? SURAH_NAMES_TASHKEEL[surahNumber - 1]
+      : surahName;
+    playTrack(url, tashkeelName, `الآية ${toArabicDigits(1)}`, startGlobalId, true, 0, reciterId);
     setSelectedAyah(null);
   };
 
@@ -886,6 +893,16 @@ export const QuranReader: React.FC = () => {
   const getSurahNameForPage = () => {
     if (ayahs.length === 0) return 'المصحف';
     // Show the surah of the FIRST ayah on the page (more accurate for pages spanning multiple surahs)
+    return (ayahs[0] as any).surah?.name || 'المصحف';
+  };
+
+  // Returns the tashkeel version of the surah name on current page
+  const getSurahNameTashkeel = () => {
+    if (ayahs.length === 0) return 'الْمُصْحَف';
+    const surahNum = (ayahs[0] as any).surah?.number;
+    if (surahNum && surahNum >= 1 && surahNum <= 114) {
+      return SURAH_NAMES_TASHKEEL[surahNum - 1];
+    }
     return (ayahs[0] as any).surah?.name || 'المصحف';
   };
 
@@ -917,7 +934,20 @@ export const QuranReader: React.FC = () => {
       {/* 1. Header (Collapsible) - Hidden in Immersive */}
       <div className={`transition-all duration-500 ease-in-out z-40 ${isImmersive ? '-mt-20 opacity-0 pointer-events-none' : 'opacity-100'}`}>
         <TopBar
-          title={`ص ${toArabicDigits(page)} - ${getSurahNameForPage()}`}
+          title={
+            <div className="flex items-center gap-2 min-w-0 overflow-hidden" dir="rtl">
+              <span className="text-xs font-bold text-navy-500 dark:text-navy-400 shrink-0 tabular-nums bg-navy-100 dark:bg-navy-800 px-2 py-0.5 rounded-lg">
+                {`ص ${toArabicDigits(page)}`}
+              </span>
+              <span className="w-px h-4 bg-navy-200 dark:bg-navy-700 shrink-0" />
+              <span
+                className="surah-name-topbar text-navy-900 dark:text-gold-300 truncate"
+                dir="rtl"
+              >
+                {getSurahNameTashkeel()}
+              </span>
+            </div>
+          }
           extra={
             <div className="flex items-center gap-1.5">
               {/* زر الاختبار — يعمل دائماً بدون شرط خطة الحفظ */}
