@@ -9,7 +9,7 @@ import { fetchSurahs, RECITERS, getAudioUrl } from '../services/api';
 import { Surah, RadioStation } from '../types';
 import { RADIO_STATIONS } from '../services/radioData';
 import { requestNotificationPermission, processScheduledNotifications, scheduleAllNotifications } from '../services/notificationManager';
-import { getUnreadCount, getStoredFontSize, setStoredFontSize as saveFontSize, getStoredReciter, setStoredReciter as saveReciter, getStoredAzhan, setStoredAzhan, getNotificationSettings, updateSalahSettings, isPerPrayerMuazzinEnabled, NotificationSettings, getStoredTextAlign, setStoredTextAlign as saveTextAlign, TextAlignMode } from '../services/storage';
+import { getUnreadCount, getStoredFontSize, setStoredFontSize as saveFontSize, getStoredReciter, setStoredReciter as saveReciter, getStoredAzhan, setStoredAzhan, getNotificationSettings, updateSalahSettings, isPerPrayerMuazzinEnabled, NotificationSettings, getStoredTextAlign, setStoredTextAlign as saveTextAlign, TextAlignMode, getResponsiveDefaultFontSize } from '../services/storage';
 import { getTodayPrayerTimesLocal } from '../services/prayerCalculator';
 import { getMetadataFromGlobalAyah, getApproxPageFromGlobalAyah, SURAH_AYAH_COUNTS, getSurahGlobalAyahRange, getPageGlobalAyahRangeSync, SURAH_NAMES_TASHKEEL } from '../services/quranStaticData';
 import { toArabicDigits } from '../services/normalization';

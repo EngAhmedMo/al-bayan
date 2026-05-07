@@ -17,7 +17,8 @@ import {
   isPageBookmarked,
   saveNote,
   getNoteForAyah,
-  setLastUsedCategory
+  setLastUsedCategory,
+  getResponsiveDefaultFontSize
 } from '../services/storage';
 import { AnalyticsService } from '../services/analytics'; // Analytics
 import { TajweedText, cleanTajweedTags } from '../components/TajweedText';
@@ -984,13 +985,13 @@ export const QuranReader: React.FC = () => {
       <div
         ref={pageTopRef}
         className={`
-          flex-1 overflow-y-auto overflow-x-hidden flex justify-center relative transition-all duration-500 quran-page-scroll scroll-smooth
+          flex-1 overflow-y-auto overflow-x-hidden flex justify-center items-start relative transition-all duration-500 quran-page-scroll scroll-smooth
           ${isLandscape ? 'quran-landscape-adjust' : ''}
           ${isImmersive
             ? 'fixed inset-0 z-50 fullscreen-container flex-col items-center bg-[#fffcf5] dark:bg-[#1a202c] w-full p-0'
             : isLandscape
               ? 'p-2 sm:p-4 pb-24'
-              : 'p-2 sm:p-4 pb-40'}
+              : 'p-2 sm:p-4 pb-36'}
         `}
         onClick={(e) => {
           // Clicking the "void" area exits immersive mode
@@ -1078,10 +1079,10 @@ export const QuranReader: React.FC = () => {
         ) : (
           <div
             className={`
-              transition-all duration-500 mx-auto flex flex-col relative
+              transition-all duration-500 mx-auto relative w-full
               ${isImmersive
-                ? 'w-full md:w-[95%] lg:w-[90%] max-w-[1400px] h-full flex-1 py-0'
-                : 'w-full max-w-4xl'} 
+                ? 'w-full md:w-[95%] lg:w-[90%] max-w-[1400px] h-full flex-1 py-0 flex flex-col'
+                : 'max-w-4xl block'} 
             `}
           >
             {/* Side Click Navigation Areas (Desktop) */}
@@ -1506,9 +1507,9 @@ export const QuranReader: React.FC = () => {
                       <label className="flex items-center gap-2 text-sm font-bold text-navy-700 dark:text-navy-300">
                         <Type size={18} className="text-gold-500" /> حجم الخط
                       </label>
-                      {fontSize !== 22 && (
+                      {fontSize !== getResponsiveDefaultFontSize() && (
                         <button
-                          onClick={() => setFontSize(22)}
+                          onClick={() => setFontSize(getResponsiveDefaultFontSize())}
                           className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold text-gold-600 dark:text-gold-400 hover:bg-gold-50 dark:hover:bg-gold-900/10 transition-all duration-300"
                           title="إعادة تعيين الخط للافتراضي"
                         >
@@ -1521,10 +1522,13 @@ export const QuranReader: React.FC = () => {
                     <div className="flex flex-col w-full pt-1">
                       {/* Slider Container with relative positioning for the label */}
                       <div className="relative w-full mb-1" dir="ltr">
-                        {/* Floating "Default" Label - Precisely at 22px position */}
+                        {/* Floating "Default" Label - Position tracks screen-responsive default */}
                         <div
                           className="absolute -top-5 -translate-x-1/2 text-[9px] font-bold text-gold-600 dark:text-gold-400 transition-opacity duration-300"
-                          style={{ left: '21.43%', opacity: Math.abs(fontSize - 22) < 2 ? 1 : 0.6 }}
+                          style={{
+                            left: `${((getResponsiveDefaultFontSize() - 18) / (44 - 18)) * 100}%`,
+                            opacity: Math.abs(fontSize - getResponsiveDefaultFontSize()) < 2 ? 1 : 0.55
+                          }}
                         >
                           الافتراضي
                         </div>
@@ -1533,10 +1537,10 @@ export const QuranReader: React.FC = () => {
                           <span className="text-xs font-bold text-navy-400">A</span>
 
                           <div className="flex-1 relative h-8 flex items-center">
-                            {/* Fixed Default Marker - Vertical Line at 22px position */}
+                            {/* Fixed Default Marker - tracks screen-responsive default position */}
                             <div
                               className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3 bg-gold-400/50 z-0 pointer-events-none"
-                              style={{ left: '21.43%' }}
+                              style={{ left: `${((getResponsiveDefaultFontSize() - 18) / (44 - 18)) * 100}%` }}
                             ></div>
 
                             {/* Track background */}
