@@ -77,39 +77,6 @@ export const Tasbih: React.FC = () => {
 
   const { fontSize } = useSettings();
 
-  // Long-press state for the reset button (desktop safety)
-  const resetPressTimer = useRef<ReturnType<typeof setTimeout>>();
-  const [resetHoldProgress, setResetHoldProgress] = useState(0);
-  const resetAnimRef = useRef<ReturnType<typeof setInterval>>();
-  const HOLD_DURATION = 700; // ms required to hold on desktop
-
-  const startResetHold = () => {
-    // On touch devices just open dialog immediately (they tap with intention)
-    if (window.matchMedia('(pointer: coarse)').matches) {
-      setIsResetOpen(true);
-      return;
-    }
-    // On pointer:fine (mouse/trackpad) require hold
-    setResetHoldProgress(0);
-    const startTime = Date.now();
-    resetAnimRef.current = setInterval(() => {
-      const elapsed = Date.now() - startTime;
-      const pct = Math.min((elapsed / HOLD_DURATION) * 100, 100);
-      setResetHoldProgress(pct);
-      if (pct >= 100) {
-        clearInterval(resetAnimRef.current);
-        setResetHoldProgress(0);
-        setIsResetOpen(true);
-      }
-    }, 16);
-  };
-
-  const cancelResetHold = () => {
-    clearInterval(resetAnimRef.current);
-    clearTimeout(resetPressTimer.current);
-    setResetHoldProgress(0);
-  };
-
   // Combine Default and Custom
   const allTasbihs = useMemo(() => {
     return [...customItems, ...BASE_ADHKAR_ITEMS];
@@ -201,8 +168,8 @@ export const Tasbih: React.FC = () => {
           }
           break;
         case 'Escape':
-          // Escape closes modals only — never triggers reset (standard UX)
           e.preventDefault();
+          setIsResetOpen(true);
           break;
       }
     };
@@ -622,49 +589,37 @@ export const Tasbih: React.FC = () => {
 
           {/* Bottom: Controls Panel */}
           <div className="w-full px-4 sm:px-8 pb-6 z-10 mt-auto">
-            <div className="bg-white/95 dark:bg-navy-800/95 backdrop-blur-xl rounded-3xl p-3 sm:p-4 flex justify-between items-center shadow-2xl shadow-gold-500/10 dark:shadow-navy-950/50 border border-white/80 dark:border-navy-700">
-
-              {/* Reset Button — long-press on desktop, instant on mobile */}
-              <button
-                onMouseDown={startResetHold}
-                onMouseUp={cancelResetHold}
-                onMouseLeave={cancelResetHold}
-                onTouchStart={startResetHold}
-                onTouchEnd={cancelResetHold}
-                className="relative flex items-center gap-2 px-3 sm:px-4 h-12 sm:h-14 rounded-2xl text-[#C6AD73] border border-[#C6AD73]/30 dark:border-[#C6AD73]/60 hover:border-red-500/50 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95 shadow-sm overflow-hidden select-none"
-                title="اضغط مطولاً للتصفير"
-              >
-                {/* Hold progress bar */}
-                {resetHoldProgress > 0 && (
-                  <div
-                    className="absolute inset-0 bg-red-500/10 rounded-2xl transition-none"
-                    style={{ width: `${resetHoldProgress}%` }}
-                  />
-                )}
-                <RotateCcw size={20} className="shrink-0 relative z-10" />
-                <span className="hidden sm:block text-[11px] font-bold relative z-10 whitespace-nowrap">
-                  {resetHoldProgress > 0 ? '...' : 'تصفير'}
-                </span>
-              </button>
-
-              {/* Divider */}
-              <div className="h-10 w-px bg-navy-100 dark:bg-navy-700 mx-2 sm:mx-3"></div>
+            <div className="bg-white/95 dark:bg-navy-800/95 backdrop-blur-xl rounded-3xl p-3 sm:p-4 flex items-center justify-center gap-3 shadow-2xl shadow-gold-500/10 dark:shadow-navy-950/50 border border-white/80 dark:border-navy-700">
 
               {/* Target Presets */}
-              <div className="flex-1 flex justify-center gap-2 sm:gap-3">
+              <div className="flex gap-2 sm:gap-3">
                 {[33, 100, 1000, 0].map(val => (
                   <button
                     key={val}
                     onClick={() => handleTargetChange(val)}
-                    className={`flex-1 max-w-[4.5rem] py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all active:scale-95 ${target === val
-                      ? 'bg-gradient-to-br from-gold-400 to-amber-500 text-white shadow-lg shadow-gold-500/30'
-                      : 'text-navy-500 dark:text-navy-400 bg-navy-50/50 dark:bg-navy-700/50 hover:bg-navy-100 dark:hover:bg-navy-700'
-                      }`}
+                    className={`w-14 sm:w-16 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-bold transition-all active:scale-95 ${
+                      target === val
+                        ? 'bg-gradient-to-br from-gold-400 to-amber-500 text-white shadow-lg shadow-gold-500/30'
+                        : 'text-navy-500 dark:text-navy-400 bg-navy-50/50 dark:bg-navy-700/50 hover:bg-navy-100 dark:hover:bg-navy-700'
+                    }`}
                   >
                     {val === 0 ? <InfinityIcon size={18} className="mx-auto" /> : toArabicDigits(val)}
                   </button>
                 ))}
               </div>
+
+              {/* Divider */}
+              <div className="h-10 w-px bg-navy-100 dark:bg-navy-700 mx-1" />
+
+              {/* Reset Button */}
+              <button
+                onClick={() => setIsResetOpen(true)}
+                className="flex items-center gap-2 px-3 sm:px-4 h-11 sm:h-12 rounded-2xl text-[#C6AD73] border border-[#C6AD73]/30 dark:border-[#C6AD73]/60 hover:border-red-500/50 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all active:scale-95 shadow-sm"
+                title="تصفير العداد"
+              >
+                <RotateCcw size={18} />
+                <span className="hidden sm:block text-[11px] font-bold">تصفير</span>
+              </button>
             </div>
 
             {/* Keyboard Shortcuts Hint (Desktop) */}
@@ -672,7 +627,7 @@ export const Tasbih: React.FC = () => {
               <span className="flex items-center gap-1.5"><kbd className="px-2 py-0.5 rounded-md bg-navy-100 dark:bg-navy-800 font-sans border border-navy-200 dark:border-navy-700 shadow-sm">Space</kbd> للتسبيح</span>
               <span className="flex items-center gap-1.5"><kbd className="px-2 py-0.5 rounded-md bg-navy-100 dark:bg-navy-800 font-sans border border-navy-200 dark:border-navy-700 shadow-sm">← →</kbd> للتبديل</span>
               <span className="flex items-center gap-1.5"><kbd className="px-2 py-0.5 rounded-md bg-navy-100 dark:bg-navy-800 font-sans border border-navy-200 dark:border-navy-700 shadow-sm">↑ ↓</kbd> للهدف</span>
-              <span className="flex items-center gap-1.5 opacity-60">اضغط مطولاً على &ldquo;تصفير&rdquo; للإعادة</span>
+              <span className="flex items-center gap-1.5"><kbd className="px-2 py-0.5 rounded-md bg-navy-100 dark:bg-navy-800 font-sans border border-navy-200 dark:border-navy-700 shadow-sm">Esc</kbd> للتصفير</span>
             </div>
           </div>
         </div>
