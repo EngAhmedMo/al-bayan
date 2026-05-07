@@ -116,7 +116,7 @@ body {
 
 .quran-text {
   font-family: 'UthmanicHafs', serif;
-  line-height: 2.3;
+  line-height: 1.9;
   text-align: justify;
   text-align-last: center;
   direction: rtl;
@@ -131,8 +131,48 @@ body {
 .ayah-number {
   font-family: 'AyahNumber', sans-serif;
   display: inline-block;
-  margin: 0 4px;
+  margin: 0 3px;
   white-space: nowrap;
+}
+
+/* ==========================================
+   MUSHAF RESPONSIVE FONT SIZING
+   Auto-adjusts when user hasn't customized size
+   ========================================== */
+
+/* Very small phones (< 375px): iPhone SE etc. */
+@media (max-width: 374px) {
+  .quran-text { font-size: 18px; line-height: 1.85; }
+}
+
+/* Standard mobile (375–428px): Most iPhones & Android */
+@media (min-width: 375px) and (max-width: 428px) {
+  .quran-text { font-size: 20px; line-height: 1.9; }
+}
+
+/* Large mobile / small tablet (429–640px) */
+@media (min-width: 429px) and (max-width: 640px) {
+  .quran-text { font-size: 22px; line-height: 1.95; }
+}
+
+/* Tablet (641–1024px) */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .quran-text { font-size: 24px; line-height: 2.0; }
+}
+
+/* Desktop (> 1024px) */
+@media (min-width: 1025px) {
+  .quran-text { font-size: 26px; line-height: 2.0; }
+}
+
+/* Landscape mobile: reduce to prevent line-breaks from making text tiny */
+@media (orientation: landscape) and (max-height: 500px) {
+  .quran-text { font-size: 17px !important; line-height: 1.8 !important; }
+}
+
+/* Dark mode: slightly warmer rendering */
+.dark .quran-text {
+  color: #e8e0d0;
 }
 
 /* ==========================================

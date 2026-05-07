@@ -512,7 +512,7 @@ export const getHadithReadingPosition = (): HadithReadingPosition | null => {
 
 export const getStoredFontSize = (): number => {
   const size = localStorage.getItem(KEY_SETTINGS_FONT);
-  return size ? parseInt(size) : 28;
+  return size ? parseInt(size) : 22; // Default 22px — CSS media queries auto-scale per screen
 };
 
 export const setStoredFontSize = (size: number): void => {
@@ -523,7 +523,7 @@ export type TextAlignMode = 'right' | 'center' | 'justify';
 
 export const getStoredTextAlign = (): TextAlignMode => {
   const align = localStorage.getItem(KEY_SETTINGS_TEXT_ALIGN);
-  return (align as TextAlignMode) || 'center'; // strict Uthmani defaults to center
+  return (align as TextAlignMode) || 'justify'; // Default justify = Mushaf style
 };
 
 export const setStoredTextAlign = (align: TextAlignMode): void => {

@@ -1006,7 +1006,7 @@ export const QuranReader: React.FC = () => {
             {/* Font Controls */}
             <div className="flex flex-col bg-navy-800/90 dark:bg-black/70 backdrop-blur-md rounded-2xl p-1.5 border border-white/20 shadow-xl">
               <button
-                onClick={() => setFontSize(Math.min(fontSize + 2, 50))}
+                onClick={() => setFontSize(Math.min(fontSize + 2, 44))}
                 className="w-10 h-10 flex items-center justify-center text-white hover:bg-white/20 rounded-xl transition-colors"
                 title="تكبير الخط"
               >
@@ -1014,7 +1014,7 @@ export const QuranReader: React.FC = () => {
               </button>
               <div className="h-px bg-white/20 w-full my-1"></div>
               <button
-                onClick={() => setFontSize(Math.max(fontSize - 2, 18))}
+                onClick={() => setFontSize(Math.max(fontSize - 2, 16))}
                 className="w-10 h-10 flex items-center justify-center text-white hover:bg-white/20 rounded-xl transition-colors"
                 title="تصغير الخط"
               >
@@ -1227,14 +1227,14 @@ export const QuranReader: React.FC = () => {
                           {/* Surah Header */}
                           {/* Surah Header - Professional SVG Implementation */}
                           {isFirstAyahOfSurah && surah && (
-                            <div className="w-full mt-8 mb-6 text-center block select-none">
-                              <div className="relative flex items-center justify-center py-0 my-6">
+                            <div className="w-full mt-2 mb-1 text-center block select-none">
+                              <div className="relative flex items-center justify-center py-0 my-1">
 
                                 {/* Ornamental Frame (Banner) */}
                                 <img
                                   src={`${import.meta.env.BASE_URL}svgs/surah_banner1.svg`}
                                   alt="Surah Frame"
-                                  className={`w-full max-w-[400px] md:max-w-[500px] h-auto opacity-90 ${isDark ? 'brightness-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.3)]' : 'drop-shadow-sm'}`}
+                                  className={`w-full max-w-[320px] md:max-w-[420px] lg:max-w-[480px] h-auto opacity-90 ${isDark ? 'brightness-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.3)]' : 'drop-shadow-sm'}`}
                                 />
 
                                 {/* Surah Name Calligraphy (Centered in Frame) */}
@@ -1259,11 +1259,11 @@ export const QuranReader: React.FC = () => {
 
                               {/* Basmalah Calligraphy */}
                               {surah.number !== 1 && surah.number !== 9 && (
-                                <div className="flex justify-center mb-6 mt-1 opacity-90">
+                                <div className="flex justify-center mb-3 mt-0.5 opacity-90">
                                   <img
                                     src={`${import.meta.env.BASE_URL}svgs/besmAllah.svg`}
                                     alt="بسم الله الرحمن الرحيم"
-                                    className={`h-10 md:h-12 w-auto ${isDark ? 'svg-gold-filter' : 'svg-navy-filter'}`}
+                                    className={`h-8 md:h-10 w-auto ${isDark ? 'svg-gold-filter' : 'svg-navy-filter'}`}
                                   />
                                 </div>
                               )}
@@ -1288,8 +1288,8 @@ export const QuranReader: React.FC = () => {
                           </span>
 
                           {/* Professional Ayah Marker (Rosette) */}
-                          <span className="inline-flex items-center justify-center align-middle select-none text-gold-600 dark:text-gold-500 font-bold h-[1.7em] w-[1.7em] relative mx-1 ayah-number"
-                            style={{ fontSize: `${fontSize * 0.6}px` }}>
+                          <span className="inline-flex items-center justify-center align-middle select-none text-gold-600 dark:text-gold-500 font-bold h-[1.5em] w-[1.5em] relative mx-0.5 ayah-number"
+                            style={{ fontSize: `${fontSize * 0.52}px` }}>
                             {/* Simple ornate circle */}
                             <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="1.2" className="w-full h-full drop-shadow-sm">
                               <circle cx="18" cy="18" r="17" />
@@ -1545,20 +1545,20 @@ export const QuranReader: React.FC = () => {
                             {/* Filled track */}
                             <div
                               className="absolute inset-y-3.5 left-0 bg-gradient-to-r from-gold-400 to-gold-600 rounded-lg transition-all duration-100"
-                              style={{ width: `${((fontSize - 18) / (50 - 18)) * 100}%` }}
+                              style={{ width: `${((fontSize - 16) / (44 - 16)) * 100}%` }}
                             ></div>
 
                             {/* The Input Range */}
                             <input
                               type="range"
-                              min="18"
-                              max="50"
+                              min="16"
+                              max="44"
                               value={fontSize}
                               onChange={(e) => {
                                 const val = parseInt(e.target.value);
-                                // Optional: Gentle snap to default
-                                if (val >= 27 && val <= 29 && val !== 28) {
-                                  setFontSize(28);
+                                // Gentle snap to default (22px)
+                                if (val >= 21 && val <= 23 && val !== 22) {
+                                  setFontSize(22);
                                 } else {
                                   setFontSize(val);
                                 }

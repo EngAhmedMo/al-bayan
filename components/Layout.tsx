@@ -124,9 +124,9 @@ interface SettingsContextType {
   openSettings: () => void;
 }
 export const SettingsContext = createContext<SettingsContextType>({
-  fontSize: 28,
+  fontSize: 22,
   setFontSize: () => { },
-  textAlign: 'center',
+  textAlign: 'justify',
   setTextAlign: () => { },
   reciterId: 'ar.minshawi_murattal',
   setReciterId: () => { },
