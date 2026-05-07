@@ -167,7 +167,7 @@ body {
 
 /* Landscape mobile: reduce to prevent line-breaks from making text tiny */
 @media (orientation: landscape) and (max-height: 500px) {
-  .quran-text { font-size: 17px !important; line-height: 1.8 !important; }
+  .quran-text { font-size: 18px !important; line-height: 1.8 !important; }
 }
 
 /* Dark mode: slightly warmer rendering */

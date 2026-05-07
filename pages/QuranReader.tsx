@@ -1014,7 +1014,7 @@ export const QuranReader: React.FC = () => {
               </button>
               <div className="h-px bg-white/20 w-full my-1"></div>
               <button
-                onClick={() => setFontSize(Math.max(fontSize - 2, 16))}
+                onClick={() => setFontSize(Math.max(fontSize - 2, 18))}
                 className="w-10 h-10 flex items-center justify-center text-white hover:bg-white/20 rounded-xl transition-colors"
                 title="تصغير الخط"
               >
@@ -1131,7 +1131,7 @@ export const QuranReader: React.FC = () => {
                 relative bg-[#fffcf5] dark:bg-[#1a202c] shadow-2xl overflow-y-auto overflow-x-hidden transition-all duration-500 quran-page-scroll
                 ${isImmersive
                   ? 'min-h-full h-full flex-1 md:rounded-2xl border-none md:border border-white/5 shadow-2xl cursor-pointer'
-                  : 'min-h-[85vh] max-h-[calc(100vh-180px)] rounded-2xl border border-gold-900/5 dark:border-navy-700'}
+                  : 'rounded-2xl border border-gold-900/5 dark:border-navy-700'}
              `}>
 
               {/* Paper Texture Overlay - Fixed background that stays visible */}
@@ -1506,9 +1506,9 @@ export const QuranReader: React.FC = () => {
                       <label className="flex items-center gap-2 text-sm font-bold text-navy-700 dark:text-navy-300">
                         <Type size={18} className="text-gold-500" /> حجم الخط
                       </label>
-                      {fontSize !== 28 && (
+                      {fontSize !== 22 && (
                         <button
-                          onClick={() => setFontSize(28)}
+                          onClick={() => setFontSize(22)}
                           className="group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-bold text-gold-600 dark:text-gold-400 hover:bg-gold-50 dark:hover:bg-gold-900/10 transition-all duration-300"
                           title="إعادة تعيين الخط للافتراضي"
                         >
@@ -1521,10 +1521,10 @@ export const QuranReader: React.FC = () => {
                     <div className="flex flex-col w-full pt-1">
                       {/* Slider Container with relative positioning for the label */}
                       <div className="relative w-full mb-1" dir="ltr">
-                        {/* Floating "Default" Label - Precisely Aligned */}
+                        {/* Floating "Default" Label - Precisely at 22px position */}
                         <div
                           className="absolute -top-5 -translate-x-1/2 text-[9px] font-bold text-gold-600 dark:text-gold-400 transition-opacity duration-300"
-                          style={{ left: '31.25%', opacity: Math.abs(fontSize - 28) < 2 ? 1 : 0.7 }}
+                          style={{ left: '21.43%', opacity: Math.abs(fontSize - 22) < 2 ? 1 : 0.6 }}
                         >
                           الافتراضي
                         </div>
@@ -1533,10 +1533,10 @@ export const QuranReader: React.FC = () => {
                           <span className="text-xs font-bold text-navy-400">A</span>
 
                           <div className="flex-1 relative h-8 flex items-center">
-                            {/* Fixed Default Marker - Vertical Line */}
+                            {/* Fixed Default Marker - Vertical Line at 22px position */}
                             <div
                               className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3 bg-gold-400/50 z-0 pointer-events-none"
-                              style={{ left: '31.25%' }}
+                              style={{ left: '21.43%' }}
                             ></div>
 
                             {/* Track background */}
@@ -1545,13 +1545,13 @@ export const QuranReader: React.FC = () => {
                             {/* Filled track */}
                             <div
                               className="absolute inset-y-3.5 left-0 bg-gradient-to-r from-gold-400 to-gold-600 rounded-lg transition-all duration-100"
-                              style={{ width: `${((fontSize - 16) / (44 - 16)) * 100}%` }}
+                              style={{ width: `${((fontSize - 18) / (44 - 18)) * 100}%` }}
                             ></div>
 
                             {/* The Input Range */}
                             <input
                               type="range"
-                              min="16"
+                              min="18"
                               max="44"
                               value={fontSize}
                               onChange={(e) => {
@@ -1577,40 +1577,6 @@ export const QuranReader: React.FC = () => {
                         <span>كبير</span>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Text Alignment Controls */}
-                  <div className="pt-2 border-t border-navy-100 dark:border-navy-800">
-                    <label className="flex items-center gap-2 text-sm font-bold text-navy-700 dark:text-navy-300 mb-4">
-                      <Grid size={18} className="text-gold-500" /> محاذاة النص
-                    </label>
-                    <div className="flex gap-2 bg-navy-50 dark:bg-navy-950 p-2 rounded-xl border border-navy-100 dark:border-navy-800">
-                      {[
-                        { id: 'right', label: 'يمين', icon: 'M4 6h16M4 12h10M4 18h16' },
-                        { id: 'center', label: 'توسيط', icon: 'M4 6h16M7 12h10M4 18h16' },
-                        { id: 'justify', label: 'امتداد', icon: 'M4 6h16M4 12h16M4 18h16' }
-                      ].map(opt => (
-                        <button
-                          key={opt.id}
-                          onClick={() => setTextAlign(opt.id as any)}
-                          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-bold transition-all shadow-sm ${textAlign === opt.id
-                              ? 'bg-white dark:bg-navy-800 text-gold-600 dark:text-gold-400 border border-gold-200 dark:border-gold-900/50 scale-105 shadow-md z-10'
-                              : 'bg-transparent text-navy-500 dark:text-navy-400 hover:bg-white/50 dark:hover:bg-navy-900 border border-transparent'
-                            }`}
-                        >
-                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d={opt.icon} />
-                          </svg>
-                          <span>{opt.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                    {textAlign === 'justify' && (
-                      <p className="text-[10px] text-amber-600 dark:text-amber-500 mt-3 px-1 flex items-start gap-1">
-                        <AlertTriangle size={12} className="flex-shrink-0 mt-0.5" />
-                        قد يؤدي هذا الخيار إلى تباعد الحروف في بعض الشاشات
-                      </p>
-                    )}
                   </div>
                 </div>
               </div>
