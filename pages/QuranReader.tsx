@@ -930,7 +930,7 @@ export const QuranReader: React.FC = () => {
   };
 
   return (
-    <div className={`flex flex-col h-full bg-gold-50 dark:bg-navy-950 relative overflow-hidden transition-colors duration-500`}>
+    <div className={`absolute inset-0 flex flex-col bg-gold-50 dark:bg-navy-950 overflow-hidden transition-colors duration-500`}>
 
       {/* 1. Header (Collapsible) - Hidden in Immersive */}
       <div className={`transition-all duration-500 ease-in-out z-40 ${isImmersive ? '-mt-20 opacity-0 pointer-events-none' : 'opacity-100'}`}>
@@ -1489,6 +1489,7 @@ export const QuranReader: React.FC = () => {
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
               <div className="absolute inset-0 bg-navy-900/70 backdrop-blur-md" onClick={() => setIsSettingsOpen(false)}></div>
               <div className="relative w-full max-w-sm bg-white dark:bg-navy-900 rounded-3xl shadow-2xl overflow-hidden border border-gold-100 dark:border-navy-800">
+                {/* Header */}
                 <div className="p-5 border-b border-gold-100 dark:border-navy-800 flex justify-between items-center bg-gradient-to-b from-gold-50 to-white dark:from-navy-900 dark:to-navy-950">
                   <h3 className="font-bold text-lg text-navy-900 dark:text-white flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gold-400 to-amber-500 flex items-center justify-center shadow-lg shadow-gold-500/20">
@@ -1501,9 +1502,11 @@ export const QuranReader: React.FC = () => {
                   </button>
                 </div>
 
-                <div className="p-8 space-y-8">
+                {/* Body */}
+                <div className="p-6 space-y-6">
+                  {/* Font Size Section */}
                   <div>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-3">
                       <label className="flex items-center gap-2 text-sm font-bold text-navy-700 dark:text-navy-300">
                         <Type size={18} className="text-gold-500" /> حجم الخط
                       </label>
@@ -1519,67 +1522,65 @@ export const QuranReader: React.FC = () => {
                       )}
                     </div>
 
-                    <div className="flex flex-col w-full pt-1">
-                      {/* Slider Container with relative positioning for the label */}
-                      <div className="relative w-full mb-1" dir="ltr">
-                        {/* Floating "Default" Label - Position tracks screen-responsive default */}
+                    {/* Slider row */}
+                    <div className="flex items-center gap-3 bg-navy-50 dark:bg-navy-950 px-3 pt-8 pb-3 rounded-xl border border-navy-100 dark:border-navy-800" dir="ltr">
+                      <span className="text-xs font-bold text-navy-400 shrink-0">A</span>
+
+                      {/* Track container — label/marker positions are relative to this */}
+                      <div className="flex-1 relative h-8 flex items-center">
+
+                        {/* "Default" floating label */}
                         <div
-                          className="absolute -top-5 -translate-x-1/2 text-[9px] font-bold text-gold-600 dark:text-gold-400 transition-opacity duration-300"
+                          className="absolute -top-6 -translate-x-1/2 text-[9px] font-bold text-gold-600 dark:text-gold-400 whitespace-nowrap transition-opacity duration-300 pointer-events-none"
                           style={{
                             left: `${((getResponsiveDefaultFontSize() - 18) / (44 - 18)) * 100}%`,
-                            opacity: Math.abs(fontSize - getResponsiveDefaultFontSize()) < 2 ? 1 : 0.55
+                            opacity: Math.abs(fontSize - getResponsiveDefaultFontSize()) < 2 ? 1 : 0.5
                           }}
                         >
                           الافتراضي
                         </div>
 
-                        <div className="flex items-center gap-3 bg-navy-50 dark:bg-navy-950 p-3 pt-4 rounded-xl border border-navy-100 dark:border-navy-800">
-                          <span className="text-xs font-bold text-navy-400">A</span>
+                        {/* Default position marker (thin vertical line) */}
+                        <div
+                          className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3.5 bg-gold-400/60 rounded-full z-0 pointer-events-none"
+                          style={{ left: `${((getResponsiveDefaultFontSize() - 18) / (44 - 18)) * 100}%` }}
+                        />
 
-                          <div className="flex-1 relative h-8 flex items-center">
-                            {/* Fixed Default Marker - tracks screen-responsive default position */}
-                            <div
-                              className="absolute top-1/2 -translate-y-1/2 w-0.5 h-3 bg-gold-400/50 z-0 pointer-events-none"
-                              style={{ left: `${((getResponsiveDefaultFontSize() - 18) / (44 - 18)) * 100}%` }}
-                            ></div>
+                        {/* Track bg */}
+                        <div className="absolute inset-y-3.5 left-0 right-0 bg-navy-200 dark:bg-navy-700 rounded-lg" />
 
-                            {/* Track background */}
-                            <div className="absolute inset-y-3.5 left-0 right-0 bg-navy-200 dark:bg-navy-700 rounded-lg"></div>
+                        {/* Filled track */}
+                        <div
+                          className="absolute inset-y-3.5 left-0 bg-gradient-to-r from-gold-400 to-gold-600 rounded-lg transition-all duration-100"
+                          style={{ width: `${((fontSize - 18) / (44 - 18)) * 100}%` }}
+                        />
 
-                            {/* Filled track */}
-                            <div
-                              className="absolute inset-y-3.5 left-0 bg-gradient-to-r from-gold-400 to-gold-600 rounded-lg transition-all duration-100"
-                              style={{ width: `${((fontSize - 18) / (44 - 18)) * 100}%` }}
-                            ></div>
-
-                            {/* The Input Range */}
-                            <input
-                              type="range"
-                              min="18"
-                              max="44"
-                              value={fontSize}
-                              onChange={(e) => {
-                                const val = parseInt(e.target.value);
-                                // Gentle snap to default (22px)
-                                if (val >= 21 && val <= 23 && val !== 22) {
-                                  setFontSize(22);
-                                } else {
-                                  setFontSize(val);
-                                }
-                              }}
-                              className="w-full h-8 cursor-pointer z-20 relative appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-[0_2px_5px_rgba(0,0,0,0.2)] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gold-500 [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:active:scale-110"
-                            />
-                          </div>
-
-                          <span className="text-xl font-bold text-navy-900 dark:text-white">A</span>
-                        </div>
+                        {/* Range input */}
+                        <input
+                          type="range"
+                          min="18"
+                          max="44"
+                          value={fontSize}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value);
+                            const def = getResponsiveDefaultFontSize();
+                            if (Math.abs(val - def) <= 1 && val !== def) {
+                              setFontSize(def);
+                            } else {
+                              setFontSize(val);
+                            }
+                          }}
+                          className="w-full h-8 cursor-pointer z-20 relative appearance-none bg-transparent [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-[0_2px_5px_rgba(0,0,0,0.2)] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-gold-500 [&::-webkit-slider-thumb]:transition-transform [&::-webkit-slider-thumb]:active:scale-110"
+                        />
                       </div>
 
-                      {/* Bottom Labels (Ends Only) */}
-                      <div className="flex justify-between px-2 text-[10px] font-bold text-navy-400" dir="ltr">
-                        <span>صغير</span>
-                        <span>كبير</span>
-                      </div>
+                      <span className="text-xl font-bold text-navy-900 dark:text-white shrink-0">A</span>
+                    </div>
+
+                    {/* End labels */}
+                    <div className="flex justify-between px-1 mt-1 text-[10px] font-bold text-navy-400" dir="ltr">
+                      <span>صغير</span>
+                      <span>كبير</span>
                     </div>
                   </div>
                 </div>
