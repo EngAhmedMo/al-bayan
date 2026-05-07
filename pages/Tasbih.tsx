@@ -325,6 +325,7 @@ export const Tasbih: React.FC = () => {
     hapticMedium();
     setCount(0);
     setRounds(0);
+    setTotalCount(0);   // reset session total — lifetimeTotal is preserved
     isTransitioning.current = false;
     setIsResetOpen(false);
   };
@@ -772,7 +773,7 @@ export const Tasbih: React.FC = () => {
               <h3 className="text-xl font-bold">تصفير العداد</h3>
             </div>
             <div className="p-6 text-center">
-              <p className="text-sm text-navy-600 dark:text-navy-300 mb-6 font-medium">هل أنت متأكد من رغبتك في تصفير العداد الحالي وعدد الدورات؟</p>
+              <p className="text-sm text-navy-600 dark:text-navy-300 mb-6 font-medium">سيتم تصفير العداد الحالي والمجموع وعدد الدورات.<br /><span className="text-[11px] text-indigo-600 dark:text-indigo-400">الإجمالي العام يبقى محفوظاً ✓</span></p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setIsResetOpen(false)}
