@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <!-- Background gradient: deep navy -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#1e2f5c"/>
+      <stop offset="100%" stop-color="#0d1a35"/>
+    </linearGradient>
+    <!-- Gold gradient for the letter -->
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#f0cf85"/>
+      <stop offset="50%"  stop-color="#c6a94a"/>
+      <stop offset="100%" stop-color="#a07820"/>
+    </linearGradient>
+    <!-- Subtle inner glow -->
+    <radialGradient id="glow" cx="50%" cy="45%" r="45%">
+      <stop offset="0%"   stop-color="#c6a94a" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#c6a94a" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Clip to rounded square -->
+    <clipPath id="round">
+      <rect width="512" height="512" rx="115" ry="115"/>
+    </clipPath>
+  </defs>
+
+  <!-- Rounded background -->
+  <rect width="512" height="512" rx="115" ry="115" fill="url(#bg)"/>
+
+  <!-- Inner glow layer -->
+  <rect width="512" height="512" rx="115" ry="115" fill="url(#glow)" clip-path="url(#round)"/>
+
+  <!-- Thin decorative border -->
+  <rect x="8" y="8" width="496" height="496" rx="108" ry="108"
+        fill="none" stroke="#c6a94a" stroke-width="6" stroke-opacity="0.35"/>
+
+  <!-- Arabic letter "ب" — centered, Quran-style proportion -->
+  <!-- Body stroke (the horizontal bar of ب) -->
+  <text
+    x="256"
+    y="330"
+    text-anchor="middle"
+    font-family="'Amiri', 'Traditional Arabic', 'Arial Unicode MS', serif"
+    font-size="310"
+    font-weight="bold"
+    fill="url(#gold)"
+    letter-spacing="-5"
+  >ب</text>
+
+  <!-- Dot below ب -->
+  <circle cx="256" cy="390" r="22" fill="url(#gold)"/>
+</svg>

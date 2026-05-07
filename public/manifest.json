@@ -1,0 +1,25 @@
+{
+  "name": "البيان - القرآن والسنة",
+  "short_name": "البيان",
+  "description": "تطبيق البيان - القرآن الكريم والسنة النبوية",
+  "start_url": "/al-bayan/",
+  "display": "standalone",
+  "background_color": "#1e2f5c",
+  "theme_color": "#1e2f5c",
+  "dir": "rtl",
+  "lang": "ar",
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
