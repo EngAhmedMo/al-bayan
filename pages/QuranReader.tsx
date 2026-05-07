@@ -1082,7 +1082,7 @@ export const QuranReader: React.FC = () => {
               transition-all duration-500 mx-auto relative w-full
               ${isImmersive
                 ? 'w-full md:w-[95%] lg:w-[90%] max-w-[1400px] h-full flex-1 py-0 flex flex-col'
-                : 'max-w-4xl block'} 
+                : 'max-w-4xl h-full flex flex-col'} 
             `}
           >
             {/* Side Click Navigation Areas (Desktop) */}
@@ -1167,8 +1167,8 @@ export const QuranReader: React.FC = () => {
                       ? 'px-24 py-6 pb-12 md:px-32' // Landscape immersive: more horizontal, less vertical
                       : 'px-12 py-10 pb-16 sm:px-16 md:px-20' // Portrait immersive
                     : isLandscape
-                      ? 'px-6 sm:px-16 py-6' // Landscape normal: balanced
-                      : 'px-4 sm:px-10 py-10 sm:py-14'} // Portrait normal: unchanged
+                      ? 'px-6 sm:px-16 pt-6 pb-48' // Landscape normal: balanced
+                      : 'px-4 sm:px-10 pt-10 pb-52 sm:pt-14'} // Portrait normal: changed
                   `}>
 
                   {/* Ribbon */}
@@ -1199,7 +1199,7 @@ export const QuranReader: React.FC = () => {
                       if (isFirstAyahOfSurah && surah && surah.number !== 1 && surah.number !== 9) {
                         const prefixes = [
                           "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", // Full Uthmani
-                          "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", // Variant
+                          "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", // Variant
                           "بسم الله الرحمن الرحيم" // Simple
                         ];
                         // Strip regex for wide catch
@@ -1316,7 +1316,7 @@ export const QuranReader: React.FC = () => {
         <div
           className={`absolute left-0 right-0 h-16 bg-gradient-to-b from-white to-gold-50/50 dark:from-navy-900 dark:to-navy-950 border-t border-gold-100 dark:border-navy-800 z-40 transition-all duration-500 ease-in-out shadow-[0_-5px_30px_rgba(0,0,0,0.08)] backdrop-blur-md
           ${isImmersive || !showFooterBar ? 'translate-y-[200%] opacity-0' : 'translate-y-0 opacity-100'}
-          ${currentTrack ? 'bottom-[70px] md:bottom-[70px]' : 'bottom-[70px] md:bottom-0'} 
+          ${currentTrack ? 'bottom-[150px] md:bottom-[150px]' : 'bottom-[70px] md:bottom-[70px]'} 
         `}
         >
           <div className="max-w-4xl mx-auto w-full h-full flex justify-between items-center px-4 sm:px-6">

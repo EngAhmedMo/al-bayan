@@ -1,6 +1,6 @@
 import React, { useState, useEffect, createContext, useContext, useRef, useMemo, useLayoutEffect } from 'react';
 import { flushSync } from 'react-dom';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { App } from '@capacitor/app';
 import { BookOpen, Search, Grid, Moon, Sun, Activity, BookHeart, Menu, X, Play, Pause, SkipForward, SkipBack, Home, Shield, Calendar, Bookmark, Bell, Info, Headphones, Mic, Repeat, Download, WifiOff, Wifi, Settings, Radio, Signal, Volume2, Check, CheckCircle, Trash2, Type, Square, Heart, RotateCcw, Landmark, Library, Plus, AlertCircle, ShieldCheck, Brain } from 'lucide-react';
@@ -449,6 +449,7 @@ const NavItem = ({ to, icon, label }: { to: string; icon: React.ReactNode; label
 export const Layout: React.FC = () => {
   const [isDark, setIsDark] = useState(() => localStorage.getItem('theme') === 'dark');
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const unreadCount = getUnreadCount();
@@ -2068,7 +2069,7 @@ export const Layout: React.FC = () => {
                     />
 
                     <div className="flex-1 flex flex-col h-full relative overflow-hidden">
-                      <main className="flex-1 overflow-y-auto overflow-x-hidden relative scroll-smooth">
+                      <main className={`flex-1 ${location.pathname === '/reader' || isFullscreen ? 'overflow-hidden' : 'overflow-y-auto'} overflow-x-hidden relative scroll-smooth`}>
                         <Outlet />
                       </main>
 
