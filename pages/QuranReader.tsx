@@ -32,6 +32,8 @@ import { AyahReorderQuiz } from '../components/quiz/AyahReorderQuiz';
 import { WordReorderQuiz } from '../components/quiz/WordReorderQuiz';
 import { QuizResultScreen, AyahMistakeSummary } from '../components/quiz/QuizResultScreen';
 import { saveQuizResult } from '../services/quizHistory';
+import { QcfMushafPage } from '../components/QcfMushafPage';
+import { preloadQcfFontsAround } from '../services/qcfFontLoader';
 
 export const QuranReader: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -174,6 +176,25 @@ export const QuranReader: React.FC = () => {
 
   // Global Settings
   const { fontSize, setFontSize, reciterId, setReciterId, textAlign, setTextAlign } = useSettings();
+
+  // ── QCF Mushaf Mode ──────────────────────────────────────────────────────
+  // Reads preference from localStorage; defaults to true (QCF enabled)
+  const [isQcfMode, setIsQcfMode] = useState<boolean>(() => {
+    try { return localStorage.getItem('qcfMode') !== 'false'; } catch { return true; }
+  });
+
+  const toggleQcfMode = () => {
+    setIsQcfMode(prev => {
+      const next = !prev;
+      try { localStorage.setItem('qcfMode', next ? 'true' : 'false'); } catch {}
+      return next;
+    });
+  };
+
+  // Preload fonts when page changes (non-blocking)
+  useEffect(() => {
+    if (isQcfMode) preloadQcfFontsAround(page);
+  }, [page, isQcfMode]);
 
   // Bookmark & Notes
   const [isAyahSaved, setIsAyahSaved] = useState(false);
@@ -960,6 +981,23 @@ export const QuranReader: React.FC = () => {
               >
                 <BookOpen size={20} className={smartQuizLoading ? 'animate-pulse' : ''} />
               </button>
+              {/* QCF Mode Toggle Button */}
+              <button
+                onClick={toggleQcfMode}
+                className={`${headerBtnClass} relative ${
+                  isQcfMode
+                    ? '!text-gold-600 !border-gold-400 dark:!border-gold-600 bg-gold-50 dark:bg-gold-900/20 shadow-[0_0_8px_rgba(234,179,8,0.3)]'
+                    : '!text-navy-400 dark:!text-navy-500'
+                }`}
+                title={isQcfMode ? 'وضع المصحف المطبوع (مفعّل) - اضغط للتبديل' : 'وضع المصحف المطبوع (معطّل) - اضغط للتفعيل'}
+                aria-label={isQcfMode ? 'تعطيل وضع خط مجمع الملك فهد' : 'تفعيل وضع خط مجمع الملك فهد'}
+              >
+                {/* Custom Quran font icon */}
+                <span style={{ fontSize: '16px', fontWeight: 'bold', lineHeight: 1 }} aria-hidden="true">م</span>
+                {isQcfMode && (
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-gold-500 border border-white dark:border-navy-900 shadow" />
+                )}
+              </button>
               <button onClick={() => setIsImmersive(!isImmersive)} className={headerBtnClass} title="ملء الشاشة">
                 {isImmersive ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
               </button>
@@ -1178,18 +1216,33 @@ export const QuranReader: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Surah Headers are now rendered INLINE with ayahs below */}
-
-                  {/* TEXT BLOCK - Headers are integrated for correct positioning */}
-                  <div
-                    className="quran-text text-navy-950 dark:text-gray-200 w-full"
-                    style={{
-                      fontSize: `${fontSize}px`,
-                      textAlign: textAlign,
-                      textJustify: textAlign === 'justify' ? 'inter-word' : 'auto',
-                      fontFeatureSettings: '"cv01" on, "cv02" on' // Ligatures
-                    }}
-                  >
+                  {isQcfMode ? (
+                    /* ── QCF Print-Faithful Mode ── */
+                    <QcfMushafPage
+                      page={page}
+                      ayahs={ayahs}
+                      playingAyahGlobal={playingAyahGlobal}
+                      highlightedAyah={(() => {
+                        const h = searchParams.get('highlight');
+                        if (!h) return null;
+                        const [s, a] = h.split(':').map(Number);
+                        return s && a ? { surah: s, ayah: a } : null;
+                      })()}
+                      onAyahClick={onAyahClick}
+                      isDark={isDark}
+                      fontScale={Math.max(0.75, Math.min(fontSize / 28, 1.5))}
+                    />
+                  ) : (
+                    /* ── Standard Uthmani Text Mode ── */
+                    <div
+                      className="quran-text text-navy-950 dark:text-gray-200 w-full"
+                      style={{
+                        fontSize: `${fontSize}px`,
+                        textAlign: textAlign,
+                        textJustify: textAlign === 'justify' ? 'inter-word' : 'auto',
+                        fontFeatureSettings: '"cv01" on, "cv02" on'
+                      }}
+                    >
                     {ayahs.map((ayah, index) => {
                       const surah = (ayah as any).surah;
                       const isFirstAyahOfSurah = ayah.numberInSurah === 1;
@@ -1199,20 +1252,14 @@ export const QuranReader: React.FC = () => {
                       // Robust Bismillah logic
                       if (isFirstAyahOfSurah && surah && surah.number !== 1 && surah.number !== 9) {
                         const prefixes = [
-                          "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", // Full Uthmani
-                          "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ", // Variant
-                          "بسم الله الرحمن الرحيم" // Simple
+                          "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
+                          "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
+                          "بسم الله الرحمن الرحيم"
                         ];
-                        // Strip regex for wide catch
                         const regex = /^[\s\u0600-\u06FF]*بِسْمِ[\s\u0600-\u06FF]*ٱللَّهِ[\s\u0600-\u06FF]*ٱلرَّحْمَٰنِ[\s\u0600-\u06FF]*ٱلرَّحِيمِ[\s\u0600-\u06FF]*/;
-
                         for (const p of prefixes) {
-                          if (displayText.startsWith(p)) {
-                            displayText = displayText.replace(p, '').trim();
-                            break;
-                          }
+                          if (displayText.startsWith(p)) { displayText = displayText.replace(p, '').trim(); break; }
                         }
-                        // Fallback regex if still starts with Bismillah chars (approx check)
                         if (displayText.startsWith("بِسْمِ") || displayText.startsWith("بسم")) {
                           displayText = displayText.replace(regex, '').trim();
                         }
@@ -1226,20 +1273,14 @@ export const QuranReader: React.FC = () => {
 
                       return (
                         <React.Fragment key={ayah.number}>
-                          {/* Surah Header */}
-                          {/* Surah Header - Professional SVG Implementation */}
                           {isFirstAyahOfSurah && surah && (
                             <div className="w-full mt-2 mb-1 text-center block select-none">
                               <div className="relative flex items-center justify-center py-0 my-1">
-
-                                {/* Ornamental Frame (Banner) */}
                                 <img
                                   src={`${import.meta.env.BASE_URL}svgs/surah_banner1.svg`}
                                   alt="Surah Frame"
                                   className={`w-full max-w-[320px] md:max-w-[420px] lg:max-w-[480px] h-auto opacity-90 ${isDark ? 'brightness-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.3)]' : 'drop-shadow-sm'}`}
                                 />
-
-                                {/* Surah Name Calligraphy (Centered in Frame) */}
                                 <div className="absolute inset-0 flex items-center justify-center z-10">
                                   <img
                                     src={`${import.meta.env.BASE_URL}svgs/surah_name/00${surah.number}.svg`}
@@ -1247,8 +1288,6 @@ export const QuranReader: React.FC = () => {
                                     className={`h-[90%] w-auto max-w-[95%] object-contain ${isDark ? 'svg-gold-filter' : 'svg-navy-filter'}`}
                                   />
                                 </div>
-
-                                {/* Play Button (Positioned safely outside or subtly integrated) */}
                                 <button
                                   onClick={(e) => { e.stopPropagation(); playFullSurah(surah.number, surah.name); }}
                                   className="absolute left-[15%] md:left-[32%] z-20 px-3 py-1.5 bg-gradient-to-br from-gold-400 to-gold-600 text-white hover:to-gold-500 rounded-full transition-all shadow-md hover:shadow-lg hover:shadow-gold-500/30 hover:scale-105 border border-white/20 flex items-center justify-center gap-2 group"
@@ -1258,8 +1297,6 @@ export const QuranReader: React.FC = () => {
                                   <Play size={14} fill="currentColor" />
                                 </button>
                               </div>
-
-                              {/* Basmalah Calligraphy */}
                               {surah.number !== 1 && surah.number !== 9 && (
                                 <div className="flex justify-center mb-3 mt-0.5 opacity-90">
                                   <img
@@ -1271,32 +1308,23 @@ export const QuranReader: React.FC = () => {
                               )}
                             </div>
                           )}
-
-                          {/* Ayah Text & Marker */}
                           <span
                             id={`ayah-${globalId}`}
                             onClick={(e) => { e.stopPropagation(); onAyahClick(ayah); }}
-                            className={`
-                            relative rounded cursor-pointer decoration-clone transition-colors duration-300
-                            hover:bg-gold-50 dark:hover:bg-navy-800
-                            ${isSelected ? 'bg-gold-100 dark:bg-gold-900/20' : ''}
-                            ${highlighted ? 'bg-emerald-200/50 dark:bg-emerald-900/30 animate-pulse' : ''}
-                            ${isMarked ? 'underline decoration-red-400 decoration-2 underline-offset-8' : ''}
-                            ${isFatiha ? 'text-center' : ''} 
-                           `}
+                            className={`relative rounded cursor-pointer decoration-clone transition-colors duration-300
+                              hover:bg-gold-50 dark:hover:bg-navy-800
+                              ${isSelected ? 'bg-gold-100 dark:bg-gold-900/20' : ''}
+                              ${highlighted ? 'bg-emerald-200/50 dark:bg-emerald-900/30 animate-pulse' : ''}
+                              ${isMarked ? 'underline decoration-red-400 decoration-2 underline-offset-8' : ''}
+                              ${isFatiha ? 'text-center' : ''}`}
                           >
-                            {/* Force inline-block for Fatiha ayahs if single line? No, span is inline. Text alignment comes from parent div. */}
                             {ayah.aya_text ? displayText : <TajweedText text={displayText} />}
                           </span>
-
-                          {/* Professional Ayah Marker (Rosette) */}
                           <span className="inline-flex items-center justify-center align-middle select-none text-gold-600 dark:text-gold-500 font-bold h-[1.5em] w-[1.5em] relative mx-0.5 ayah-number"
                             style={{ fontSize: `${fontSize * 0.52}px` }}>
-                            {/* Simple ornate circle */}
                             <svg viewBox="0 0 36 36" fill="none" stroke="currentColor" strokeWidth="1.2" className="w-full h-full drop-shadow-sm">
                               <circle cx="18" cy="18" r="17" />
                               <circle cx="18" cy="18" r="13" opacity="0.5" />
-                              {/* Decorative dots/petals (Optional simple bloom) */}
                               <path d="M18 5 L18 8 M18 28 L18 31 M5 18 L8 18 M28 18 L31 18" strokeWidth="1.5" opacity="0.4" />
                             </svg>
                             <span className="absolute inset-0 flex items-center justify-center pt-1 text-[1.4em]">
@@ -1306,7 +1334,8 @@ export const QuranReader: React.FC = () => {
                         </React.Fragment>
                       );
                     })}
-                  </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

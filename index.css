@@ -136,6 +136,153 @@ body {
 }
 
 /* ==========================================
+   QCF MUSHAF MODE — Print-Faithful Rendering
+   King Fahad Complex QCF4 Font System
+   ========================================== */
+
+/* Container for QCF rendered Mushaf pages */
+.qcf-mushaf-container {
+  direction: rtl;
+  width: 100%;
+}
+
+/* Main text block using QCF fonts */
+.qcf-text-block {
+  direction: rtl;
+  text-align: justify;
+  text-align-last: center;
+  word-spacing: 0.05em;
+  line-height: 2.4;
+  /* Font rendering optimization for Arabic calligraphic fonts */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+/* Light mode: warm parchment ink color */
+.qcf-text-block {
+  color: #1a1208;
+}
+
+/* Dark mode: warm gold-tinted white */
+.dark .qcf-text-block {
+  color: #e8d5a3;
+}
+
+/* Individual ayah span in QCF mode */
+.qcf-ayah-span {
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background-color 0.25s ease;
+  padding: 0 2px;
+}
+
+.qcf-ayah-span:hover {
+  background-color: rgba(212, 164, 74, 0.15);
+}
+
+.dark .qcf-ayah-span:hover {
+  background-color: rgba(212, 164, 74, 0.12);
+}
+
+/* Surah header section in QCF mode */
+.qcf-surah-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 1rem 0 0.5rem;
+  user-select: none;
+}
+
+/* QCF ayah number marker */
+.qcf-ayah-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
+  color: #c49838;
+  user-select: none;
+}
+
+.dark .qcf-ayah-marker {
+  color: #d4a44a;
+}
+
+/* ── QCF Responsive Font Sizing ──────────────────────────────────────────── */
+
+/* Very small phones (<375px) */
+@media (max-width: 374px) {
+  .qcf-text-block { font-size: 18px !important; line-height: 2.2 !important; }
+}
+
+/* Standard mobile (375–428px) */
+@media (min-width: 375px) and (max-width: 428px) {
+  .qcf-text-block { font-size: 21px !important; line-height: 2.3 !important; }
+}
+
+/* Large mobile / small tablet (429–640px) */
+@media (min-width: 429px) and (max-width: 640px) {
+  .qcf-text-block { font-size: 23px !important; line-height: 2.35 !important; }
+}
+
+/* Tablet (641–1024px) */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .qcf-text-block { font-size: 26px !important; line-height: 2.4 !important; }
+}
+
+/* Desktop (>1024px) */
+@media (min-width: 1025px) {
+  .qcf-text-block { font-size: 28px !important; line-height: 2.4 !important; }
+}
+
+/* Landscape mobile: compact to prevent awkward line breaks */
+@media (orientation: landscape) and (max-height: 500px) {
+  .qcf-text-block { font-size: 17px !important; line-height: 2.1 !important; }
+}
+
+/* Large desktop / 4K */
+@media (min-width: 1400px) {
+  .qcf-text-block { font-size: 32px !important; line-height: 2.5 !important; }
+}
+
+/* ── QCF Immersive Mode Adjustments ──────────────────────────────────────── */
+/* When in fullscreen immersive reading mode, give more breathing room */
+.fullscreen-container .qcf-text-block {
+  line-height: 2.6 !important;
+}
+
+@media (min-width: 768px) {
+  .fullscreen-container .qcf-text-block {
+    font-size: 30px !important;
+    line-height: 2.7 !important;
+  }
+}
+
+@media (min-width: 1200px) {
+  .fullscreen-container .qcf-text-block {
+    font-size: 34px !important;
+    line-height: 2.8 !important;
+  }
+}
+
+/* ── QCF Dark Mode Refinements ───────────────────────────────────────────── */
+/* Warm ambient glow under text in dark mode for premium feel */
+.dark .qcf-mushaf-container {
+  text-shadow: 0 0 20px rgba(180, 140, 70, 0.05);
+}
+
+/* ── QCF Loading Indicator ──────────────────────────────────────────────── */
+@keyframes qcf-font-reveal {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.qcf-mushaf-container {
+  animation: qcf-font-reveal 0.35s ease-out;
+}
+
+/* ==========================================
    MUSHAF RESPONSIVE FONT SIZING
    Auto-adjusts when user hasn't customized size
    ========================================== */
