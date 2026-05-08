@@ -997,6 +997,9 @@ export const QuranReader: React.FC = () => {
           // Clicking the "void" area exits immersive mode
           if (isImmersive && e.target === pageTopRef.current) setIsImmersive(false);
         }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         {/* Top Left Floating Controls (Font & Theme) - Only in Immersive Mode */}
         {isImmersive && (
@@ -1125,9 +1128,6 @@ export const QuranReader: React.FC = () => {
                   });
                 }
               }}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
               className={`
                 relative bg-[#fffcf5] dark:bg-[#1a202c] shadow-2xl overflow-y-auto overflow-x-hidden transition-all duration-500 quran-page-scroll
                 ${isImmersive
