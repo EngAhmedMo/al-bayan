@@ -877,4 +877,216 @@ article {
 
 .animate-msg-slide-up {
   animation: msg-slide-up 0.3s ease-out forwards;
+}
+
+/* ============================================================================
+   QCF MUSHAF — PRINT-FAITHFUL RENDERING ENGINE
+   Architecture: Inline flowing text (matching مكتبة الحكمة / quran_library)
+   ============================================================================ */
+
+/* ── Container ─────────────────────────────────────────────────────────────── */
+.qcf-mushaf-container {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 8px 10px 18px;
+  min-height: 200px;
+  position: relative;
+}
+
+/* ── Flowing text block (the core — replaces div-per-ayah) ────────────────── */
+.qcf-text-block {
+  text-align: justify;
+  text-align-last: center;  /* center the last (short) line */
+  line-height: 2.0;         /* CRITICAL: matches Flutter height:2 */
+  letter-spacing: 0;
+  word-spacing: 0.08em;
+  direction: rtl;
+  unicode-bidi: bidi-override;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  /* Mushaf pages fill available width — no wrapping issues */
+  overflow-wrap: break-word;
+  word-break: break-word;
+  padding: 0 2px;
+}
+
+/* ── Individual Ayah span (INLINE — the key to matching the Mushaf look) ──── */
+.qcf-ayah-span {
+  display: inline;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.2s ease, box-shadow 0.15s ease;
+  border-radius: 4px;
+  padding: 2px 1px;
+  /* Ayah tap target must be generous on mobile */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.qcf-ayah-span:hover {
+  background-color: rgba(234, 179, 8, 0.12);
+}
+
+.dark .qcf-ayah-span:hover {
+  background-color: rgba(234, 179, 8, 0.10);
+}
+
+/* Active / Press feedback */
+.qcf-ayah-span:active {
+  background-color: rgba(234, 179, 8, 0.22);
+  transition-duration: 0.05s;
+}
+
+/* ── Highlight States ──────────────────────────────────────────────────────── */
+
+/* 1. Audio playing → Emerald */
+.qcf-highlight-audio {
+  background-color: rgba(16, 185, 129, 0.18) !important;
+  box-shadow: 0 0 0 1.5px rgba(16, 185, 129, 0.35);
+  border-radius: 4px;
+  animation: qcf-audio-pulse 2.2s ease-in-out infinite;
+}
+
+.dark .qcf-highlight-audio {
+  background-color: rgba(16, 185, 129, 0.22) !important;
+  box-shadow: 0 0 0 1.5px rgba(16, 185, 129, 0.40);
+}
+
+@keyframes qcf-audio-pulse {
+  0%, 100% { background-color: rgba(16, 185, 129, 0.18); }
+  50%      { background-color: rgba(16, 185, 129, 0.28); }
+}
+
+@keyframes qcf-audio-pulse-dark {
+  0%, 100% { background-color: rgba(16, 185, 129, 0.22); }
+  50%      { background-color: rgba(16, 185, 129, 0.35); }
+}
+
+.dark .qcf-highlight-audio {
+  animation-name: qcf-audio-pulse-dark;
+}
+
+/* 2. Search result → Amber flash */
+.qcf-highlight-search {
+  background-color: rgba(245, 158, 11, 0.22) !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.4);
+  border-radius: 4px;
+  animation: qcf-search-flash 1.2s ease-in-out 3;
+}
+
+.dark .qcf-highlight-search {
+  background-color: rgba(245, 158, 11, 0.28) !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.5);
+}
+
+@keyframes qcf-search-flash {
+  0%, 100% { background-color: rgba(245, 158, 11, 0.22); }
+  50%      { background-color: rgba(245, 158, 11, 0.40); }
+}
+
+/* 3. User selected (modal) → Gold */
+.qcf-highlight-selected {
+  background-color: rgba(234, 179, 8, 0.20) !important;
+  box-shadow: 0 0 0 1.5px rgba(234, 179, 8, 0.45);
+  border-radius: 4px;
+}
+
+.dark .qcf-highlight-selected {
+  background-color: rgba(234, 179, 8, 0.25) !important;
+  box-shadow: 0 0 0 1.5px rgba(234, 179, 8, 0.50);
+}
+
+/* 4. Bookmarked ayah → Red underline */
+.qcf-bookmarked {
+  text-decoration: underline;
+  text-decoration-color: rgba(205, 153, 116, 0.65);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 5px;
+  text-decoration-skip-ink: none;
+}
+
+.dark .qcf-bookmarked {
+  text-decoration-color: rgba(205, 153, 116, 0.8);
+}
+
+/* ── Surah Header ──────────────────────────────────────────────────────────── */
+.qcf-surah-header {
+  /* Break the inline flow — acts as a block element */
+  display: flex;
+  width: 100%;
+  padding: 6px 0;
+}
+
+/* Gold filter for dark mode SVGs */
+.svg-gold-filter {
+  filter: brightness(1.1) sepia(0.3) saturate(2) hue-rotate(10deg);
+}
+
+.svg-navy-filter {
+  filter: brightness(0.3) sepia(0.1) saturate(1.5);
+}
+
+/* ── Dark Mode text enhancements ───────────────────────────────────────────── */
+.dark .qcf-text-block {
+  text-shadow: 0 0 8px rgba(232, 213, 163, 0.12),
+               0 0 20px rgba(232, 213, 163, 0.06);
+}
+
+/* ── Responsive Typography ─────────────────────────────────────────────────── */
+
+/* Mobile Portrait (default) — compact */
+@media (max-width: 480px) {
+  .qcf-mushaf-container {
+    padding: 4px 6px 14px;
+  }
+  .qcf-text-block {
+    line-height: 1.95;
+    word-spacing: 0.06em;
+  }
+}
+
+/* Mobile Landscape */
+@media (max-width: 767px) and (orientation: landscape) {
+  .qcf-mushaf-container {
+    max-width: 600px;
+    padding: 4px 8px 12px;
+  }
+  .qcf-text-block {
+    line-height: 1.9;
+  }
+}
+
+/* Tablet Portrait */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .qcf-mushaf-container {
+    max-width: 680px;
+    padding: 10px 16px 20px;
+  }
+  .qcf-text-block {
+    line-height: 2.05;
+  }
+}
+
+/* Tablet Landscape / Desktop */
+@media (min-width: 1024px) {
+  .qcf-mushaf-container {
+    max-width: 720px;
+    padding: 12px 20px 24px;
+  }
+  .qcf-text-block {
+    line-height: 2.1;
+    word-spacing: 0.1em;
+  }
+}
+
+/* ── Focus / Accessibility ─────────────────────────────────────────────────── */
+.qcf-ayah-span:focus-visible {
+  outline: 2px solid rgba(234, 179, 8, 0.6);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.dark .qcf-ayah-span:focus-visible {
+  outline-color: rgba(234, 179, 8, 0.8);
 }
