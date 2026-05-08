@@ -1621,9 +1621,9 @@ export const QuranReader: React.FC = () => {
                     <div className="text-center mt-1">
                       <h3 className="font-quran text-3xl font-bold text-navy-900 dark:text-white">{(selectedAyah as any).surah?.name}</h3>
                       <div className="flex items-center justify-center gap-2 text-xs font-bold text-navy-500 dark:text-navy-400 mt-1">
-                        <span className="bg-navy-100 dark:bg-navy-800 px-2 py-0.5 rounded-md">الجزء {toArabicDigits(selectedAyah.juz)}</span>
+                        <span className="bg-navy-50 dark:bg-navy-900/80 px-2.5 py-0.5 rounded-lg border border-gold-400 dark:border-[#C6AD73]/60 shadow-sm shadow-gold-500/10">الجزء {toArabicDigits(selectedAyah.juz)}</span>
                         <span className="w-1 h-1 bg-gold-500 rounded-full"></span>
-                        <span className="bg-navy-100 dark:bg-navy-800 px-2 py-0.5 rounded-md">صفحة {toArabicDigits(page)}</span>
+                        <span className="bg-navy-50 dark:bg-navy-900/80 px-2.5 py-0.5 rounded-lg border border-gold-400 dark:border-[#C6AD73]/60 shadow-sm shadow-gold-500/10">صفحة {toArabicDigits(page)}</span>
                       </div>
                     </div>
                   </div>
@@ -1892,10 +1892,16 @@ export const QuranReader: React.FC = () => {
                     </div>
 
                     <div className="flex gap-2">
-                      <button onClick={() => { setTafsirData(null); setShowNoteInput(!showNoteInput); }} className="flex-1 py-3 bg-white dark:bg-navy-800 rounded-xl border border-navy-100 dark:border-navy-700 flex items-center justify-center gap-2 text-xs font-bold text-navy-600 dark:text-navy-300 hover:bg-gold-50 dark:hover:bg-navy-700 transition-colors">
+                      <button onClick={() => { setTafsirData(null); setShowNoteInput(!showNoteInput); }} className="flex-1 py-3 bg-white dark:bg-navy-900/90 rounded-xl border-2 border-gold-200/80 dark:border-[#C6AD73]/40 flex items-center justify-center gap-2 text-xs font-bold text-navy-600 dark:text-navy-300 hover:border-gold-400 dark:hover:border-[#C6AD73] shadow-sm transition-colors relative group">
+                        {/* Decorative corner accents */}
+                        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-gold-400 dark:border-gold-500 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-gold-400 dark:border-gold-500 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         <FileEdit size={16} /> تدوين ملاحظة
                       </button>
-                      <button onClick={() => { navigator.clipboard.writeText(selectedAyah.aya_text || cleanTajweedTags(selectedAyah.text)); setIsModalOpen(false); }} className="flex-1 py-3 bg-white dark:bg-navy-800 rounded-xl border border-navy-100 dark:border-navy-700 flex items-center justify-center gap-2 text-xs font-bold text-navy-600 dark:text-navy-300 hover:bg-gold-50 dark:hover:bg-navy-700 transition-colors">
+                      <button onClick={() => { navigator.clipboard.writeText(selectedAyah.aya_text || cleanTajweedTags(selectedAyah.text)); setIsModalOpen(false); }} className="flex-1 py-3 bg-white dark:bg-navy-900/90 rounded-xl border-2 border-gold-200/80 dark:border-[#C6AD73]/40 flex items-center justify-center gap-2 text-xs font-bold text-navy-600 dark:text-navy-300 hover:border-gold-400 dark:hover:border-[#C6AD73] shadow-sm transition-colors relative group">
+                        {/* Decorative corner accents */}
+                        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-gold-400 dark:border-gold-500 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-gold-400 dark:border-gold-500 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         <Copy size={16} /> نسخ النص
                       </button>
                     </div>
@@ -1999,7 +2005,11 @@ export const QuranReader: React.FC = () => {
                       ) : (
                         <div className="text-center pt-2 pb-6">
                           {/* Single Ayah View: Neutral Background */}
-                          <div className="relative p-6 bg-slate-50 dark:bg-[#111827] rounded-3xl shadow-sm border border-navy-50 dark:border-navy-800">
+                          <div className="relative p-6 bg-slate-50 dark:bg-navy-900/80 rounded-3xl shadow-sm border-2 border-gold-200/80 dark:border-[#C6AD73]/40 hover:border-gold-400 dark:hover:border-[#C6AD73] transition-colors group">
+                            {/* Decorative corner accents */}
+                            <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-gold-400 dark:border-gold-500 rounded-tr-[1.3rem] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-gold-400 dark:border-gold-500 rounded-bl-[1.3rem] opacity-0 group-hover:opacity-100 transition-opacity"></div>
+
                             <span className="absolute top-4 right-4 text-4xl text-gold-200 dark:text-navy-800 font-serif leading-none">“</span>
 
                             <div
