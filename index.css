@@ -135,16 +135,155 @@ body {
   white-space: nowrap;
 }
 
+
 /* ==========================================
    QCF MUSHAF MODE — Print-Faithful Rendering
    King Fahad Complex QCF4 Font System
+   Matches: مكتبة الحكمة / alquranalkareem reference layout
    ========================================== */
 
-/* Container for QCF rendered Mushaf pages */
+/* ── Container ──────────────────────────────────────────────────────────── */
 .qcf-mushaf-container {
   direction: rtl;
   width: 100%;
+  /* Subtle reveal animation when font loads */
+  animation: qcf-font-reveal 0.3s ease-out;
 }
+
+@keyframes qcf-font-reveal {
+  from { opacity: 0; transform: translateY(3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Surah Header ───────────────────────────────────────────────────────── */
+.qcf-surah-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0.75rem 0 0.5rem;
+  user-select: none;
+}
+
+/* ── Ayah Row (line-by-line layout, key to matching reference app) ──────── */
+.qcf-ayah-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;    /* RTL: content flows right */
+  direction: rtl;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  padding: 4px 6px;
+  margin: 2px 0;
+  /* Prevent text selection during swipe */
+  -webkit-user-select: none;
+  user-select: text;
+}
+
+/* Light mode hover */
+.qcf-ayah-row:hover {
+  background-color: rgba(212, 164, 74, 0.10);
+}
+
+/* Dark mode hover */
+.dark .qcf-ayah-row:hover {
+  background-color: rgba(212, 164, 74, 0.08);
+}
+
+/* Focus ring for keyboard navigation */
+.qcf-ayah-row:focus-visible {
+  outline: 2px solid #d4a44a;
+  outline-offset: 2px;
+}
+
+/* ── Ayah Text ──────────────────────────────────────────────────────────── */
+.qcf-ayah-text {
+  flex: 1;
+  text-align: right;
+  direction: rtl;
+  /* Font rendering optimization for Arabic calligraphic fonts */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
+  color: #1a1208;
+}
+
+.dark .qcf-ayah-text {
+  color: #e8d5a3;
+}
+
+/* ── Ayah Marker (Ornamental Number) ───────────────────────────────────── */
+.qcf-ayah-marker {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #c49838;
+  user-select: none;
+  margin-inline-start: 6px;
+}
+
+.dark .qcf-ayah-marker {
+  color: #d4a44a;
+}
+
+/* ── Dark Mode Refinements ──────────────────────────────────────────────── */
+.dark .qcf-mushaf-container {
+  /* Very subtle warm glow for premium feel */
+  filter: drop-shadow(0 0 20px rgba(180, 140, 70, 0.04));
+}
+
+/* ── Highlight States ───────────────────────────────────────────────────── */
+
+/* Bookmarked ayah — red underline (same as standard mode) */
+.qcf-ayah-row.is-bookmarked .qcf-ayah-text {
+  text-decoration: underline;
+  text-decoration-color: #f87171;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 8px;
+}
+
+/* ── Mushaf Paper Background (QCF mode variant) ─────────────────────────── */
+/* The paper background in QCF mode uses a warmer, creamier tone */
+.qcf-paper-bg {
+  background-color: #fdfaf3;
+}
+
+.dark .qcf-paper-bg {
+  background-color: #18202c;
+}
+
+/* ── Responsive Padding ─────────────────────────────────────────────────── */
+@media (max-width: 374px) {
+  .qcf-ayah-row { padding: 3px 4px; margin: 1px 0; }
+}
+@media (min-width: 641px) {
+  .qcf-ayah-row { padding: 5px 8px; margin: 3px 0; }
+}
+@media (min-width: 1025px) {
+  .qcf-ayah-row { padding: 6px 10px; margin: 4px 0; }
+}
+
+/* Landscape mobile: tighter spacing */
+@media (orientation: landscape) and (max-height: 500px) {
+  .qcf-ayah-row { padding: 2px 4px; margin: 1px 0; }
+  .qcf-surah-header { margin: 0.5rem 0 0.25rem; }
+}
+
+/* Immersive mode: more generous spacing */
+.fullscreen-container .qcf-ayah-row {
+  padding: 7px 12px;
+  margin: 4px 0;
+}
+@media (min-width: 768px) {
+  .fullscreen-container .qcf-ayah-row {
+    padding: 9px 16px;
+    margin: 5px 0;
+  }
+}
+
 
 /* Main text block using QCF fonts */
 .qcf-text-block {

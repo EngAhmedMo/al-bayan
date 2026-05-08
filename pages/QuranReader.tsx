@@ -1221,16 +1221,15 @@ export const QuranReader: React.FC = () => {
                     <QcfMushafPage
                       page={page}
                       ayahs={ayahs}
-                      playingAyahGlobal={playingAyahGlobal}
-                      highlightedAyah={(() => {
-                        const h = searchParams.get('highlight');
-                        if (!h) return null;
-                        const [s, a] = h.split(':').map(Number);
-                        return s && a ? { surah: s, ayah: a } : null;
-                      })()}
+                      currentTrackGlobalId={currentTrack?.globalAyahNumber ?? null}
+                      selectedAyah={selectedAyah}
+                      searchHighlight={searchParams.get('highlight')}
                       onAyahClick={onAyahClick}
+                      playFullSurah={playFullSurah}
+                      isAyahMarked={(s, a) => isAyahBookmarked(s, a)}
                       isDark={isDark}
-                      fontScale={Math.max(0.75, Math.min(fontSize / 28, 1.5))}
+                      fontSize={fontSize}
+                      baseUrl={import.meta.env.BASE_URL}
                     />
                   ) : (
                     /* ── Standard Uthmani Text Mode ── */
