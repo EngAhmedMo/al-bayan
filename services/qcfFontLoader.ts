@@ -27,7 +27,7 @@ export const loadQcfFontForPage = async (pageNum: number): Promise<boolean> => {
 
   try {
     const fontName = `QCF4${String(pageNum).padStart(3, '0')}`;
-    const fontUrl = `${QCF_FONTS_PATH}QCF4${String(pageNum).padStart(3, '0')}_X-Regular.ttf`;
+    const fontUrl = `${QCF_FONTS_PATH}QCF4${String(pageNum).padStart(3, '0')}_X-Regular.ttf?v=4`;
 
     // Check if font already exists in document
     const existing = document.fonts.check(`12px "${fontName}"`);
@@ -37,7 +37,7 @@ export const loadQcfFontForPage = async (pageNum: number): Promise<boolean> => {
       return true;
     }
 
-    const fontFace = new FontFace(fontName, `url("${fontUrl}")`);
+    const fontFace = new FontFace(fontName, `url("${fontUrl}") format('truetype')`);
     await fontFace.load();
     document.fonts.add(fontFace);
 
