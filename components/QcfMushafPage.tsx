@@ -230,6 +230,38 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAyahClick(ayah); } }}
       >
         {displayText}
+        {/* Ayah Number Marker (Ornamental Rosette) - Inline with text */}
+        <span
+          className="qcf-ayah-marker inline-flex items-center justify-center text-gold-600 dark:text-gold-400 select-none align-middle mx-1"
+          style={{
+            width: `${qcfFontSize * 1.25}px`,
+            height: `${qcfFontSize * 1.25}px`,
+            position: 'relative',
+            top: '-2px', // slight visual adjustment for baseline
+          }}
+          aria-hidden="true"
+        >
+          <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.3" className="w-full h-full">
+            <circle cx="20" cy="20" r="18.5" />
+            <circle cx="20" cy="20" r="14" opacity="0.55" />
+            <path d="M20 6.5 L20 10.5 M20 29.5 L20 33.5 M6.5 20 L10.5 20 M29.5 20 L33.5 20" strokeWidth="1.8" opacity="0.5" />
+            <circle cx="12" cy="12" r="1" fill="currentColor" opacity="0.35" />
+            <circle cx="28" cy="12" r="1" fill="currentColor" opacity="0.35" />
+            <circle cx="12" cy="28" r="1" fill="currentColor" opacity="0.35" />
+            <circle cx="28" cy="28" r="1" fill="currentColor" opacity="0.35" />
+          </svg>
+          <span
+            className="absolute inset-0 flex items-center justify-center"
+            style={{
+              fontSize: `${qcfFontSize * 0.46}px`,
+              fontFamily: '"Scheherazade New", serif',
+              color: 'currentColor',
+              paddingTop: '2px',
+            }}
+          >
+            {toArabicDigits(ayah.numberInSurah)}
+          </span>
+        </span>
       </span>
     );
   });
