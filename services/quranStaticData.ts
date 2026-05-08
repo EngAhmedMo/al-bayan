@@ -346,11 +346,23 @@ const loadQuranData = async (): Promise<void> => {
     try {
       console.log('[QuranStaticData] Loading bundled Quran data (Hafs V2)...');
 
-      const response = await fetch(HAFS_V2_DATA_PATH);
+      const [hafsResponse, qcfResponse] = await Promise.all([
+        fetch(HAFS_V2_DATA_PATH),
+        fetch(`${import.meta.env.BASE_URL}data/quran/qcf_ayahs.json`).catch(() => null)
+      ]);
 
-      if (!response.ok) throw new Error(`Failed to load Hafs data: ${response.status}`);
+      if (!hafsResponse.ok) throw new Error(`Failed to load Hafs data: ${hafsResponse.status}`);
 
-      const hafsData: HafsDataV2Item[] = await response.json();
+      const hafsData: HafsDataV2Item[] = await hafsResponse.json();
+      let qcfData: Record<string, string> = {};
+      
+      if (qcfResponse && qcfResponse.ok) {
+        try {
+          qcfData = await qcfResponse.json();
+        } catch (e) {
+          console.warn('[QuranStaticData] Failed to parse QCF data', e);
+        }
+      }
 
       // Build complete Ayah objects using Hafs V2 as the sole source
       const mergedAyahs: Ayah[] = hafsData.map(item => {
@@ -369,6 +381,7 @@ const loadQuranData = async (): Promise<void> => {
           text: item.aya_text_emlaey, // Use Simple Text for "text" field to avoid Distortion/Codes
           aya_text: cleanText, // The visual Uthmani text (CLEANED)
           aya_text_emlaey: item.aya_text_emlaey,
+          qcf_text: qcfData[`${item.sura_no}:${item.aya_no}`] || undefined,
 
           // Layout info
           line_start: item.line_start,

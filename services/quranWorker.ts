@@ -1,5 +1,6 @@
 export {};
 let cachedQuranData: any[] | null = null;
+let cachedQcfData: Record<string, string> | null = null;
 
 self.onmessage = async (e: MessageEvent) => {
     const { type, surahNumber, messageId } = e.data;
@@ -18,12 +19,31 @@ self.onmessage = async (e: MessageEvent) => {
             cachedQuranData = await response.json();
         }
 
-        const verseMap: Record<number, string> = {};
+        if (!cachedQcfData) {
+            try {
+                const qcfResponse = await fetch(`${import.meta.env.BASE_URL}data/quran/qcf_ayahs.json`);
+                if (qcfResponse.ok) {
+                    cachedQcfData = await qcfResponse.json();
+                } else {
+                    cachedQcfData = {};
+                }
+            } catch (err) {
+                console.warn('Failed to load QCF data', err);
+                cachedQcfData = {};
+            }
+        }
+
+        // Return a map of ayah_no to an object containing text and qcf_text
+        const verseMap: Record<number, { text: string; qcf_text?: string }> = {};
         
         if (cachedQuranData) {
             for (const row of cachedQuranData) {
                 if (row.sura_no === surahNumber) {
-                    verseMap[row.aya_no] = row.aya_text_emlaey || row.aya_text || '';
+                    const qcfKey = `${surahNumber}:${row.aya_no}`;
+                    verseMap[row.aya_no] = {
+                        text: row.aya_text_emlaey || row.aya_text || '',
+                        qcf_text: cachedQcfData ? cachedQcfData[qcfKey] : undefined
+                    };
                 }
             }
         }

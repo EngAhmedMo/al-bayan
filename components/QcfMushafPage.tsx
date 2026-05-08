@@ -173,8 +173,13 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
     const isBookmarked = isAyahMarked(surahNum, ayah.numberInSurah);
 
     // Get display text and trim trailing/leading spaces to prevent wide gaps
-    let displayText = (ayah as any).aya_text || ayah.text || '';
-    if (isFirstAyah && surahNum && surahNum !== 1 && surahNum !== 9) {
+    // Use QCF encoded text if available, fallback to emlaey/uthmani text
+    const hasQcf = !!(ayah as any).qcf_text;
+    let displayText = (ayah as any).qcf_text || (ayah as any).aya_text || ayah.text || '';
+    
+    // Only strip Bismillah if we are NOT using QCF text. QCF text has it as a separate Ayah or natively handles it.
+    // Wait, QCF text typically does NOT include Bismillah inside Ayah 1 except for Fatiha.
+    if (!hasQcf && isFirstAyah && surahNum && surahNum !== 1 && surahNum !== 9) {
       displayText = stripBismillah(displayText);
     }
     displayText = displayText.trim();
@@ -236,7 +241,7 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAyahClick(ayah); } }}
       >
         {displayText}
-        {/* Ayah Number Marker (Ornamental Rosette) - Inline with text */}
+        {/* Ayah Number Marker (Ornamental Rosette) - Always shown, the QCF text does NOT embed ayah numbers */}
         <span
           className="qcf-ayah-marker inline-flex items-center justify-center text-gold-600 dark:text-gold-400 select-none align-middle"
           style={{

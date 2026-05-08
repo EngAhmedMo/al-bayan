@@ -26,6 +26,7 @@ export interface Ayah {
   line_end?: number;
   aya_text?: string; // Enhanced Uthmani text
   aya_text_emlaey?: string; // Simple text for search
+  qcf_text?: string; // QCF encoded text for the Mushaf rendering
   // Optional surah info (from static data)
   surah?: {
     number: number;
