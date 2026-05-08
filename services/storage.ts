@@ -512,13 +512,13 @@ export const getHadithReadingPosition = (): HadithReadingPosition | null => {
 
 // Returns the ideal default font size for the current screen width
 export const getResponsiveDefaultFontSize = (): number => {
-  if (typeof window === 'undefined') return 22;
+  if (typeof window === 'undefined') return 26;
   const w = window.innerWidth;
-  if (w < 375) return 18;   // Small phones (iPhone SE)
-  if (w < 429) return 20;   // Standard mobile (most iPhones & Android)
-  if (w < 641) return 22;   // Large mobile / small tablet
-  if (w < 1025) return 24;  // Tablet
-  return 26;                 // Desktop
+  if (w < 375) return 22;   // Small phones (iPhone SE)
+  if (w < 429) return 24;   // Standard mobile (most iPhones & Android)
+  if (w < 641) return 26;   // Large mobile / small tablet
+  if (w < 1025) return 28;  // Tablet
+  return 30;                 // Desktop
 };
 
 export const getStoredFontSize = (): number => {

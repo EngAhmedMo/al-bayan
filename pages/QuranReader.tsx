@@ -378,7 +378,7 @@ export const QuranReader: React.FC = () => {
 
   // Common button class for header consistency
   // Common button class for header consistency - Premium Gold Update
-  const headerBtnClass = "w-10 h-10 flex items-center justify-center rounded-xl bg-white/80 dark:bg-navy-900/40 backdrop-blur-sm border border-navy-100 dark:border-[#C6AD73]/60 text-navy-600 dark:text-[#C6AD73] hover:border-gold-400 dark:hover:border-[#C6AD73] hover:text-gold-600 dark:hover:text-[#F0CF85] hover:bg-white dark:hover:bg-[#C6AD73]/10 shadow-sm hover:shadow-md transition-all duration-200 active:scale-95 relative overflow-hidden";
+  const headerBtnClass = "w-8 h-8 sm:w-10 sm:h-10 flex shrink-0 items-center justify-center rounded-xl bg-white/80 dark:bg-navy-900/40 backdrop-blur-sm border border-navy-100 dark:border-[#C6AD73]/60 text-navy-600 dark:text-[#C6AD73] hover:border-gold-400 dark:hover:border-[#C6AD73] hover:text-gold-600 dark:hover:text-[#F0CF85] hover:bg-white dark:hover:bg-[#C6AD73]/10 shadow-sm hover:shadow-md transition-all duration-200 active:scale-95 relative overflow-hidden";
 
   // Orientation change listener
   useEffect(() => {
@@ -950,7 +950,7 @@ export const QuranReader: React.FC = () => {
             </div>
           }
           extra={
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               {/* زر الاختبار — يعمل دائماً بدون شرط خطة الحفظ */}
               <button
                 onClick={openQuizSelector}
@@ -990,8 +990,8 @@ export const QuranReader: React.FC = () => {
           ${isImmersive
             ? 'fixed inset-0 z-50 fullscreen-container flex-col items-center bg-[#fffcf5] dark:bg-[#1a202c] w-full p-0'
             : isLandscape
-              ? 'p-2 sm:p-4 pb-24'
-              : 'p-2 sm:p-4 pb-36'}
+              ? currentTrack ? 'p-2 sm:p-4 pb-36' : 'p-2 sm:p-4 pb-20'
+              : currentTrack ? 'p-2 sm:p-4 pb-48' : 'p-2 sm:p-4 pb-24'}
         `}
         onClick={(e) => {
           // Clicking the "void" area exits immersive mode
@@ -1167,8 +1167,8 @@ export const QuranReader: React.FC = () => {
                       ? 'px-24 py-6 pb-12 md:px-32' // Landscape immersive: more horizontal, less vertical
                       : 'px-12 py-10 pb-16 sm:px-16 md:px-20' // Portrait immersive
                     : isLandscape
-                      ? 'px-6 sm:px-16 pt-6 pb-48' // Landscape normal: balanced
-                      : 'px-4 sm:px-10 pt-10 pb-52 sm:pt-14'} // Portrait normal: changed
+                      ? 'px-6 sm:px-16 pt-6 pb-8' // Landscape normal: reduced to remove double padding
+                      : 'px-4 sm:px-10 pt-10 pb-12 sm:pt-14'} // Portrait normal: reduced to remove double padding
                   `}>
 
                   {/* Ribbon */}
@@ -1186,6 +1186,7 @@ export const QuranReader: React.FC = () => {
                     style={{
                       fontSize: `${fontSize}px`,
                       textAlign: textAlign,
+                      textJustify: textAlign === 'justify' ? 'inter-word' : 'auto',
                       fontFeatureSettings: '"cv01" on, "cv02" on' // Ligatures
                     }}
                   >
@@ -1651,7 +1652,10 @@ export const QuranReader: React.FC = () => {
                     {/* Hifz (Memorization) Repeater Tools — Compact 2×2 Grid */}
                     <div className="grid grid-cols-2 gap-2">
                       {/* 1. Single Ayah Repeat */}
-                      <div className="bg-white dark:bg-navy-900 rounded-xl p-2.5 border border-navy-100 dark:border-navy-800 shadow-sm">
+                      <div className="bg-white dark:bg-navy-900/90 rounded-xl p-2.5 border-2 border-gold-200/80 dark:border-[#C6AD73]/40 shadow-sm hover:border-gold-400 dark:hover:border-[#C6AD73] transition-colors relative group">
+                        {/* Decorative corner accents */}
+                        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-gold-400 dark:border-gold-500 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-gold-400 dark:border-gold-500 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         <div className="flex items-center gap-1.5 mb-2">
                           <div className="w-5 h-5 rounded-md bg-gold-100 dark:bg-gold-900/20 flex items-center justify-center flex-shrink-0">
                             <Repeat size={12} className="text-gold-600 dark:text-gold-400" />
@@ -1672,7 +1676,10 @@ export const QuranReader: React.FC = () => {
                       </div>
 
                       {/* 2. Continuous Repeat (مع الاستمرار) */}
-                      <div className="bg-white dark:bg-navy-900 rounded-xl p-2.5 border border-navy-100 dark:border-navy-800 shadow-sm">
+                      <div className="bg-white dark:bg-navy-900/90 rounded-xl p-2.5 border-2 border-gold-200/80 dark:border-[#C6AD73]/40 shadow-sm hover:border-gold-400 dark:hover:border-[#C6AD73] transition-colors relative group">
+                        {/* Decorative corner accents */}
+                        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-gold-400 dark:border-gold-500 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-gold-400 dark:border-gold-500 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         <div className="flex items-center gap-1.5 mb-2">
                           <div className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center flex-shrink-0">
                             <RotateCcw size={12} className="text-emerald-600 dark:text-emerald-400" />
@@ -1693,7 +1700,10 @@ export const QuranReader: React.FC = () => {
                       </div>
 
                       {/* 3. Page Repeat */}
-                      <div className="bg-white dark:bg-navy-900 rounded-xl p-2.5 border border-navy-100 dark:border-navy-800 shadow-sm">
+                      <div className="bg-white dark:bg-navy-900/90 rounded-xl p-2.5 border-2 border-gold-200/80 dark:border-[#C6AD73]/40 shadow-sm hover:border-gold-400 dark:hover:border-[#C6AD73] transition-colors relative group">
+                        {/* Decorative corner accents */}
+                        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-gold-400 dark:border-gold-500 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-gold-400 dark:border-gold-500 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         <div className="flex items-center gap-1.5 mb-2">
                           <div className="w-5 h-5 rounded-md bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
                             <Book size={12} className="text-blue-600 dark:text-blue-400" />
@@ -1714,7 +1724,10 @@ export const QuranReader: React.FC = () => {
                       </div>
 
                       {/* 4. Surah Repeat */}
-                      <div className="bg-white dark:bg-navy-900 rounded-xl p-2.5 border border-navy-100 dark:border-navy-800 shadow-sm">
+                      <div className="bg-white dark:bg-navy-900/90 rounded-xl p-2.5 border-2 border-gold-200/80 dark:border-[#C6AD73]/40 shadow-sm hover:border-gold-400 dark:hover:border-[#C6AD73] transition-colors relative group">
+                        {/* Decorative corner accents */}
+                        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-gold-400 dark:border-gold-500 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-gold-400 dark:border-gold-500 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         <div className="flex items-center gap-1.5 mb-2">
                           <div className="w-5 h-5 rounded-md bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center flex-shrink-0">
                             <RotateCcw size={12} className="text-purple-600 dark:text-purple-400" />
@@ -1736,7 +1749,10 @@ export const QuranReader: React.FC = () => {
                     </div>
 
                     {/* 5. Range Repeat (تكرار نطاق آيات) — Full Width */}
-                    <div className="col-span-2 bg-white dark:bg-navy-900 rounded-xl p-3 border border-navy-100 dark:border-navy-800 shadow-sm mt-1">
+                    <div className="col-span-2 bg-white dark:bg-navy-900/90 rounded-xl p-3 border-2 border-gold-200/80 dark:border-[#C6AD73]/40 shadow-sm mt-1 hover:border-gold-400 dark:hover:border-[#C6AD73] transition-colors relative group">
+                      {/* Decorative corner accents */}
+                      <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-gold-400 dark:border-gold-500 rounded-tr-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-gold-400 dark:border-gold-500 rounded-bl-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
                       <div className="flex items-center gap-1.5 mb-3">
                         <div className="w-5 h-5 rounded-md bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center flex-shrink-0">
                           <ArrowDownUp size={12} className="text-rose-500 dark:text-rose-400" />

@@ -17,11 +17,11 @@ export const TopBar: React.FC<TopBarProps> = ({ title, showBack, onBack, extra }
   const navigate = useNavigate();
 
   // Unified button style class for consistency - Premium Gold Update
-  const btnClass = "w-10 h-10 flex items-center justify-center rounded-xl bg-white/80 dark:bg-navy-900/40 backdrop-blur-sm border border-navy-100 dark:border-[#C6AD73]/60 text-navy-600 dark:text-[#C6AD73] hover:border-gold-400 dark:hover:border-[#C6AD73] hover:text-gold-600 dark:hover:text-[#F0CF85] hover:bg-white dark:hover:bg-[#C6AD73]/10 shadow-sm hover:shadow-md transition-all duration-200 active:scale-95 relative overflow-hidden";
+  const btnClass = "w-8 h-8 sm:w-10 sm:h-10 flex shrink-0 items-center justify-center rounded-xl bg-white/80 dark:bg-navy-900/40 backdrop-blur-sm border border-navy-100 dark:border-[#C6AD73]/60 text-navy-600 dark:text-[#C6AD73] hover:border-gold-400 dark:hover:border-[#C6AD73] hover:text-gold-600 dark:hover:text-[#F0CF85] hover:bg-white dark:hover:bg-[#C6AD73]/10 shadow-sm hover:shadow-md transition-all duration-200 active:scale-95 relative overflow-hidden";
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-gold-50/95 dark:bg-navy-950/95 backdrop-blur-md border-b border-navy-100 dark:border-navy-800 px-4 h-16 flex items-center justify-between shadow-sm transition-colors duration-500">
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-40 w-full bg-gold-50/95 dark:bg-navy-950/95 backdrop-blur-md border-b border-navy-100 dark:border-navy-800 px-2 sm:px-4 h-14 sm:h-16 flex items-center justify-between shadow-sm transition-colors duration-500">
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0 pr-2">
         {showBack ? (
           <button onClick={() => onBack ? onBack() : navigate(-1)} className={btnClass} title="رجوع">
             <ArrowRight size={20} />
@@ -31,7 +31,7 @@ export const TopBar: React.FC<TopBarProps> = ({ title, showBack, onBack, extra }
             <Menu size={20} />
           </button>
         )}
-        <div className="text-xl font-bold text-navy-900 dark:text-white font-sans tracking-tight">{title}</div>
+        <div className="text-lg sm:text-xl font-bold text-navy-900 dark:text-white font-sans tracking-tight min-w-0 truncate">{title}</div>
       </div>
 
       <div className="flex items-center gap-2">
