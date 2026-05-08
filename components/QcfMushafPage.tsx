@@ -157,6 +157,11 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
   // ── Build content fragments ─────────────────────────────────────────────
   // We render everything into a SINGLE container: surah headers inline-block, ayah text inline.
 
+  // Calculate smart scaling for the Ayah Marker
+  // Instead of linear scaling (e.g. 1.25x) which gets huge on max font sizes,
+  // we use a dampened formula to ensure it stays visually cohesive.
+  const markerSize = Math.max(25, qcfFontSize * 0.92 + 5);
+
   const fragments: React.ReactNode[] = [];
 
   ayahs.forEach((ayah) => {
@@ -167,11 +172,12 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
     const highlightClass = getHighlightClass(ayah, surahNum);
     const isBookmarked = isAyahMarked(surahNum, ayah.numberInSurah);
 
-    // Get display text
+    // Get display text and trim trailing/leading spaces to prevent wide gaps
     let displayText = (ayah as any).aya_text || ayah.text || '';
     if (isFirstAyah && surahNum && surahNum !== 1 && surahNum !== 9) {
       displayText = stripBismillah(displayText);
     }
+    displayText = displayText.trim();
 
     // ── Surah Header (block-level, full width, breaks the flow) ──
     if (isFirstAyah && surah) {
@@ -232,12 +238,13 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
         {displayText}
         {/* Ayah Number Marker (Ornamental Rosette) - Inline with text */}
         <span
-          className="qcf-ayah-marker inline-flex items-center justify-center text-gold-600 dark:text-gold-400 select-none align-middle mx-1"
+          className="qcf-ayah-marker inline-flex items-center justify-center text-gold-600 dark:text-gold-400 select-none align-middle"
           style={{
-            width: `${qcfFontSize * 1.25}px`,
-            height: `${qcfFontSize * 1.25}px`,
+            width: `${markerSize}px`,
+            height: `${markerSize}px`,
             position: 'relative',
-            top: '-2px', // slight visual adjustment for baseline
+            margin: '0 0.35em', // Relative tight spacing instead of fixed tailwind margins
+            top: '-0.1em', // Dynamic vertical alignment to stay centered
           }}
           aria-hidden="true"
         >
@@ -253,7 +260,7 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
           <span
             className="absolute inset-0 flex items-center justify-center"
             style={{
-              fontSize: `${qcfFontSize * 0.46}px`,
+              fontSize: `${markerSize * 0.45}px`, // Proportionally scale number inside
               fontFamily: '"Scheherazade New", serif',
               color: 'currentColor',
               paddingTop: '2px',
