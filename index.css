@@ -140,14 +140,19 @@ body {
    QCF MUSHAF MODE — Print-Faithful Rendering
    King Fahad Complex QCF4 Font System
    Matches: مكتبة الحكمة / alquranalkareem reference layout
+   
+   Architecture:
+   - QCF4 fonts: 604 page-specific fonts with PUA-encoded glyphs
+   - AyahNumber font: Ornamental rosette markers (Uthmanic_NeoCOLORD)
+   - Justified inline layout: all ayahs as <span>s in a single block
+   - Book edge effect: multi-layer shadows for physical book feel
    ========================================== */
 
 /* ── Container ──────────────────────────────────────────────────────────── */
 .qcf-mushaf-container {
   direction: rtl;
   width: 100%;
-  /* Subtle reveal animation when font loads */
-  animation: qcf-font-reveal 0.3s ease-out;
+  animation: qcf-font-reveal 0.35s ease-out;
 }
 
 @keyframes qcf-font-reveal {
@@ -155,143 +160,14 @@ body {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Surah Header ───────────────────────────────────────────────────────── */
-.qcf-surah-header {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 0.75rem 0 0.5rem;
-  user-select: none;
-}
-
-/* ── Ayah Row (line-by-line layout, key to matching reference app) ──────── */
-.qcf-ayah-row {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;    /* RTL: content flows right */
-  direction: rtl;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-  padding: 4px 6px;
-  margin: 2px 0;
-  /* Prevent text selection during swipe */
-  -webkit-user-select: none;
-  user-select: text;
-}
-
-/* Light mode hover */
-.qcf-ayah-row:hover {
-  background-color: rgba(212, 164, 74, 0.10);
-}
-
-/* Dark mode hover */
-.dark .qcf-ayah-row:hover {
-  background-color: rgba(212, 164, 74, 0.08);
-}
-
-/* Focus ring for keyboard navigation */
-.qcf-ayah-row:focus-visible {
-  outline: 2px solid #d4a44a;
-  outline-offset: 2px;
-}
-
-/* ── Ayah Text ──────────────────────────────────────────────────────────── */
-.qcf-ayah-text {
-  flex: 1;
-  text-align: right;
-  direction: rtl;
-  /* Font rendering optimization for Arabic calligraphic fonts */
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-feature-settings: "kern" 1, "liga" 1, "calt" 1;
-  color: #1a1208;
-}
-
-.dark .qcf-ayah-text {
-  color: #e8d5a3;
-}
-
-/* ── Ayah Marker (Ornamental Number) ───────────────────────────────────── */
-.qcf-ayah-marker {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  color: #c49838;
-  user-select: none;
-  margin-inline-start: 6px;
-}
-
-.dark .qcf-ayah-marker {
-  color: #d4a44a;
-}
-
-/* ── Dark Mode Refinements ──────────────────────────────────────────────── */
-.dark .qcf-mushaf-container {
-  /* Very subtle warm glow for premium feel */
-  filter: drop-shadow(0 0 20px rgba(180, 140, 70, 0.04));
-}
-
-/* ── Highlight States ───────────────────────────────────────────────────── */
-
-/* Bookmarked ayah — red underline (same as standard mode) */
-.qcf-ayah-row.is-bookmarked .qcf-ayah-text {
-  text-decoration: underline;
-  text-decoration-color: #f87171;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 8px;
-}
-
-/* ── Mushaf Paper Background (QCF mode variant) ─────────────────────────── */
-/* The paper background in QCF mode uses a warmer, creamier tone */
-.qcf-paper-bg {
-  background-color: #fdfaf3;
-}
-
-.dark .qcf-paper-bg {
-  background-color: #18202c;
-}
-
-/* ── Responsive Padding ─────────────────────────────────────────────────── */
-@media (max-width: 374px) {
-  .qcf-ayah-row { padding: 3px 4px; margin: 1px 0; }
-}
-@media (min-width: 641px) {
-  .qcf-ayah-row { padding: 5px 8px; margin: 3px 0; }
-}
-@media (min-width: 1025px) {
-  .qcf-ayah-row { padding: 6px 10px; margin: 4px 0; }
-}
-
-/* Landscape mobile: tighter spacing */
-@media (orientation: landscape) and (max-height: 500px) {
-  .qcf-ayah-row { padding: 2px 4px; margin: 1px 0; }
-  .qcf-surah-header { margin: 0.5rem 0 0.25rem; }
-}
-
-/* Immersive mode: more generous spacing */
-.fullscreen-container .qcf-ayah-row {
-  padding: 7px 12px;
-  margin: 4px 0;
-}
-@media (min-width: 768px) {
-  .fullscreen-container .qcf-ayah-row {
-    padding: 9px 16px;
-    margin: 5px 0;
-  }
-}
-
-
-/* Main text block using QCF fonts */
+/* ── Main Text Block (the core Mushaf layout engine) ───────────────────── */
 .qcf-text-block {
   direction: rtl;
   text-align: justify;
   text-align-last: center;
-  word-spacing: 0.05em;
-  line-height: 2.4;
+  word-spacing: 0.08em;
+  line-height: 2.0;
+  overflow-wrap: break-word;
   /* Font rendering optimization for Arabic calligraphic fonts */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -308,117 +184,200 @@ body {
   color: #e8d5a3;
 }
 
-/* Individual ayah span in QCF mode */
-.qcf-ayah-span {
-  cursor: pointer;
-  border-radius: 3px;
-  transition: background-color 0.25s ease;
-  padding: 0 2px;
-}
-
-.qcf-ayah-span:hover {
-  background-color: rgba(212, 164, 74, 0.15);
-}
-
-.dark .qcf-ayah-span:hover {
-  background-color: rgba(212, 164, 74, 0.12);
-}
-
-/* Surah header section in QCF mode */
+/* ── Surah Header ───────────────────────────────────────────────────────── */
 .qcf-surah-header {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 1rem 0 0.5rem;
+  margin: 0.75rem 0 0.5rem;
   user-select: none;
 }
 
-/* QCF ayah number marker */
-.qcf-ayah-marker {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+/* ── Individual Ayah Span (inline, clickable) ──────────────────────────── */
+.qcf-ayah-span {
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  padding: 1px 2px;
+}
+
+.qcf-ayah-span:hover {
+  background-color: rgba(212, 164, 74, 0.12);
+}
+
+.dark .qcf-ayah-span:hover {
+  background-color: rgba(212, 164, 74, 0.10);
+}
+
+/* ── Ayah Number (AyahNumber font — ornamental rosette) ────────────────── */
+/* Uses Uthmanic_NeoCOLORD-Regular font which draws Arabic numerals 
+   inside decorative ornamental circles/rosettes automatically. 
+   Much lighter and more authentic than SVG circles. */
+.qcf-ayah-number {
+  display: inline;
   vertical-align: middle;
   color: #c49838;
   user-select: none;
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
-.dark .qcf-ayah-marker {
+.dark .qcf-ayah-number {
   color: #d4a44a;
 }
 
-/* ── QCF Responsive Font Sizing ──────────────────────────────────────────── */
+/* ── Highlight States ───────────────────────────────────────────────────── */
+
+/* Audio playing → emerald glow */
+.qcf-highlight-audio {
+  background-color: rgba(16, 185, 129, 0.14) !important;
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.08);
+}
+
+.dark .qcf-highlight-audio {
+  background-color: rgba(16, 185, 129, 0.12) !important;
+}
+
+/* Search result → amber pulse */
+.qcf-highlight-search {
+  background-color: rgba(245, 158, 11, 0.18) !important;
+  border-radius: 4px;
+  animation: qcf-search-pulse 2s ease-in-out 2;
+}
+
+@keyframes qcf-search-pulse {
+  0%, 100% { background-color: rgba(245, 158, 11, 0.08); }
+  50% { background-color: rgba(245, 158, 11, 0.22); }
+}
+
+/* Selected (modal) → gold */
+.qcf-highlight-selected {
+  background-color: rgba(212, 164, 74, 0.18) !important;
+  border-radius: 4px;
+}
+
+.dark .qcf-highlight-selected {
+  background-color: rgba(212, 164, 74, 0.14) !important;
+}
+
+/* Bookmarked → red underline */
+.qcf-bookmarked {
+  border-bottom: 2px solid #ef4444;
+  padding-bottom: 2px;
+}
+
+/* ── Mushaf Paper Background ────────────────────────────────────────────── */
+.qcf-paper-bg {
+  background: linear-gradient(135deg,
+    #FBF7ED 0%,
+    #F5EFE0 50%,
+    #FBF7ED 100%
+  );
+}
+
+.dark .qcf-paper-bg {
+  background: linear-gradient(135deg,
+    #1a1c24 0%,
+    #161820 50%,
+    #1a1c24 100%
+  );
+}
+
+/* ── Book Edge / Spine Shadow Effect ────────────────────────────────────── */
+/* Creates the illusion of a physical book binding on the inner edge */
+.mushaf-book-spine {
+  box-shadow:
+    inset -8px 0 20px -6px rgba(139, 115, 85, 0.12),
+    inset -3px 0 8px -2px rgba(139, 115, 85, 0.08);
+}
+
+.dark .mushaf-book-spine {
+  box-shadow:
+    inset -8px 0 20px -6px rgba(0, 0, 0, 0.25),
+    inset -3px 0 8px -2px rgba(0, 0, 0, 0.15);
+}
+
+/* Page border — subtle framing like a real Mushaf page */
+.mushaf-page-frame {
+  border: 1px solid rgba(180, 140, 80, 0.12);
+  border-radius: 4px;
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.06);
+}
+
+.dark .mushaf-page-frame {
+  border-color: rgba(100, 80, 50, 0.15);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.2);
+}
+
+/* ── Dark Mode Container Refinements ───────────────────────────────────── */
+.dark .qcf-mushaf-container {
+  text-shadow: 0 0 20px rgba(180, 140, 70, 0.04);
+}
+
+/* ── QCF Responsive Font Sizing ────────────────────────────────────────── */
 
 /* Very small phones (<375px) */
 @media (max-width: 374px) {
-  .qcf-text-block { font-size: 18px !important; line-height: 2.2 !important; }
+  .qcf-text-block { font-size: 18px !important; line-height: 1.9 !important; }
+  .qcf-ayah-number { font-size: 13px !important; }
 }
 
 /* Standard mobile (375–428px) */
 @media (min-width: 375px) and (max-width: 428px) {
-  .qcf-text-block { font-size: 21px !important; line-height: 2.3 !important; }
+  .qcf-text-block { font-size: 21px !important; line-height: 2.0 !important; }
+  .qcf-ayah-number { font-size: 14px !important; }
 }
 
 /* Large mobile / small tablet (429–640px) */
 @media (min-width: 429px) and (max-width: 640px) {
-  .qcf-text-block { font-size: 23px !important; line-height: 2.35 !important; }
+  .qcf-text-block { font-size: 23px !important; line-height: 2.0 !important; }
+  .qcf-ayah-number { font-size: 15px !important; }
 }
 
 /* Tablet (641–1024px) */
 @media (min-width: 641px) and (max-width: 1024px) {
-  .qcf-text-block { font-size: 26px !important; line-height: 2.4 !important; }
+  .qcf-text-block { font-size: 26px !important; line-height: 2.1 !important; }
+  .qcf-ayah-number { font-size: 17px !important; }
 }
 
 /* Desktop (>1024px) */
 @media (min-width: 1025px) {
-  .qcf-text-block { font-size: 28px !important; line-height: 2.4 !important; }
+  .qcf-text-block { font-size: 28px !important; line-height: 2.1 !important; }
+  .qcf-ayah-number { font-size: 18px !important; }
 }
 
 /* Landscape mobile: compact to prevent awkward line breaks */
 @media (orientation: landscape) and (max-height: 500px) {
-  .qcf-text-block { font-size: 17px !important; line-height: 2.1 !important; }
+  .qcf-text-block { font-size: 17px !important; line-height: 1.85 !important; }
+  .qcf-surah-header { margin: 0.5rem 0 0.25rem; }
+  .qcf-ayah-number { font-size: 12px !important; }
 }
 
 /* Large desktop / 4K */
 @media (min-width: 1400px) {
-  .qcf-text-block { font-size: 32px !important; line-height: 2.5 !important; }
+  .qcf-text-block { font-size: 32px !important; line-height: 2.2 !important; }
+  .qcf-ayah-number { font-size: 20px !important; }
 }
 
-/* ── QCF Immersive Mode Adjustments ──────────────────────────────────────── */
-/* When in fullscreen immersive reading mode, give more breathing room */
+/* ── QCF Immersive Mode Adjustments ────────────────────────────────────── */
 .fullscreen-container .qcf-text-block {
-  line-height: 2.6 !important;
+  line-height: 2.2 !important;
 }
 
 @media (min-width: 768px) {
   .fullscreen-container .qcf-text-block {
     font-size: 30px !important;
-    line-height: 2.7 !important;
+    line-height: 2.3 !important;
   }
 }
 
 @media (min-width: 1200px) {
   .fullscreen-container .qcf-text-block {
     font-size: 34px !important;
-    line-height: 2.8 !important;
+    line-height: 2.4 !important;
   }
-}
-
-/* ── QCF Dark Mode Refinements ───────────────────────────────────────────── */
-/* Warm ambient glow under text in dark mode for premium feel */
-.dark .qcf-mushaf-container {
-  text-shadow: 0 0 20px rgba(180, 140, 70, 0.05);
-}
-
-/* ── QCF Loading Indicator ──────────────────────────────────────────────── */
-@keyframes qcf-font-reveal {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.qcf-mushaf-container {
-  animation: qcf-font-reveal 0.35s ease-out;
 }
 
 /* ==========================================

@@ -8,47 +8,21 @@
  */
 
 const BASE_URL = import.meta.env.BASE_URL || '/';
-const QCF_FONTS_PATH = `${BASE_URL}fonts/qcf/`;
+const QCF_FONTS_PATH = `${BASE_URL}fonts/qcf_v1/`;
 
 // Track which fonts have been successfully loaded
 const loadedFonts = new Set<number>();
 const loadingFonts = new Set<number>();
 
 /**
- * Load the QCF4 font for a specific Mushaf page number (1-604).
+ * Load the QCF font for a specific Mushaf page number (1-604).
  * Uses FontFace API for dynamic injection without touching CSS files.
  */
 export const loadQcfFontForPage = async (pageNum: number): Promise<boolean> => {
-  if (pageNum < 1 || pageNum > 604) return false;
-  if (loadedFonts.has(pageNum)) return true;
-  if (loadingFonts.has(pageNum)) return false; // Already in progress
-
-  loadingFonts.add(pageNum);
-
-  try {
-    const fontName = `QCF4${String(pageNum).padStart(3, '0')}`;
-    const fontUrl = `${QCF_FONTS_PATH}QCF4${String(pageNum).padStart(3, '0')}_X-Regular.ttf?v=4`;
-
-    // Check if font already exists in document
-    const existing = document.fonts.check(`12px "${fontName}"`);
-    if (existing) {
-      loadedFonts.add(pageNum);
-      loadingFonts.delete(pageNum);
-      return true;
-    }
-
-    const fontFace = new FontFace(fontName, `url("${fontUrl}") format('truetype')`);
-    await fontFace.load();
-    document.fonts.add(fontFace);
-
-    loadedFonts.add(pageNum);
-    loadingFonts.delete(pageNum);
-    return true;
-  } catch (err) {
-    loadingFonts.delete(pageNum);
-    // Silently fail - will fall back to standard Uthmani font
-    return false;
-  }
+  // WE NO LONGER LOAD PAGE-SPECIFIC FONTS!
+  // This bypasses the heavy 604 font downloads and eliminates PUA encoding issues.
+  // We use the unified UthmanicHafs_V20.ttf font for all pages, which is loaded via CSS.
+  return true;
 };
 
 /**
@@ -56,14 +30,7 @@ export const loadQcfFontForPage = async (pageNum: number): Promise<boolean> => {
  * Ensures smooth page transitions with no font flash.
  */
 export const preloadQcfFontsAround = (pageNum: number): void => {
-  const pagesToLoad = [pageNum, pageNum - 1, pageNum + 1, pageNum + 2].filter(
-    p => p >= 1 && p <= 604
-  );
-  pagesToLoad.forEach(p => {
-    if (!loadedFonts.has(p) && !loadingFonts.has(p)) {
-      loadQcfFontForPage(p); // Fire and forget
-    }
-  });
+  // No-op since we use the unified UthmanicHafs font
 };
 
 /**
@@ -71,7 +38,7 @@ export const preloadQcfFontsAround = (pageNum: number): void => {
  * Used inline in style props.
  */
 export const getQcfFontFamily = (pageNum: number): string => {
-  return `QCF4${String(pageNum).padStart(3, '0')}`;
+  return '"UthmanicHafs", serif';
 };
 
 /**

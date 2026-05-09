@@ -1167,11 +1167,10 @@ export const QuranReader: React.FC = () => {
                 }
               }}
               className={`
-                relative bg-[#fffcf5] dark:bg-[#1a202c] shadow-2xl overflow-y-auto overflow-x-hidden transition-all duration-500 quran-page-scroll
+                relative shadow-2xl overflow-y-auto overflow-x-hidden transition-all duration-500 quran-page-scroll qcf-paper-bg mushaf-book-spine
                 ${isImmersive
                   ? 'min-h-full h-full flex-1 md:rounded-2xl border-none md:border border-white/5 shadow-2xl cursor-pointer'
-                  : 'rounded-2xl border border-gold-900/5 dark:border-navy-700'}
-             `}>
+                  : 'rounded-2xl mushaf-page-frame'}`}>
 
               {/* Paper Texture Overlay - Fixed background that stays visible */}
               <div className="sticky top-0 left-0 right-0 h-0 z-0 pointer-events-none">

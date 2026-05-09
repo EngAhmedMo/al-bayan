@@ -37,6 +37,40 @@ interface QcfMushafPageProps {
 
 const fontStateCache = new Map<number, 'loading' | 'ready' | 'error'>();
 
+// ── QCF Text Validation ──────────────────────────────────────────────────────
+/**
+ * Validates that the QCF text actually contains Private Use Area (PUA) characters
+ * that the QCF4 font can render. If the text only contains standard Arabic or
+ * garbage characters, we should fall back to the standard Uthmani text.
+ * 
+ * QCF4 fonts use Unicode PUA ranges:
+ *   - U+FB50–U+FDFF (Arabic Presentation Forms-A)  
+ *   - U+FE70–U+FEFF (Arabic Presentation Forms-B)
+ *   - U+E000–U+F8FF (Private Use Area)
+ * 
+ * The qcf_ayahs.json data uses characters like ﱁﱂﱃ which are in the
+ * Arabic Presentation Forms range (U+FC41+). These ONLY render correctly
+ * when the corresponding QCF4 page font is loaded.
+ */
+const isValidQcfText = (text: string | undefined | null): boolean => {
+  if (!text || text.length === 0) return false;
+  
+  // Check if text contains characters in the Arabic Presentation Forms or PUA ranges
+  // These are the codepoints that QCF4 fonts map their glyphs to
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    // Arabic Presentation Forms-A: U+FB50–U+FDFF
+    // Arabic Presentation Forms-B: U+FE70–U+FEFF  
+    // Private Use Area: U+E000–U+F8FF
+    if ((code >= 0xFB50 && code <= 0xFDFF) ||
+        (code >= 0xFE70 && code <= 0xFEFF) ||
+        (code >= 0xE000 && code <= 0xF8FF)) {
+      return true;
+    }
+  }
+  return false;
+};
+
 // ── Main Component ────────────────────────────────────────────────────────
 /**
  * QcfMushafPage — Print-faithful Mushaf renderer.
@@ -44,9 +78,9 @@ const fontStateCache = new Map<number, 'loading' | 'ready' | 'error'>();
  * Architecture matches the reference app (مكتبة الحكمة / quran_library):
  *   • ALL ayahs rendered as INLINE <span>s inside a SINGLE flowing container
  *   • text-align: justify  →  reproduces the Mushaf's justified line layout
- *   • Ayah numbers are EMBEDDED in the QCF4 font (last character of each ayah)
- *   • No separate SVG markers for numbers
- *   • line-height: 2.0 (matching Flutter's `height: 2`)
+ *   • Ayah numbers rendered using the "AyahNumber" font (Uthmanic_NeoCOLORD)
+ *     which draws ornamental rosettes around Arabic numerals automatically
+ *   • line-height: 2.0 (matching the printed Mushaf's line spacing)
  *
  * Highlighting (4 states, identical to standard mode):
  *   • Emerald  → currently playing audio ayah
@@ -103,6 +137,8 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
   const fontFamily = getQcfFontFamily(page);
   // QCF fonts have larger visual weight — scale proportionally
   const qcfFontSize = Math.max(18, Math.round(fontSize * 1.08));
+  // Ayah number marker size — proportional but dampened for large font sizes
+  const markerFontSize = Math.max(14, Math.round(qcfFontSize * 0.72));
 
   // ── Loading Spinner ─────────────────────────────────────────────────────
 
@@ -157,11 +193,6 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
   // ── Build content fragments ─────────────────────────────────────────────
   // We render everything into a SINGLE container: surah headers inline-block, ayah text inline.
 
-  // Calculate smart scaling for the Ayah Marker
-  // Instead of linear scaling (e.g. 1.25x) which gets huge on max font sizes,
-  // we use a dampened formula to ensure it stays visually cohesive.
-  const markerSize = Math.max(25, qcfFontSize * 0.92 + 5);
-
   const fragments: React.ReactNode[] = [];
 
   ayahs.forEach((ayah) => {
@@ -172,17 +203,21 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
     const highlightClass = getHighlightClass(ayah, surahNum);
     const isBookmarked = isAyahMarked(surahNum, ayah.numberInSurah);
 
-    // Get display text and trim trailing/leading spaces to prevent wide gaps
-    // Use QCF encoded text if available, fallback to emlaey/uthmani text
-    const hasQcf = !!(ayah as any).qcf_text;
-    let displayText = (ayah as any).qcf_text || (ayah as any).aya_text || ayah.text || '';
+    // ── TEXT SELECTION LOGIC ──
+    // Priority: QCF PUA text (for QCF4 font rendering) → Uthmani text → emlaey fallback
+    // ── TEXT SELECTION LOGIC ──
+    // We now use standard Uthmani Unicode text with UthmanicHafs_V20.ttf
+    // This perfectly matches the Al-Hikmah text rendering style and eliminates all PUA encoding issues.
     
-    // Only strip Bismillah if we are NOT using QCF text. QCF text has it as a separate Ayah or natively handles it.
-    // Wait, QCF text typically does NOT include Bismillah inside Ayah 1 except for Fatiha.
-    if (!hasQcf && isFirstAyah && surahNum && surahNum !== 1 && surahNum !== 9) {
-      displayText = stripBismillah(displayText);
+    let fallbackText = (ayah as any).aya_text || ayah.text || '';
+    
+    // Strip Bismillah from first ayah of surahs (except Fatiha and Tawba)
+    if (isFirstAyah && surahNum && surahNum !== 1 && surahNum !== 9) {
+      fallbackText = stripBismillah(fallbackText);
     }
-    displayText = displayText.trim();
+    
+    const initialText = fallbackText.trim();
+    const lastChar = toArabicDigits(ayah.numberInSurah);
 
     // ── Surah Header (block-level, full width, breaks the flow) ──
     if (isFirstAyah && surah) {
@@ -228,7 +263,7 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
       );
     }
 
-    // ── Ayah Text (INLINE span — the key to matching the reference app) ──
+    // ── Ayah Text (INLINE span) ──
     fragments.push(
       <span
         key={`ayah-${globalId}`}
@@ -239,40 +274,22 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
         tabIndex={0}
         aria-label={`آية ${ayah.numberInSurah} من سورة ${surah?.name || ''}`}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAyahClick(ayah); } }}
+        style={{
+          fontFamily: '"UthmanicHafs", "Scheherazade New", serif',
+        }}
       >
-        {displayText}
-        {/* Ayah Number Marker (Ornamental Rosette) - Always shown, the QCF text does NOT embed ayah numbers */}
+        {initialText}
+        {/* ── Ayah Number Marker ── */}
         <span
-          className="qcf-ayah-marker inline-flex items-center justify-center text-gold-600 dark:text-gold-400 select-none align-middle"
+          className="qcf-ayah-number"
           style={{
-            width: `${markerSize}px`,
-            height: `${markerSize}px`,
-            position: 'relative',
-            margin: '0 0.35em', // Relative tight spacing instead of fixed tailwind margins
-            top: '-0.1em', // Dynamic vertical alignment to stay centered
+            fontFamily: '"AyahNumber", serif',
+            fontSize: `${markerFontSize}px`,
+            color: isDark ? '#d4a44a' : '#c49838',
           }}
           aria-hidden="true"
         >
-          <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" strokeWidth="1.3" className="w-full h-full">
-            <circle cx="20" cy="20" r="18.5" />
-            <circle cx="20" cy="20" r="14" opacity="0.55" />
-            <path d="M20 6.5 L20 10.5 M20 29.5 L20 33.5 M6.5 20 L10.5 20 M29.5 20 L33.5 20" strokeWidth="1.8" opacity="0.5" />
-            <circle cx="12" cy="12" r="1" fill="currentColor" opacity="0.35" />
-            <circle cx="28" cy="12" r="1" fill="currentColor" opacity="0.35" />
-            <circle cx="12" cy="28" r="1" fill="currentColor" opacity="0.35" />
-            <circle cx="28" cy="28" r="1" fill="currentColor" opacity="0.35" />
-          </svg>
-          <span
-            className="absolute inset-0 flex items-center justify-center"
-            style={{
-              fontSize: `${markerSize * 0.45}px`, // Proportionally scale number inside
-              fontFamily: '"Scheherazade New", serif',
-              color: 'currentColor',
-              paddingTop: '2px',
-            }}
-          >
-            {toArabicDigits(ayah.numberInSurah)}
-          </span>
+          {` ${lastChar} `}
         </span>
       </span>
     );
