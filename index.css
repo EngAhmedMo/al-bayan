@@ -976,14 +976,11 @@ article {
   padding: 6px 0;
 }
 
-/* Gold filter for dark mode SVGs */
-.svg-gold-filter {
-  filter: brightness(1.1) sepia(0.3) saturate(2) hue-rotate(10deg);
-}
-
-.svg-navy-filter {
-  filter: brightness(0.3) sepia(0.1) saturate(1.5);
-}
+/*
+  svg-gold-filter / svg-navy-filter — التعريف الصحيح مجود أعلى في السطر 550
+  يستخدم invert(76%) لتحويل أي SVG داكن للون الذهبي في الدارك مود
+  لا تُعرّف هنا مرة ثانية — سيتغلب التعريف الأخير ويكسر طريقة عرض البسملة
+*/
 
 /* ── Dark Mode text enhancements ───────────────────────────────────────────── */
 .dark .qcf-text-block {
