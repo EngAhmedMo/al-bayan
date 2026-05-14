@@ -26,7 +26,7 @@ export interface MediaBridgePlugin {
     setAzhanVolume(options: { volume: number }): Promise<void>;
     // DND Check method
     checkDndAccess(): Promise<{ granted: boolean }>;
-    addListener(eventName: 'controlNotification' | 'onPlaybackStateChanged' | 'onIsPlayingChanged' | 'azhanDismissed' | 'azhanStarted' | 'azhanProgress' | 'azhanStateChanged' | 'mediaItemTransition' | 'salawatStarted' | 'salawatFinished', listenerFunc: (data: any) => void): Promise<any>;
+    addListener(eventName: 'controlNotification' | 'onPlaybackStateChanged' | 'onIsPlayingChanged' | 'azhanDismissed' | 'azhanStarted' | 'azhanProgress' | 'azhanStateChanged' | 'mediaItemTransition' | 'salawatStarted' | 'salawatFinished' | 'sleepTimerFinished', listenerFunc: (data: any) => void): Promise<any>;
     // New Permission Methods
     openAutoStart(): Promise<void>;
     requestOverlayPermission(): Promise<{ opened?: boolean; alreadyGranted?: boolean; notRequired?: boolean }>;
@@ -98,7 +98,11 @@ export interface MediaBridgePlugin {
     // Bathroom/Privacy Mode
     setBathroomMode(options: { duration: number }): Promise<void>;
     getBathroomModeStatus(): Promise<{ isActive: boolean; endTime?: number; remainingSeconds?: number }>;
-    getBathroomModeStatus(): Promise<{ isActive: boolean; endTime?: number; remainingSeconds?: number }>;
+
+    // Sleep Timer
+    setSleepTimer(options: { duration: number }): Promise<void>;
+    cancelSleepTimer(): Promise<void>;
+    getSleepTimerStatus(): Promise<{ isActive: boolean; endTime?: number; remainingSeconds?: number }>;
 
     getDiagnosticInfo(): Promise<{ isAzhanPlaying: boolean; logs: string[] }>;
     

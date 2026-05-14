@@ -475,6 +475,15 @@ const CategoryDetail: React.FC<{
               nextElement.classList.remove('ring-2', 'ring-gold-500', 'ring-offset-2', 'dark:ring-offset-navy-900');
             }, 1500);
           }
+        } else {
+          // If no nextZekr, check if ALL are completed.
+          // By this time, completedIdsRef should have the updated values.
+          if (completedIdsRef.current.size >= adhkarList.length) {
+            const completionCard = document.getElementById('completion-card');
+            if (completionCard) {
+               completionCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+          }
         }
       }
     }, 800);
@@ -624,6 +633,10 @@ const CategoryDetail: React.FC<{
             />
           </div>
         ))}
+
+        {allCompleted && (
+          <CategoryCompletionCard onBack={onBack} />
+        )}
 
         {/* Helper Padding at bottom */}
         <div className="h-8"></div>
@@ -971,6 +984,54 @@ const ZekrCard: React.FC<{
     </div>
   );
 });
+
+const CategoryCompletionCard: React.FC<{
+  onBack: () => void;
+}> = ({ onBack }) => {
+  return (
+    <div id="completion-card" className="mt-8 md:mt-10 mb-4 relative rounded-3xl bg-gradient-to-b from-emerald-50/80 to-teal-50/50 dark:from-emerald-950/40 dark:to-teal-950/20 border-2 border-emerald-200/60 dark:border-emerald-800/50 shadow-2xl shadow-emerald-500/10 overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+      {/* Background patterns/glows */}
+      <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/10 dark:bg-emerald-500/5 blur-3xl rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-64 h-64 bg-teal-400/10 dark:bg-teal-500/5 blur-3xl rounded-full pointer-events-none" />
+
+      <div className="relative z-10 p-6 md:p-8 text-center flex flex-col items-center">
+        {/* Celebration Icon */}
+        <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-[2rem] flex items-center justify-center text-white mb-6 shadow-xl shadow-emerald-500/30 relative">
+          <div className="absolute inset-0 bg-white/20 rounded-[2rem] animate-ping-once pointer-events-none" />
+          <Sparkles size={40} className="drop-shadow-md" />
+        </div>
+
+        {/* Title */}
+        <h2 className="text-2xl md:text-3xl font-bold text-emerald-800 dark:text-emerald-400 mb-3 drop-shadow-sm">
+          تقبل الله طاعتكم
+        </h2>
+        <p className="text-sm md:text-base font-bold text-emerald-600/90 dark:text-emerald-300/80 mb-8 max-w-sm leading-relaxed">
+          أتممت قراءة ورد الأذكار كاملاً بنجاح، أسأل الله أن يكتب لك الأجر والثواب.
+        </p>
+
+        {/* Sunnah Dua */}
+        <div className="bg-white/80 dark:bg-navy-900/80 backdrop-blur-md rounded-2xl p-6 md:p-8 mb-8 border border-emerald-100 dark:border-emerald-800/50 shadow-inner w-full relative group hover:shadow-md transition-all">
+          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-emerald-100 dark:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold px-4 py-1.5 rounded-full flex items-center gap-2 shadow-sm whitespace-nowrap">
+             <BookOpen size={14} />
+             <span>كفارة المجلس</span>
+          </div>
+          <p className="font-quran text-xl md:text-2xl text-navy-900 dark:text-white leading-[2.4] text-center mt-2">
+            سُبْحَانَكَ اللَّهُمَّ وَبِحَمْدِكَ، أَشْهَدُ أَنْ لَا إِلَهَ إِلَّا أَنْتَ، أَسْتَغْفِرُكَ وَأَتُوبُ إِلَيْكَ
+          </p>
+        </div>
+
+        {/* Action Button */}
+        <button
+          onClick={onBack}
+          className="w-full md:w-auto md:min-w-[250px] py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-bold text-base rounded-2xl transition-all shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:-translate-y-1 flex items-center justify-center gap-3 active:scale-95"
+        >
+          <span>العودة للتصنيفات</span>
+          <Grid size={22} />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 const AddZekrModal = ({ onClose, onSave, initialData }: any) => {
   const [text, setText] = useState(initialData?.zekr || '');

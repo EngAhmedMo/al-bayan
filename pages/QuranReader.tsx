@@ -1624,7 +1624,7 @@ export const QuranReader: React.FC = () => {
 
               <div
                 className="absolute inset-0 bg-navy-900/80 backdrop-blur-sm transition-opacity duration-300"
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => { setIsModalOpen(false); setSelectedAyah(null); }}
               ></div>
 
               <div className="relative w-full sm:max-w-lg bg-white dark:bg-navy-950 rounded-t-3xl sm:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)] border-t-4 border-gold-500 overflow-hidden flex flex-col max-h-[85vh] animate-in slide-in-from-bottom-full duration-300 ease-out">
@@ -1632,7 +1632,7 @@ export const QuranReader: React.FC = () => {
                 <div className="flex-shrink-0 p-5 border-b border-navy-100 dark:border-navy-800 bg-gradient-to-b from-navy-50 to-white dark:from-navy-900 dark:to-navy-950 relative">
 
                   <button
-                    onClick={() => setIsModalOpen(false)}
+                    onClick={() => { setIsModalOpen(false); setSelectedAyah(null); }}
                     className="absolute top-4 left-4 p-2 bg-white dark:bg-navy-800 rounded-full text-navy-400 hover:text-red-500 shadow-sm hover:shadow-md transition-all z-10"
                   >
                     <X size={20} />

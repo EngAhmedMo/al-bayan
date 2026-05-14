@@ -72,6 +72,11 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
 
         // Global Stop Action (e.g. for Bathroom Mode)
         const val ACTION_STOP = "ACTION_STOP"
+        
+        // Sleep Timer Actions
+        const val ACTION_SET_SLEEP_TIMER = "ACTION_SET_SLEEP_TIMER"
+        const val ACTION_CANCEL_SLEEP_TIMER = "ACTION_CANCEL_SLEEP_TIMER"
+        const val ACTION_SLEEP_TIMER_FINISHED = "com.albayan.quran.ACTION_SLEEP_TIMER_FINISHED"
     }
 
     private var player: ExoPlayer? = null
@@ -123,6 +128,11 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
     private var fadeRunnable: Runnable? = null
     private val FADE_IN_DURATION = 3000L // 3 seconds
     private val FADE_OUT_DURATION = 1500L // 1.5 seconds
+
+    // Sleep Timer Logic
+    private var sleepTimerHandler: android.os.Handler? = null
+    private var sleepTimerRunnable: java.lang.Runnable? = null
+    private var sleepTimerEndTime: Long = 0
 
     private fun fadeInCurrentPlayer(targetVolume: Float) {
         fadeRunnable?.let { fadeHandler.removeCallbacks(it) }
@@ -424,6 +434,32 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
                  @Suppress("DEPRECATION")
                  stopForeground(true)
             }
+        }
+
+        ACTION_SET_SLEEP_TIMER -> {
+            val minutes = intent.getIntExtra("MINUTES", 0)
+            if (minutes > 0) {
+                val prefs = getSharedPreferences("AlBayanPrefs", Context.MODE_PRIVATE)
+                sleepTimerEndTime = System.currentTimeMillis() + (minutes * 60 * 1000L)
+                prefs.edit().putLong("SLEEP_TIMER_END_TIME", sleepTimerEndTime).apply()
+                
+                sleepTimerHandler?.removeCallbacksAndMessages(null)
+                if (sleepTimerHandler == null) sleepTimerHandler = android.os.Handler(android.os.Looper.getMainLooper())
+                
+                sleepTimerRunnable = Runnable {
+                    onSleepTimerFinished()
+                }
+                sleepTimerHandler?.postDelayed(sleepTimerRunnable!!, minutes * 60 * 1000L)
+                android.util.Log.d("AudioPlaybackService", "💤 Sleep Timer started for $minutes minutes")
+            }
+        }
+
+        ACTION_CANCEL_SLEEP_TIMER -> {
+            sleepTimerHandler?.removeCallbacksAndMessages(null)
+            sleepTimerEndTime = 0
+            val prefs = getSharedPreferences("AlBayanPrefs", Context.MODE_PRIVATE)
+            prefs.edit().remove("SLEEP_TIMER_END_TIME").apply()
+            android.util.Log.d("AudioPlaybackService", "💤 Sleep Timer cancelled")
         }
 
             ACTION_STOP_AZHAN -> {
@@ -1359,6 +1395,29 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
                 }
             })
         }
+    }
+
+    private fun onSleepTimerFinished() {
+        android.util.Log.d("AudioPlaybackService", "💤 Sleep Timer Finished! Stopping audio...")
+        
+        // 1. Clear Smart Resume states so nothing resumes!
+        wasPlayingBeforeSalawat = false
+        savedMediaItem = null
+        savedPosition = 0
+        sleepTimerEndTime = 0
+        
+        val prefs = getSharedPreferences("AlBayanPrefs", Context.MODE_PRIVATE)
+        prefs.edit().remove("SLEEP_TIMER_END_TIME").apply()
+        
+        // 2. Stop actual playback ONLY if it's not Azhan/Salawat
+        if (!isPlayingAzhan && !isPlayingSalawat) {
+            player?.stop()
+        }
+        
+        // 3. Notify JS layer to update UI
+        val intent = Intent(ACTION_SLEEP_TIMER_FINISHED)
+        intent.setPackage(packageName)
+        sendBroadcast(intent)
     }
 
     override fun onDestroy() {

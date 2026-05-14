@@ -178,6 +178,10 @@ class MediaBridge : Plugin() {
                     android.util.Log.d("MediaBridge", "🤲 Salawat Finished - notifying JS")
                     notifyListeners("salawatFinished", JSObject())
                 }
+                "com.albayan.quran.ACTION_SLEEP_TIMER_FINISHED" -> {
+                    android.util.Log.d("MediaBridge", "💤 Sleep Timer Finished - notifying JS")
+                    notifyListeners("sleepTimerFinished", JSObject())
+                }
                 // NOTE: ACTION_MEDIA_TRANSITION broadcast removed from AudioPlaybackService
                 // Gapless transitions are now handled via MediaController listener in setupController()
             }
@@ -240,6 +244,67 @@ class MediaBridge : Plugin() {
         }
     }
 
+    // Sleep Timer
+    @PluginMethod
+    fun setSleepTimer(call: PluginCall) {
+        val durationMinutes = call.getInt("duration", 0) ?: 0
+        try {
+            if (durationMinutes > 0) {
+                val serviceIntent = Intent(context, AudioPlaybackService::class.java).apply {
+                    action = "ACTION_SET_SLEEP_TIMER"
+                    putExtra("MINUTES", durationMinutes)
+                }
+                context.startService(serviceIntent)
+                Log.d("MediaBridge", "💤 Sleep Timer SET for $durationMinutes mins")
+            } else {
+                val serviceIntent = Intent(context, AudioPlaybackService::class.java).apply {
+                    action = "ACTION_CANCEL_SLEEP_TIMER"
+                }
+                context.startService(serviceIntent)
+                Log.d("MediaBridge", "💤 Sleep Timer CANCELLED")
+            }
+            call.resolve()
+        } catch (e: Exception) {
+            call.reject("ERROR", e.message)
+        }
+    }
+
+    @PluginMethod
+    fun cancelSleepTimer(call: PluginCall) {
+        try {
+            val serviceIntent = Intent(context, AudioPlaybackService::class.java).apply {
+                action = "ACTION_CANCEL_SLEEP_TIMER"
+            }
+            context.startService(serviceIntent)
+            Log.d("MediaBridge", "💤 Sleep Timer CANCELLED")
+            call.resolve()
+        } catch (e: Exception) {
+            call.reject("ERROR", e.message)
+        }
+    }
+
+    @PluginMethod
+    fun getSleepTimerStatus(call: PluginCall) {
+        try {
+            val prefs = context.getSharedPreferences("AlBayanPrefs", Context.MODE_PRIVATE)
+            val endTime = prefs.getLong("SLEEP_TIMER_END_TIME", 0)
+            val now = System.currentTimeMillis()
+            
+            val ret = JSObject()
+            if (endTime > now) {
+                val remainingSeconds = (endTime - now) / 1000
+                ret.put("isActive", true)
+                ret.put("endTime", endTime.toDouble())
+                ret.put("remainingSeconds", remainingSeconds.toDouble())
+            } else {
+                ret.put("isActive", false)
+            }
+            call.resolve(ret)
+        } catch (e: Exception) {
+             call.reject("ERROR", e.message)
+        }
+    }
+
     override fun load() {
         super.load()
         
@@ -254,6 +319,8 @@ class MediaBridge : Plugin() {
             // Salawat events for Quran pause/resume
             addAction("com.albayan.quran.ACTION_SALAWAT_STARTED")
             addAction("com.albayan.quran.ACTION_SALAWAT_FINISHED")
+            // Sleep Timer events
+            addAction("com.albayan.quran.ACTION_SLEEP_TIMER_FINISHED")
             // NOTE: ACTION_MEDIA_TRANSITION removed - now handled via MediaController listener
         }
         // FIXED: Use RECEIVER_NOT_EXPORTED for security (prevents broadcast spoofing)

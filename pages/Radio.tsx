@@ -3,17 +3,40 @@ import React, { useState, useEffect } from 'react';
 import { TopBar } from '../components/TopBar';
 import { RADIO_STATIONS } from '../services/radioData';
 import { RadioStation } from '../types';
-import { Play, Pause, Radio as RadioIcon, Volume2, Globe, User, RefreshCw, Star, Info, WifiOff, Signal } from 'lucide-react';
+import { Play, Pause, Radio as RadioIcon, Volume2, Globe, User, RefreshCw, Star, Info, WifiOff, Signal, Timer, X, Check } from 'lucide-react';
 import { useRadio, useNetwork } from '../components/Layout';
 import { Capacitor } from '@capacitor/core';
 import { MediaBridge } from '../services/mediaBridge';
 
 export const Radio: React.FC = () => {
   // Use Global Context
-  const { activeStation, isPlaying, isLoading, error, playStation, toggleRadio } = useRadio();
+  const { activeStation, isPlaying, isLoading, error, playStation, toggleRadio, sleepTimerEnd, setSleepTimer } = useRadio();
   const { isOnline } = useNetwork();
 
   const [category, setCategory] = useState<'all' | 'quran' | 'cairo' | 'reciters'>('all');
+  const [showTimerMenu, setShowTimerMenu] = useState(false);
+  const [remainingTime, setRemainingTime] = useState<string>('');
+
+  // Countdown calculation
+  useEffect(() => {
+    if (!sleepTimerEnd) {
+      setRemainingTime('');
+      return;
+    }
+    const updateTime = () => {
+      const remaining = sleepTimerEnd - Date.now();
+      if (remaining <= 0) {
+        setRemainingTime('');
+      } else {
+        const m = Math.floor(remaining / 60000);
+        const s = Math.floor((remaining % 60000) / 1000);
+        setRemainingTime(`${m}:${s.toString().padStart(2, '0')}`);
+      }
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, [sleepTimerEnd]);
 
   // Show all stations
   const filteredStations = RADIO_STATIONS;
@@ -93,7 +116,27 @@ export const Radio: React.FC = () => {
         <div className="absolute bottom-1/4 left-0 w-64 h-64 bg-gold-400/10 dark:bg-gold-500/5 rounded-full blur-3xl -translate-x-1/2"></div>
       </div>
 
-      <TopBar title="الإذاعة المباشرة" />
+      <TopBar 
+        title="الإذاعة المباشرة" 
+        extra={
+          <button
+            onClick={() => setShowTimerMenu(true)}
+            className={`flex items-center gap-1.5 h-8 sm:h-10 px-2.5 sm:px-3 rounded-xl transition-all duration-300 shadow-sm hover:shadow-md border active:scale-95 ${
+              sleepTimerEnd 
+                ? 'bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' 
+                : 'bg-white/80 dark:bg-navy-900/40 backdrop-blur-sm border-navy-100 dark:border-[#C6AD73]/60 text-navy-600 dark:text-[#C6AD73] hover:border-gold-400 dark:hover:border-[#C6AD73] hover:text-gold-600 dark:hover:text-[#F0CF85]'
+            }`}
+            title="مؤقت الإيقاف"
+          >
+            <Timer size={18} className={sleepTimerEnd ? 'animate-pulse' : ''} />
+            {remainingTime && (
+              <span className="text-xs sm:text-sm font-bold tracking-widest font-mono select-none" dir="ltr">
+                {remainingTime}
+              </span>
+            )}
+          </button>
+        }
+      />
 
       <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 custom-scrollbar relative z-10">
 
@@ -275,9 +318,69 @@ export const Radio: React.FC = () => {
             );
           })}
         </div>
-
       </div>
+
+      {/* Sleep Timer Modal */}
+      {showTimerMenu && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-4">
+          <div 
+            className="absolute inset-0 bg-navy-950/60 backdrop-blur-sm transition-opacity"
+            onClick={() => setShowTimerMenu(false)}
+          ></div>
+          <div className="bg-white dark:bg-navy-900 rounded-3xl w-full max-w-sm shadow-2xl relative z-10 animate-in slide-in-from-bottom-10 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-300 border border-gold-100 dark:border-navy-700 overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                    <Timer size={22} />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-navy-900 dark:text-white">مؤقت النوم</h3>
+                    <p className="text-xs text-navy-500 dark:text-navy-400">إيقاف الإذاعة تلقائياً بعد فترة</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setShowTimerMenu(false)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-navy-50 dark:bg-navy-800 text-navy-500 dark:text-navy-400 hover:text-navy-900 dark:hover:text-white transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                {[15, 30, 45, 60, 90, 120].map((mins) => (
+                  <button
+                    key={mins}
+                    onClick={() => {
+                      setSleepTimer(mins);
+                      setShowTimerMenu(false);
+                    }}
+                    className="p-3 rounded-2xl border border-gold-100 dark:border-navy-700 hover:border-emerald-300 dark:hover:border-emerald-500/50 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 flex flex-col items-center gap-1 transition-colors group"
+                  >
+                    <span className="text-xl font-bold text-navy-800 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                      {mins}
+                    </span>
+                    <span className="text-xs text-navy-500 dark:text-navy-400">دقيقة</span>
+                  </button>
+                ))}
+              </div>
+
+              {sleepTimerEnd && (
+                <button
+                  onClick={() => {
+                    setSleepTimer(0);
+                    setShowTimerMenu(false);
+                  }}
+                  className="w-full py-3.5 rounded-2xl bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 font-bold text-sm border border-red-100 dark:border-red-500/20 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors flex items-center justify-center gap-2"
+                >
+                  <X size={18} />
+                  إلغاء المؤقت الحالي
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-

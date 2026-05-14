@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Menu, Bell, Sun, Moon, Search, BookOpen, Radio, Shield, Heart, BookHeart, Compass, WifiOff, Clock, MapPin, Settings, X, Info, Activity, Grid, Bookmark, Calendar, History, Library, ChevronLeft, RefreshCw, Sparkles, Quote, Undo2, RotateCcw, Sunrise, Sunset, MoonIcon, Check, Pause, Brain } from 'lucide-react';
+import { Menu, Bell, Sun, Moon, Search, BookOpen, Radio, Shield, Heart, BookHeart, Compass, WifiOff, Clock, MapPin, Settings, X, Info, Activity, Grid, Bookmark, Calendar, History, Library, ChevronLeft, RefreshCw, Sparkles, Quote, Undo2, RotateCcw, Sunrise, Sunset, MoonIcon, Check, Pause, Brain, Copy, Share2, ChevronDown, ChevronUp, ExternalLink, Award } from 'lucide-react';
 import { HistoryModal } from '../components/HistoryModal';
 import { QiblaModal } from '../components/QiblaModal';
 import { BathroomModeModal } from '../components/BathroomModeModal';
@@ -85,10 +85,13 @@ export const Home: React.FC = () => {
   const [dailyBenefit, setDailyBenefit] = useState<DailyBenefit | null>(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [loadingBenefit, setLoadingBenefit] = useState(true);
+  const [isBenefitCopied, setIsBenefitCopied] = useState(false);
+  const [showBenefitTafsir, setShowBenefitTafsir] = useState(true);
 
   // Daily Hadith State
   const [dailyHadith, setDailyHadith] = useState<{ hadith: Hadith, bookId: string, bookName: string } | null>(null);
   const [loadingHadith, setLoadingHadith] = useState(true);
+  const [isHadithCopied, setIsHadithCopied] = useState(false);
 
   // Prayer Times State
   const [prayerData, setPrayerData] = useState<PrayerData | null>(null);
@@ -252,6 +255,60 @@ export const Home: React.FC = () => {
       return () => clearInterval(interval);
     }
   }, [prayerData]);
+
+  // Copy & Share helpers
+  const copyBenefit = async () => {
+    if (!dailyBenefit) return;
+    const text = `${dailyBenefit.ayah.text}\n﴿${dailyBenefit.surahName} - الآية ${dailyBenefit.ayah.numberInSurah}﴾\n\n[البيان - القرآن والسنة]`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setIsBenefitCopied(true);
+      setTimeout(() => setIsBenefitCopied(false), 2000);
+    } catch { setToastMessage('تعذّر النسخ'); }
+  };
+
+  const shareBenefit = async () => {
+    if (!dailyBenefit) return;
+    const text = `${dailyBenefit.ayah.text}\n﴿${dailyBenefit.surahName} - الآية ${dailyBenefit.ayah.numberInSurah}﴾\n\n[البيان - القرآن والسنة]`;
+    if (navigator.share) {
+      try { await navigator.share({ text }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(text);
+      setToastMessage('تم نسخ الآية للمشاركة');
+    }
+  };
+
+  const copyHadith = async () => {
+    if (!dailyHadith) return;
+    const text = `${dailyHadith.hadith.arabic || dailyHadith.hadith.text}\n\n[${dailyHadith.bookName} - حديث رقم ${dailyHadith.hadith.hadithnumber || dailyHadith.hadith.id}]\n[البيان - القرآن والسنة]`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setIsHadithCopied(true);
+      setTimeout(() => setIsHadithCopied(false), 2000);
+    } catch { setToastMessage('تعذّر النسخ'); }
+  };
+
+  const shareHadith = async () => {
+    if (!dailyHadith) return;
+    const text = `${dailyHadith.hadith.arabic || dailyHadith.hadith.text}\n\n[${dailyHadith.bookName}]\n[البيان - القرآن والسنة]`;
+    if (navigator.share) {
+      try { await navigator.share({ text }); } catch {}
+    } else {
+      await navigator.clipboard.writeText(text);
+      setToastMessage('تم نسخ الحديث للمشاركة');
+    }
+  };
+
+  const getGradeBadge = (grades?: { name: string; grade: string }[]) => {
+    if (!grades || grades.length === 0) return null;
+    const g = grades[0];
+    const gr = g.grade?.toLowerCase() || '';
+    let color = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700';
+    if (gr.includes('صحيح') || gr.includes('sahih')) color = 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-700';
+    else if (gr.includes('حسن') || gr.includes('hasan')) color = 'bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 border-sky-200 dark:border-sky-700';
+    else if (gr.includes('ضعيف') || gr.includes('daif') || gr.includes('weak')) color = 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-700';
+    return { label: g.grade, color };
+  };
 
   const loadDailyBenefit = async (forceNew = false) => {
     setLoadingBenefit(true);
@@ -807,14 +864,63 @@ export const Home: React.FC = () => {
             </div>
           ) : dailyBenefit ? (
             <div className="relative z-10">
-              <div className="relative mb-5">
+              {/* Ayah Text */}
+              <div className="relative mb-4">
                 <Quote size={24} className="text-gold-200 dark:text-navy-600 absolute -top-2 right-0 rotate-180" />
                 <p className="font-quran text-lg sm:text-xl leading-[2.4] text-center text-navy-900 dark:text-white px-4">{dailyBenefit.ayah.text}</p>
-                <p className="text-[10px] text-center text-navy-400 dark:text-navy-500 mt-3 font-bold">{dailyBenefit.surahName} - آية {toArabicDigits(dailyBenefit.ayah.numberInSurah)}</p>
+                <p className="text-[10px] text-center text-navy-400 dark:text-navy-500 mt-3 font-bold tracking-wide">
+                  ﴿ {dailyBenefit.surahName} — الآية {toArabicDigits(dailyBenefit.ayah.numberInSurah)} ﴾
+                </p>
               </div>
-              <div className="bg-gradient-to-br from-navy-50 to-stone-50 dark:from-navy-900 dark:to-navy-950 p-4 rounded-xl border border-navy-100 dark:border-navy-700">
-                <h4 className="text-[10px] font-bold text-gold-600 dark:text-gold-400 mb-2 flex items-center gap-1.5"><Library size={12} /> التفسير الميسر:</h4>
-                <p className="text-xs sm:text-sm text-navy-600 dark:text-navy-200 leading-relaxed text-right">{dailyBenefit.tafsir}</p>
+
+              {/* Action Bar */}
+              <div className="flex items-center justify-center gap-2 my-4">
+                <button
+                  onClick={copyBenefit}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm ${
+                    isBenefitCopied
+                      ? 'bg-emerald-500 text-white border-emerald-500 scale-95'
+                      : 'bg-white dark:bg-navy-700 text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-600 hover:border-gold-400 hover:text-gold-600 dark:hover:text-gold-400'
+                  }`}
+                  title="نسخ الآية"
+                >
+                  {isBenefitCopied ? <Check size={14} /> : <Copy size={14} />}
+                  <span>{isBenefitCopied ? 'تم النسخ!' : 'نسخ'}</span>
+                </button>
+
+                <button
+                  onClick={shareBenefit}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm bg-white dark:bg-navy-700 text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-600 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-95"
+                  title="مشاركة الآية"
+                >
+                  <Share2 size={14} />
+                  <span>مشاركة</span>
+                </button>
+
+                <button
+                  onClick={() => setShowBenefitTafsir(v => !v)}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm bg-white dark:bg-navy-700 text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-600 hover:border-amber-400 hover:text-amber-600 dark:hover:text-amber-400 active:scale-95"
+                  title="إظهار / إخفاء التفسير"
+                >
+                  <Library size={14} />
+                  <span>التفسير</span>
+                  {showBenefitTafsir ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                </button>
+              </div>
+
+              {/* Collapsible Tafsir */}
+              <div
+                className={`overflow-hidden transition-all duration-500 ${
+                  showBenefitTafsir ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                }`}
+              >
+                <div className="bg-gradient-to-br from-amber-50 to-gold-50/50 dark:from-navy-900 dark:to-navy-950 p-4 rounded-2xl border border-amber-100 dark:border-navy-700">
+                  <h4 className="text-[11px] font-bold text-gold-600 dark:text-gold-400 mb-2.5 flex items-center gap-1.5">
+                    <Library size={12} />
+                    التفسير الميسر
+                  </h4>
+                  <p className="text-xs sm:text-sm text-navy-700 dark:text-navy-200 leading-[2] text-right">{dailyBenefit.tafsir}</p>
+                </div>
               </div>
             </div>
           ) : (
@@ -853,23 +959,67 @@ export const Home: React.FC = () => {
             </div>
           ) : dailyHadith ? (
             <div className="relative z-10">
-              <div className="relative mb-3">
+              {/* Hadith Text */}
+              <div className="relative mb-4">
                 <Quote size={24} className="text-navy-200 dark:text-navy-600 absolute -top-2 right-0 rotate-180" />
                 <p className="font-quran text-lg sm:text-xl leading-[2.2] text-center text-navy-900 dark:text-white px-4">
                   {dailyHadith.hadith.arabic || dailyHadith.hadith.text}
                 </p>
               </div>
-              <div className="flex justify-between items-center mt-4 border-t border-navy-100 dark:border-navy-700 pt-4">
-                <p className="text-[10px] sm:text-xs text-navy-500 dark:text-navy-400 font-bold bg-navy-50 dark:bg-navy-900 px-3 py-1.5 rounded-lg border border-navy-100 dark:border-navy-700">
-                  📖 {dailyHadith.bookName}
-                </p>
+
+              {/* Action Bar */}
+              <div className="flex items-center justify-center gap-2 my-4">
+                <button
+                  onClick={copyHadith}
+                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm ${
+                    isHadithCopied
+                      ? 'bg-emerald-500 text-white border-emerald-500 scale-95'
+                      : 'bg-white dark:bg-navy-700 text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-600 hover:border-gold-400 hover:text-gold-600 dark:hover:text-gold-400'
+                  }`}
+                  title="نسخ الحديث"
+                >
+                  {isHadithCopied ? <Check size={14} /> : <Copy size={14} />}
+                  <span>{isHadithCopied ? 'تم النسخ!' : 'نسخ'}</span>
+                </button>
+
+                <button
+                  onClick={shareHadith}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm bg-white dark:bg-navy-700 text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-600 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-95"
+                  title="مشاركة الحديث"
+                >
+                  <Share2 size={14} />
+                  <span>مشاركة</span>
+                </button>
+
                 <button
                   onClick={() => navigate(`/hadith?book=${dailyHadith.bookId}&target=${String(dailyHadith.hadith.id || dailyHadith.hadith.hadithnumber)}`)}
-                  className="text-[10px] sm:text-xs font-bold text-gold-600 hover:text-gold-500 transition-colors flex items-center gap-1"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm bg-white dark:bg-navy-700 text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-600 hover:border-navy-400 hover:text-navy-800 dark:hover:text-white active:scale-95"
+                  title="الانتقال للحديث"
                 >
-                  اذهب إلى الحديث المعروض
-                  <ChevronLeft size={14} />
+                  <ExternalLink size={14} />
+                  <span>عرض</span>
                 </button>
+              </div>
+
+              {/* Source + Grade Row */}
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-4 border-t border-navy-100 dark:border-navy-700">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[10px] sm:text-xs text-navy-500 dark:text-navy-400 font-bold bg-navy-50 dark:bg-navy-900 px-3 py-1.5 rounded-lg border border-navy-100 dark:border-navy-700">
+                    📖 {dailyHadith.bookName}
+                  </span>
+                  {(() => {
+                    const badge = getGradeBadge(dailyHadith.hadith.grades);
+                    return badge ? (
+                      <span className={`text-[10px] sm:text-xs font-bold px-2.5 py-1 rounded-lg border flex items-center gap-1 ${badge.color}`}>
+                        <Award size={11} />
+                        {badge.label}
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
+                <span className="text-[10px] text-navy-400 dark:text-navy-500">
+                  حديث رقم {toArabicDigits(dailyHadith.hadith.hadithnumber || dailyHadith.hadith.id)}
+                </span>
               </div>
             </div>
           ) : (

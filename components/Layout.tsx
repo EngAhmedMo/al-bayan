@@ -82,6 +82,8 @@ interface RadioContextType {
   toggleRadio: () => void;
   playNextStation: () => void;
   playPrevStation: () => void;
+  sleepTimerEnd: number | null;
+  setSleepTimer: (mins: number) => void;
 }
 export const RadioContext = createContext<RadioContextType>({
   activeStation: null,
@@ -93,6 +95,8 @@ export const RadioContext = createContext<RadioContextType>({
   toggleRadio: () => { },
   playNextStation: () => { },
   playPrevStation: () => { },
+  sleepTimerEnd: null,
+  setSleepTimer: () => { },
 });
 export const useRadio = () => useContext(RadioContext);
 
@@ -525,6 +529,38 @@ export const Layout: React.FC = () => {
   const [radioError, setRadioError] = useState<string | null>(null);
   const [currentUrlIndex, setCurrentUrlIndex] = useState(0);
   const radioAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [sleepTimerEnd, setSleepTimerEnd] = useState<number | null>(null);
+
+  const handleSetSleepTimer = async (mins: number) => {
+    if (mins > 0) {
+      if (isAndroid) {
+        try { await MediaBridge.setSleepTimer({ duration: mins }); } catch(e) {}
+      }
+      setSleepTimerEnd(Date.now() + mins * 60 * 1000);
+    } else {
+      if (isAndroid) {
+        try { await MediaBridge.cancelSleepTimer(); } catch(e) {}
+      }
+      setSleepTimerEnd(null);
+    }
+  };
+
+  // Web Fallback Timer & UI Sync
+  useEffect(() => {
+    if (!sleepTimerEnd) return;
+    const interval = setInterval(() => {
+      if (Date.now() >= sleepTimerEnd) {
+        setSleepTimerEnd(null);
+        // If web, perform the stop. If Android, native service will stop and broadcast.
+        // We do it here for web fallback, or as a safety net.
+        if (!isAndroid) {
+          if (isPlaying) pauseTrack();
+          if (isRadioPlaying) stopRadio();
+        }
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [sleepTimerEnd, isPlaying, isRadioPlaying]);
 
   // GAPLESS FIX: Track the highest Ayah ID we have already queued to native
   // This prevents the "double-queue" bug where moving to N+1 queues N+2 again
@@ -1640,6 +1676,18 @@ export const Layout: React.FC = () => {
     return () => { listenerPromise.then(h => h.remove()); };
   }, [previewPlayingId]);
 
+  // Listen for Native Sleep Timer Finished
+  useEffect(() => {
+    if (!isAndroid) return;
+    const listenerPromise = MediaBridge.addListener('sleepTimerFinished', () => {
+      setSleepTimerEnd(null);
+      savedTrackBeforeAzhanRef.current = null;
+      if (currentTrack) pauseTrack();
+      if (isRadioPlaying) stopRadio();
+    });
+    return () => { listenerPromise.then(h => h.remove()); };
+  }, [currentTrack, isRadioPlaying]);
+
   // Listen for Native Azhan Start (Android)
   useEffect(() => {
     if (!isAndroid) return;
@@ -1798,13 +1846,14 @@ export const Layout: React.FC = () => {
   const themeContextValue = useMemo(() => ({ isDark, toggleTheme }), [isDark]);
   const settingsContextValue = useMemo(() => ({ fontSize, setFontSize, textAlign, setTextAlign, reciterId, setReciterId, azhanId, setAzhanId, openSettings: () => setIsSettingsOpen(true) }), [fontSize, textAlign, reciterId, azhanId]);
   const networkContextValue = useMemo(() => ({ isOnline }), [isOnline]);
+  const radioContextValue = useMemo(() => ({ activeStation: radioStation, isPlaying: isRadioPlaying, isLoading: radioLoading, error: radioError, playStation, stopRadio, toggleRadio, playNextStation: () => changeStation('next'), playPrevStation: () => changeStation('prev'), sleepTimerEnd, setSleepTimer: handleSetSleepTimer }), [radioStation, isRadioPlaying, radioLoading, radioError, sleepTimerEnd]);
 
   return (
     <ThemeContext.Provider value={themeContextValue}>
       <SettingsContext.Provider value={settingsContextValue}>
         <NetworkContext.Provider value={networkContextValue}>
           <AudioContext.Provider value={{ currentTrack, isPlaying, autoAdvance, repeatCount, continuousRepeat, surahRepeat, pageRepeat, rangeStart, rangeEnd, rangeRepeat, playTrack, playNext: () => manualChangeTrack(1), playPrev: () => manualChangeTrack(-1), pauseTrack, closePlayer, togglePlay }}>
-            <RadioContext.Provider value={{ activeStation: radioStation, isPlaying: isRadioPlaying, isLoading: radioLoading, error: radioError, playStation, stopRadio, toggleRadio, playNextStation: () => changeStation('next'), playPrevStation: () => changeStation('prev') }}>
+            <RadioContext.Provider value={radioContextValue}>
               <NavigationContext.Provider value={{ navigateToAyah: (s, a, p) => { navigate(`/reader?page=${p}&highlight=${s}:${a}`); setSidebarOpen(false); }, openSidebar: () => setSidebarOpen(true), isFullscreen, setIsFullscreen }}>
                 <div className="flex justify-center w-full min-h-[100dvh] bg-gold-50 dark:bg-navy-950">
                   <div 
