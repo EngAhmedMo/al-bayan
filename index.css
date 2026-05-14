@@ -227,46 +227,8 @@ body {
   color: #d4a44a;
 }
 
-/* ── Highlight States ───────────────────────────────────────────────────── */
-
-/* Audio playing → emerald glow */
-.qcf-highlight-audio {
-  background-color: rgba(16, 185, 129, 0.14) !important;
-  border-radius: 4px;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.08);
-}
-
-.dark .qcf-highlight-audio {
-  background-color: rgba(16, 185, 129, 0.12) !important;
-}
-
-/* Search result → amber pulse */
-.qcf-highlight-search {
-  background-color: rgba(245, 158, 11, 0.18) !important;
-  border-radius: 4px;
-  animation: qcf-search-pulse 2s ease-in-out 2;
-}
-
-@keyframes qcf-search-pulse {
-  0%, 100% { background-color: rgba(245, 158, 11, 0.08); }
-  50% { background-color: rgba(245, 158, 11, 0.22); }
-}
-
-/* Selected (modal) → gold */
-.qcf-highlight-selected {
-  background-color: rgba(212, 164, 74, 0.18) !important;
-  border-radius: 4px;
-}
-
-.dark .qcf-highlight-selected {
-  background-color: rgba(212, 164, 74, 0.14) !important;
-}
-
-/* Bookmarked → red underline */
-.qcf-bookmarked {
-  border-bottom: 2px solid #ef4444;
-  padding-bottom: 2px;
-}
+/* ── Highlight States (تم نقلها للقسم الرئيسي أدناه) ────────────────────── */
+/* See lines 900+ for the full, authoritative highlight definitions          */
 
 /* ── Mushaf Paper Background ────────────────────────────────────────────── */
 .qcf-paper-bg {
@@ -899,44 +861,81 @@ article {
 
 /* ── Highlight States ──────────────────────────────────────────────────────── */
 
-/* 1. Audio playing → Emerald */
+/*
+  1. Audio playing → ثلاث طبقات نابضة:
+     Layer 1 — background-color: خلفية زمردية شفافة تنبض
+     Layer 2 — box-shadow: هالة خارجية تنبض مع الخلفية
+     Layer 3 — text-shadow: إضاءة خفيفة على حروف النص (تُشعر أن الكلمات تتلى)
+
+  المنطق:
+  - Light mode: نبض خفيف لأن الورق الفاتح يُبرز الخلفية بدون حاجة لـ glow قوي
+  - Dark mode:  نبض أقوى لأن الخلفية الداكنة تُبرز الهالة والـ text-shadow أكثر
+  - الانتقال بين الآيات: transition انسيابي 0.4s يمنع الوميض المفاجئ
+*/
+
+/* Light Mode */
 .qcf-highlight-audio {
-  background-color: rgba(16, 185, 129, 0.18) !important;
-  box-shadow: 0 0 0 1.5px rgba(16, 185, 129, 0.35);
-  border-radius: 4px;
-  animation: qcf-audio-pulse 2.2s ease-in-out infinite;
+  background-color: rgba(16, 185, 129, 0.14) !important;
+  border-radius: 5px;
+  /* Smooth entry عند بدء الآية — يمنع الوميض المفاجئ */
+  transition: background-color 0.4s ease, box-shadow 0.4s ease;
+  animation: qcf-audio-pulse-light 2.6s ease-in-out infinite;
+  /* Ensure the span doesn't clip the glow on any device */
+  overflow: visible;
 }
 
-.dark .qcf-highlight-audio {
-  background-color: rgba(16, 185, 129, 0.22) !important;
-  box-shadow: 0 0 0 1.5px rgba(16, 185, 129, 0.40);
+@keyframes qcf-audio-pulse-light {
+  0%, 100% {
+    background-color: rgba(16, 185, 129, 0.10);
+    box-shadow:
+      0 0 0 1px  rgba(16, 185, 129, 0.20),
+      0 0 6px    rgba(16, 185, 129, 0.06);
+    text-shadow: none;
+  }
+  50% {
+    background-color: rgba(16, 185, 129, 0.22);
+    box-shadow:
+      0 0 0 1.5px rgba(16, 185, 129, 0.45),
+      0 0 12px   rgba(16, 185, 129, 0.16),
+      0 0 24px   rgba(16, 185, 129, 0.07);
+    text-shadow: 0 0 10px rgba(16, 185, 129, 0.25);
+  }
 }
 
-@keyframes qcf-audio-pulse {
-  0%, 100% { background-color: rgba(16, 185, 129, 0.18); }
-  50%      { background-color: rgba(16, 185, 129, 0.28); }
-}
-
-@keyframes qcf-audio-pulse-dark {
-  0%, 100% { background-color: rgba(16, 185, 129, 0.22); }
-  50%      { background-color: rgba(16, 185, 129, 0.35); }
-}
-
+/* Dark Mode — نبض أشد وضوحاً على الخلفية الداكنة */
 .dark .qcf-highlight-audio {
   animation-name: qcf-audio-pulse-dark;
 }
 
-/* 2. Search result → Amber flash */
+@keyframes qcf-audio-pulse-dark {
+  0%, 100% {
+    background-color: rgba(16, 185, 129, 0.16);
+    box-shadow:
+      0 0 0 1px  rgba(16, 185, 129, 0.30),
+      0 0 8px    rgba(16, 185, 129, 0.10);
+    text-shadow: none;
+  }
+  50% {
+    background-color: rgba(16, 185, 129, 0.30);
+    box-shadow:
+      0 0 0 2px  rgba(16, 185, 129, 0.60),
+      0 0 18px   rgba(16, 185, 129, 0.26),
+      0 0 34px   rgba(16, 185, 129, 0.12);
+    text-shadow: 0 0 12px rgba(16, 185, 129, 0.40);
+  }
+}
+
+/* 2. Search result → Amber flash (3 مرات ثم يستقر) */
 .qcf-highlight-search {
   background-color: rgba(245, 158, 11, 0.22) !important;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.4);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.40);
   border-radius: 4px;
   animation: qcf-search-flash 1.2s ease-in-out 3;
 }
 
 .dark .qcf-highlight-search {
   background-color: rgba(245, 158, 11, 0.28) !important;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.5);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.50);
 }
 
 @keyframes qcf-search-flash {
@@ -944,7 +943,7 @@ article {
   50%      { background-color: rgba(245, 158, 11, 0.40); }
 }
 
-/* 3. User selected (modal) → Gold */
+/* 3. User selected (modal) → Gold راسخ */
 .qcf-highlight-selected {
   background-color: rgba(234, 179, 8, 0.20) !important;
   box-shadow: 0 0 0 1.5px rgba(234, 179, 8, 0.45);
@@ -956,7 +955,7 @@ article {
   box-shadow: 0 0 0 1.5px rgba(234, 179, 8, 0.50);
 }
 
-/* 4. Bookmarked ayah → Red underline */
+/* 4. Bookmarked ayah → خط سفلي رصاصي دافئ */
 .qcf-bookmarked {
   text-decoration: underline;
   text-decoration-color: rgba(205, 153, 116, 0.65);
@@ -966,7 +965,7 @@ article {
 }
 
 .dark .qcf-bookmarked {
-  text-decoration-color: rgba(205, 153, 116, 0.8);
+  text-decoration-color: rgba(205, 153, 116, 0.80);
 }
 
 /* ── Surah Header ──────────────────────────────────────────────────────────── */
