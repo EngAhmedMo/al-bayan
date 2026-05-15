@@ -117,25 +117,33 @@ class SalawatAlertReceiver : BroadcastReceiver() {
                 setPackage(context.packageName)
             }
             context.sendBroadcast(startIntent)
-
-            mediaPlayer.setOnCompletionListener { mp ->
-                // Release Audio Focus
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && focusRequest != null) {
-                    audioManager.abandonAudioFocusRequest(focusRequest)
-                } else {
-                    @Suppress("DEPRECATION")
-                    audioManager.abandonAudioFocus(null)
+            
+            // VISUAL FEEDBACK: Show a Toast (on Main Thread) in the lower half
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                val toast = android.widget.Toast.makeText(context, "اللهم صلِّ وسلم على نبينا محمد", android.widget.Toast.LENGTH_SHORT)
+                toast.show()
+                
+                // Optional: Cancel toast exactly when audio finishes, though LENGTH_SHORT (2s) is usually perfect.
+                mediaPlayer.setOnCompletionListener { mp ->
+                    // Release Audio Focus
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && focusRequest != null) {
+                        audioManager.abandonAudioFocusRequest(focusRequest)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        audioManager.abandonAudioFocus(null)
+                    }
+                    
+                    toast.cancel() // Cancel exactly when audio finishes
+                    mp.release()
+                    
+                    // Notify JS Layer to Resume Quran
+                    val finishIntent = Intent(ACTION_SALAWAT_FINISHED).apply {
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(finishIntent)
+                    
+                    pendingResult.finish() // Let the system sleep
                 }
-                
-                mp.release()
-                
-                // Notify JS Layer to Resume Quran
-                val finishIntent = Intent(ACTION_SALAWAT_FINISHED).apply {
-                    setPackage(context.packageName)
-                }
-                context.sendBroadcast(finishIntent)
-                
-                pendingResult.finish() // Let the system sleep
             }
             
             mediaPlayer.start()
