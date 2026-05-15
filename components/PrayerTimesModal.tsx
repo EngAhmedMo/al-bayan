@@ -66,11 +66,7 @@ export const PrayerTimesModal: React.FC<PrayerTimesModalProps> = ({
     useEffect(() => {
         if (!isOpen) return;
 
-        const handleNativeBack = async () => {
-            // Priority: If sub-modals are open, close them first? 
-            // Currently sub-modals (Confirm/Undo) are just state overlays.
-            // If we want Back to just close the MAIN modal, it's fine.
-            // But valid UX: Back should dismiss "Confirm Prayer?" first.
+        const handleCloseAction = () => {
             if (confirmPrayerModal) {
                 setConfirmPrayerModal(null);
                 return;
@@ -87,14 +83,44 @@ export const PrayerTimesModal: React.FC<PrayerTimesModalProps> = ({
                 setShowHistoryModal(false);
                 return;
             }
-
             onClose();
+        };
+
+        const handleNativeBack = async () => {
+            handleCloseAction();
         };
 
         const listener = App.addListener('backButton', handleNativeBack);
         return () => {
             listener.then(l => l.remove());
         };
+    }, [isOpen, onClose, confirmPrayerModal, undoPrayerModal, showResetConfirm, showHistoryModal]);
+
+    // Handle Escape Key (Web/Desktop)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                if (confirmPrayerModal) {
+                    setConfirmPrayerModal(null);
+                    return;
+                }
+                if (undoPrayerModal) {
+                    setUndoPrayerModal(null);
+                    return;
+                }
+                if (showResetConfirm) {
+                    setShowResetConfirm(false);
+                    return;
+                }
+                if (showHistoryModal) {
+                    setShowHistoryModal(false);
+                    return;
+                }
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose, confirmPrayerModal, undoPrayerModal, showResetConfirm, showHistoryModal]);
 
     if (!isOpen) return null;

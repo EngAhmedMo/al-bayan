@@ -82,12 +82,12 @@ export const About: React.FC = () => {
 
   // Feature data for clean iteration
   const features = [
-    { icon: <Activity />, title: 'خطة الحفظ', desc: 'متابعة ذكية للورد اليومي', path: '/hifz', gradient: 'from-blue-500 to-indigo-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
-    { icon: <Clock />, title: 'مواقيت الصلاة', desc: 'أذان وتنبيهات دقيقة', path: '/?action=prayers', gradient: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-    { icon: <Database />, title: 'الموسوعة الحديثية', desc: 'البخاري، مسلم، والنووي', path: '/hadith', gradient: 'from-violet-500 to-purple-600', bg: 'bg-violet-50 dark:bg-violet-900/20' },
-    { icon: <Shield />, title: 'حصن المسلم', desc: 'أذكار الصباح والمساء', path: '/adhkar', gradient: 'from-rose-500 to-pink-600', bg: 'bg-rose-50 dark:bg-rose-900/20' },
-    { icon: <Radio />, title: 'الإذاعة المباشرة', desc: 'بث مباشر للقرآن الكريم', path: '/radio', gradient: 'from-amber-500 to-orange-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
-    { icon: <Download />, title: 'التحميلات', desc: 'إدارة المحتوى بدون إنترنت', path: '/downloads', gradient: 'from-slate-500 to-slate-700', bg: 'bg-slate-50 dark:bg-slate-900/20' },
+    { icon: <Activity />, title: 'خطة الحفظ', desc: 'متابعة ذكية للورد اليومي', path: '/hifz', gradient: 'from-[#DFCD92] to-[#9A7B3C]', bg: 'bg-white dark:bg-navy-800' },
+    { icon: <Clock />, title: 'مواقيت الصلاة', desc: 'أذان وتنبيهات دقيقة', path: '/?action=prayers', gradient: 'from-[#DFCD92] to-[#9A7B3C]', bg: 'bg-white dark:bg-navy-800' },
+    { icon: <Database />, title: 'الموسوعة الحديثية', desc: 'البخاري، مسلم، والنووي', path: '/hadith', gradient: 'from-[#DFCD92] to-[#9A7B3C]', bg: 'bg-white dark:bg-navy-800' },
+    { icon: <Shield />, title: 'حصن المسلم', desc: 'أذكار الصباح والمساء', path: '/adhkar', gradient: 'from-[#DFCD92] to-[#9A7B3C]', bg: 'bg-white dark:bg-navy-800' },
+    { icon: <Radio />, title: 'الإذاعة المباشرة', desc: 'بث مباشر للقرآن الكريم', path: '/radio', gradient: 'from-[#DFCD92] to-[#9A7B3C]', bg: 'bg-white dark:bg-navy-800' },
+    { icon: <Download />, title: 'التحميلات', desc: 'إدارة المحتوى بدون إنترنت', path: '/downloads', gradient: 'from-[#DFCD92] to-[#9A7B3C]', bg: 'bg-white dark:bg-navy-800' },
   ];
 
   return (
@@ -110,8 +110,8 @@ export const About: React.FC = () => {
                 {/* Logo */}
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-br from-gold-400 to-amber-500 rounded-[1.75rem] blur-xl opacity-40 group-hover:opacity-60 transition-opacity duration-500 animate-pulse" />
-                  <div className="relative w-24 h-24 sm:w-28 sm:h-28 bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 dark:from-white dark:via-stone-50 dark:to-stone-100 rounded-[1.75rem] flex items-center justify-center shadow-2xl shadow-navy-900/40 dark:shadow-black/30 border-4 border-white dark:border-navy-600 transform group-hover:scale-105 group-hover:rotate-1 transition-all duration-500">
-                    <span className="font-quran text-6xl sm:text-7xl font-bold text-white dark:text-navy-900 mt-2 drop-shadow-lg">ب</span>
+                  <div className="relative w-24 h-24 sm:w-28 sm:h-28 bg-gradient-to-br from-[#DFCD92] via-[#C6AD73] to-[#9A7B3C] rounded-[1.75rem] flex items-center justify-center shadow-[0_0_25px_rgba(251,191,36,0.4)] border-2 border-white/50 dark:border-gold-300/50 transform group-hover:scale-105 group-hover:rotate-1 transition-all duration-500">
+                    <span className="font-quran text-6xl sm:text-7xl font-bold text-white mt-2 drop-shadow-lg">ب</span>
                   </div>
                 </div>
 
@@ -141,30 +141,30 @@ export const About: React.FC = () => {
             {/* ═══════════════════════════════════════════════════════════════════
                 SADAQAH JARIYAH CARD - Emotional Impact Design
             ═══════════════════════════════════════════════════════════════════ */}
-            <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 text-white shadow-2xl shadow-emerald-900/40 group">
+            <section className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-[#0F2238] via-[#132A42] to-[#0A1929] text-white shadow-2xl shadow-navy-900/50 group border border-gold-500/20">
               {/* Pattern Overlay */}
-              <div className="absolute inset-0 opacity-[0.08]">
-                <div className="absolute inset-0" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M30 0L60 30L30 60L0 30L30 0z\' fill=\'none\' stroke=\'%23fff\' stroke-width=\'0.5\'/%3E%3C/svg%3E")', backgroundSize: '30px 30px' }} />
+              <div className="absolute inset-0 opacity-[0.05]">
+                <div className="absolute inset-0" style={{ backgroundImage: 'url("https://www.transparenttextures.com/patterns/arabesque.png")' }} />
               </div>
 
               {/* Floating Orbs */}
-              <div className="absolute -bottom-20 -right-20 w-56 h-56 bg-white/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000" />
-              <div className="absolute -top-16 -left-16 w-36 h-36 bg-teal-400/15 rounded-full blur-2xl" />
+              <div className="absolute -bottom-20 -right-20 w-56 h-56 bg-gold-400/10 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-1000" />
+              <div className="absolute -top-16 -left-16 w-36 h-36 bg-gold-500/10 rounded-full blur-2xl" />
 
               <div className="relative z-10 p-6 sm:p-8 flex flex-col items-center text-center">
                 {/* Icon */}
-                <div className="p-4 bg-white/15 backdrop-blur-md rounded-2xl border border-white/20 shadow-lg mb-4">
-                  <Heart className="text-white fill-white/30" size={32} />
+                <div className="p-4 bg-gradient-to-br from-[#DFCD92] to-[#9A7B3C] rounded-2xl border border-gold-300/40 shadow-[0_0_15px_rgba(251,191,36,0.3)] mb-4 group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
+                  <Heart className="text-navy-900 fill-navy-900/20" size={32} />
                 </div>
 
-                <h3 className="font-bold text-xl sm:text-2xl mb-2 drop-shadow-sm">صدقة جارية</h3>
-                <p className="text-emerald-50/90 text-sm sm:text-base leading-relaxed max-w-sm mx-auto font-medium">
+                <h3 className="font-bold text-xl sm:text-2xl mb-2 text-gold-400 drop-shadow-sm font-quran tracking-wide">صدقة جارية</h3>
+                <p className="text-gray-200 text-sm sm:text-base leading-relaxed max-w-sm mx-auto font-medium">
                   هذا العمل وقف لله تعالى عن جميع أموات المسلمين
                 </p>
 
                 {/* Prayer Request */}
-                <div className="mt-5 inline-flex items-center gap-2 bg-white/10 backdrop-blur-md py-3 px-5 rounded-2xl border border-white/20 shadow-inner">
-                  <span className="text-xs sm:text-sm font-bold opacity-95">🤲 نسألكم الدعاء بالمغفرة والرحمة لوالدي</span>
+                <div className="mt-5 inline-flex items-center gap-2 bg-white/5 backdrop-blur-md py-3 px-5 rounded-2xl border border-gold-500/20 shadow-inner">
+                  <span className="text-xs sm:text-sm font-bold text-gold-300 opacity-95">🤲 نسألكم الدعاء بالمغفرة والرحمة لوالدي</span>
                 </div>
               </div>
             </section>
@@ -202,9 +202,9 @@ export const About: React.FC = () => {
                   <button
                     key={index}
                     onClick={() => navigate(feature.path)}
-                    className={`${feature.bg} p-4 rounded-2xl border border-navy-100/50 dark:border-navy-700/50 flex flex-col items-start text-right shadow-sm hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 group`}
+                    className={`${feature.bg} p-4 rounded-2xl border border-gold-200/40 dark:border-gold-800/40 flex flex-col items-start text-right shadow-sm shadow-gold-500/5 hover:shadow-gold-500/15 hover:border-gold-400/60 dark:hover:border-gold-500/60 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-300 group`}
                   >
-                    <div className={`p-2.5 sm:p-3 rounded-xl bg-gradient-to-br ${feature.gradient} text-white mb-3 shadow-lg group-hover:scale-110 group-hover:rotate-2 transition-all duration-300`}>
+                    <div className={`p-2.5 sm:p-3 rounded-xl bg-gradient-to-br ${feature.gradient} text-white mb-3 shadow-md shadow-gold-500/20 group-hover:scale-110 group-hover:rotate-2 group-hover:shadow-[0_0_15px_rgba(251,191,36,0.4)] transition-all duration-300 border border-gold-300/30`}>
                       {React.cloneElement(feature.icon as React.ReactElement, { size: 18 })}
                     </div>
                     <h4 className="font-bold text-navy-900 dark:text-white text-xs sm:text-sm mb-0.5">{feature.title}</h4>
@@ -271,15 +271,16 @@ export const About: React.FC = () => {
             {/* ═══════════════════════════════════════════════════════════════════
                 DEVELOPER CONTACT - Professional Card
             ═══════════════════════════════════════════════════════════════════ */}
-            <section className="bg-gradient-to-br from-white via-stone-50 to-navy-50/30 dark:from-navy-900 dark:via-navy-800 dark:to-navy-900 rounded-[2rem] p-5 sm:p-6 shadow-xl shadow-navy-900/5 dark:shadow-black/30 border border-navy-100 dark:border-navy-700">
+            <section className="bg-gradient-to-br from-white via-gold-50/30 to-white dark:from-navy-900 dark:via-navy-800 dark:to-navy-900 rounded-[2rem] p-5 sm:p-6 shadow-lg shadow-gold-500/5 dark:shadow-black/30 border border-gold-200/50 dark:border-gold-800/40 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gold-400/10 rounded-full blur-2xl pointer-events-none -mr-10 -mt-10"></div>
               {/* Developer Info */}
-              <div className="flex items-center gap-4 mb-5">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 dark:from-white dark:via-stone-100 dark:to-stone-200 rounded-2xl flex items-center justify-center text-white dark:text-navy-900 shadow-xl">
+              <div className="flex items-center gap-4 mb-5 relative z-10">
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-navy-800 via-navy-900 to-navy-950 dark:from-[#DFCD92] dark:to-[#9A7B3C] rounded-2xl flex items-center justify-center text-white dark:text-navy-900 shadow-md shadow-navy-900/20 dark:shadow-gold-500/20 border border-navy-700 dark:border-gold-300/50">
                   <Code size={24} />
                 </div>
                 <div>
                   <h3 className="font-bold text-navy-900 dark:text-white text-base sm:text-lg">تطوير وبرمجة</h3>
-                  <p className="text-gold-600 dark:text-gold-400 font-bold text-sm sm:text-base mt-0.5">م. أحمد محمد</p>
+                  <p className="text-gold-600 dark:text-gold-400 font-bold text-sm sm:text-base mt-0.5 font-quran tracking-wide">م. أحمد محمد</p>
                 </div>
               </div>
 
@@ -349,11 +350,8 @@ export const About: React.FC = () => {
                 FOOTER - Dua and Copyright
             ═══════════════════════════════════════════════════════════════════ */}
             <footer className="text-center pt-4 pb-8 space-y-3">
-              <p className="text-xs text-navy-500 dark:text-navy-400 font-bold bg-gradient-to-r from-gold-100/80 to-amber-100/80 dark:from-gold-900/20 dark:to-amber-900/20 inline-block px-5 py-2.5 rounded-full border border-gold-200/50 dark:border-gold-800/30 shadow-sm">
+              <p className="text-xs text-navy-600 dark:text-navy-300 font-bold bg-gradient-to-r from-gold-100/80 via-gold-50 to-gold-100/80 dark:from-navy-800 dark:via-navy-700 dark:to-navy-800 inline-block px-6 py-3 rounded-full border border-gold-300/50 dark:border-gold-700/50 shadow-[0_0_10px_rgba(251,191,36,0.15)] transition-all hover:shadow-[0_0_15px_rgba(251,191,36,0.3)]">
                 🤲 اللهم اجعل هذا العمل خالصاً لوجهك الكريم
-              </p>
-              <p className="text-[10px] text-navy-400 dark:text-navy-500">
-                جميع الحقوق محفوظة © {new Date().getFullYear()} تطبيق البيان
               </p>
             </footer>
 

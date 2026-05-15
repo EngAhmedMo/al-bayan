@@ -97,26 +97,7 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="pt-3 border-t border-navy-50 dark:border-navy-800/50">
-               <div className="flex items-center gap-3 mb-3">
-                 <Square size={18} className="text-navy-400" />
-                 <h4 className="font-bold text-sm text-navy-800 dark:text-white">محاذاة النص</h4>
-               </div>
-               <div className="flex bg-navy-50 dark:bg-navy-800 rounded-lg p-1 gap-1">
-                 {['right', 'center', 'justify'].map(align => {
-                   const isActive = textAlign === align;
-                   return (
-                     <button
-                       key={align}
-                       onClick={() => setTextAlign(align as any)}
-                       className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all ${isActive ? 'bg-white dark:bg-navy-700 shadow-sm text-gold-600 dark:text-gold-400' : 'text-navy-500 hover:bg-navy-100 dark:hover:bg-navy-600'}`}
-                     >
-                       {align === 'right' ? 'يمين' : align === 'center' ? 'وسط' : 'مضبوط'}
-                     </button>
-                   );
-                 })}
-               </div>
-            </div>
+
           </div>
         </div>
 

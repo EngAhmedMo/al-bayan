@@ -810,7 +810,6 @@ export const scheduleAllNotifications = async (
       // 1.6 Schedule Salawat Reminders with Smart Conflict Avoidance
       if (settings.salawat.enabled) {
         const salawatAlerts: any[] = [];
-        const salawatNotifications: any[] = [];
         const mode = settings.salawat.mode || SALAWAT_DEFAULTS.MODE;
         const timesPerHour = settings.salawat.timesPerHour || SALAWAT_DEFAULTS.TIMES_PER_HOUR;
         const timesPerDay = settings.salawat.timesPerDay || SALAWAT_DEFAULTS.TIMES_PER_DAY;
@@ -999,7 +998,7 @@ export const scheduleAllNotifications = async (
               soundId = availableSounds[Math.floor(Math.random() * availableSounds.length)];
             }
 
-            // Native audio alert
+            // Native audio alert (now also handles visual notification natively)
             salawatAlerts.push({
               id: uniqueId,
               time: timestamp,
@@ -1008,19 +1007,6 @@ export const scheduleAllNotifications = async (
               volume: settings.salah.azhanVolume ?? 80,
               shouldResume: true // 🎵 SMART RESUME
             });
-
-            // Visual notification — higher priority salawat channel (max 45 to stay within Android's 50 limit)
-            if (salawatNotifications.length < 45) {
-              salawatNotifications.push({
-                id: uniqueId,
-                title: '🤲 صلّ على النبي ﷺ',
-                body: 'اللهم صلِّ وسلم على نبينا محمد',
-                schedule: { at: candidateTime },
-                channelId: 'bayan_salawat',
-                smallIcon: 'ic_launcher',
-                extra: { type: 'salawat_reminder' }
-              });
-            }
           }
 
           // Break outer loop if limit reached
@@ -1034,8 +1020,6 @@ export const scheduleAllNotifications = async (
             .catch(e => console.error("❌ [Batch] Failed to schedule Salawat Reminders", e));
         }
 
-        // Add visual notifications to the batch
-        notificationsToSchedule.push(...salawatNotifications);
         const dailyCount = mode === 'hourly' ? timesPerHour * activeHours : timesPerDay;
         console.log(`🤲 Prepared ${salawatAlerts.length} Salawat reminders (${dailyCount}/day, Window: ${startH}:00-${endH}:00)`);
       }

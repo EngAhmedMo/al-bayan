@@ -33,7 +33,7 @@ export const TafsirReader: React.FC = () => {
     });
     
     // Quran verse text map: ayah number -> verse text (loaded from local quran file)
-    const [quranVerseMap, setQuranVerseMap] = useState<Record<number, string>>({});
+    const [quranVerseMap, setQuranVerseMap] = useState<Record<number, { text: string, qcf_text?: string }>>({});
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const virtuosoRef = useRef<VirtuosoHandle>(null);
@@ -125,7 +125,7 @@ export const TafsirReader: React.FC = () => {
                 const tafsirPromise = loadTafsirSurah(slug || 'ar.muyassar', currentSurahNumber);
                 
                 // Fetch and filter Quran via Web Worker
-                const quranVerseMapPromise = new Promise<Record<number, string>>((resolve, reject) => {
+                const quranVerseMapPromise = new Promise<Record<number, { text: string, qcf_text?: string }>>((resolve, reject) => {
                     if (!quranFilterWorkerRef.current) {
                         reject('Worker not initialized');
                         return;
@@ -450,7 +450,7 @@ export const TafsirReader: React.FC = () => {
                                                 className="font-quran text-center leading-[2.2] text-navy-900 dark:text-white mb-6 px-2 md:px-4 transition-all duration-300"
                                                 style={{ fontSize: `${fontSize * 1.5}px` }}
                                             >
-                                                {quranVerseMap[ayah.numberInSurah]}
+                                                {quranVerseMap[ayah.numberInSurah].text}
                                             </p>
                                         )}
 

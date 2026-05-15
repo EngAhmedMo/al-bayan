@@ -12,7 +12,10 @@ export const PrayerHistoryCalendar: React.FC<PrayerHistoryCalendarProps> = ({ is
     const today = new Date();
     const [currentMonth, setCurrentMonth] = React.useState(new Date());
 
-    if (!isOpen) return null;
+    // Swipe State
+    const [touchStart, setTouchStart] = React.useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = React.useState<number | null>(null);
+    const minSwipeDistance = 50;
 
     // Calendar Logic
     const getDaysInMonth = (date: Date) => {
@@ -44,6 +47,46 @@ export const PrayerHistoryCalendar: React.FC<PrayerHistoryCalendarProps> = ({ is
 
     const nextMonth = () => {
         setCurrentMonth(new Date(year, month + 1, 1));
+    };
+
+    // Keyboard Navigation
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (!isOpen) return;
+            if (e.key === 'ArrowRight') {
+                prevMonth();
+            } else if (e.key === 'ArrowLeft') {
+                nextMonth();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, month, year]);
+
+    // Swipe Handlers
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        // In RTL: Next month is on the left.
+        // Swipe Right (pulling from left) -> Next Month
+        // Swipe Left (pulling from right) -> Prev Month
+        if (isLeftSwipe) {
+            prevMonth();
+        } else if (isRightSwipe) {
+            nextMonth();
+        }
     };
 
     const renderDay = (dayNum: number) => {
@@ -92,10 +135,17 @@ export const PrayerHistoryCalendar: React.FC<PrayerHistoryCalendarProps> = ({ is
         );
     };
 
+    if (!isOpen) return null;
+
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-navy-950/80 backdrop-blur-sm" onClick={onClose}></div>
-            <div className="relative w-full max-w-sm bg-white dark:bg-navy-900 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 border border-navy-100 dark:border-navy-800 flex flex-col max-h-[85vh]">
+            <div 
+                className="relative w-full max-w-sm bg-white dark:bg-navy-900 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 border border-navy-100 dark:border-navy-800 flex flex-col max-h-[85vh] touch-pan-y"
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+            >
 
                 {/* Header */}
                 <div className="p-5 border-b border-navy-100 dark:border-navy-800 bg-white dark:bg-navy-900 flex justify-between items-center">

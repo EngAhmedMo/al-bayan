@@ -39,6 +39,13 @@ export const HijriCalendarGrid: React.FC<HijriCalendarGridProps> = ({ events, on
     const [currentMonthName, setCurrentMonthName] = useState('');
     const [currentYear, setCurrentYear] = useState(0);
 
+    // Swipe State
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+    // Minimum swipe distance
+    const minSwipeDistance = 50;
+
     // Calculate the grid
     useEffect(() => {
         const generateGrid = () => {
@@ -124,11 +131,56 @@ export const HijriCalendarGrid: React.FC<HijriCalendarGridProps> = ({ events, on
     const startOffset = calendarDays.length > 0 ? calendarDays[0].gregorianDate.getDay() : 0;
     const blanks = Array(startOffset).fill(null);
 
+    // Keyboard Navigation
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowRight') {
+                handlePrevMonth();
+            } else if (e.key === 'ArrowLeft') {
+                handleNextMonth();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [viewDate]);
+
+    const handleTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null); // Reset touch end to avoid false positives
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const handleTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        // In RTL:
+        // Future (Next) is on the Left. Past (Prev) is on the Right.
+        // Swipe Right (finger moving ->) pulls from Left -> Next Month.
+        // Swipe Left (finger moving <-) pulls from Right -> Prev Month.
+        if (isLeftSwipe) {
+            handlePrevMonth();
+        } else if (isRightSwipe) {
+            handleNextMonth();
+        }
+    };
+
     return (
-        <div className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-xl rounded-3xl border border-gold-200 dark:border-navy-700 shadow-xl overflow-hidden">
+        <div 
+            className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-xl rounded-3xl border border-gold-200 dark:border-navy-700 shadow-xl overflow-hidden touch-pan-y"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+        >
             {/* Header */}
             <div className="p-4 bg-gradient-to-r from-navy-50 to-white dark:from-navy-800 dark:to-navy-900 border-b border-gold-100 dark:border-navy-700 flex items-center justify-between">
-                <button onClick={handleNextMonth} className="p-2 rounded-xl hover:bg-gold-50 dark:hover:bg-navy-700 text-navy-600 dark:text-navy-300 transition-colors">
+                {/* Right Button -> Past / Previous Month */}
+                <button onClick={handlePrevMonth} className="p-2 rounded-xl hover:bg-gold-50 dark:hover:bg-navy-700 text-navy-600 dark:text-navy-300 transition-colors">
                     <ChevronRight size={20} />
                 </button>
 
@@ -141,7 +193,8 @@ export const HijriCalendarGrid: React.FC<HijriCalendarGridProps> = ({ events, on
                     </p>
                 </div>
 
-                <button onClick={handlePrevMonth} className="p-2 rounded-xl hover:bg-gold-50 dark:hover:bg-navy-700 text-navy-600 dark:text-navy-300 transition-colors">
+                {/* Left Button -> Future / Next Month */}
+                <button onClick={handleNextMonth} className="p-2 rounded-xl hover:bg-gold-50 dark:hover:bg-navy-700 text-navy-600 dark:text-navy-300 transition-colors">
                     <ChevronLeft size={20} />
                 </button>
             </div>

@@ -51,25 +51,17 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
         const val ACTION_RESUME_AZHAN = "ACTION_RESUME_AZHAN"
         const val ACTION_TOGGLE_MUTE_AZHAN = "ACTION_TOGGLE_MUTE_AZHAN"
         
-        const val ACTION_PLAY_SALAWAT = "ACTION_PLAY_SALAWAT"
-        const val ACTION_STOP_SALAWAT = "ACTION_STOP_SALAWAT"
-        
         const val EXTRA_MUAZZIN_ID = "MUAZZIN_ID"
         const val EXTRA_PRAYER_NAME = "PRAYER_NAME"
         const val EXTRA_PRAYER_TIME = "PRAYER_TIME"
         const val EXTRA_VOLUME = "VOLUME"
         const val EXTRA_SOUND_ID = "SOUND_ID"
-        const val EXTRA_SHOULD_RESUME = "SHOULD_RESUME"
         
         const val ACTION_SET_VOLUME = "ACTION_SET_VOLUME"
         const val ACTION_AZHAN_STARTED = "com.albayan.quran.ACTION_AZHAN_STARTED"
         const val ACTION_AZHAN_STATE_CHANGED = "com.albayan.quran.ACTION_AZHAN_STATE_CHANGED"
         const val ACTION_AZHAN_PROGRESS = "com.albayan.quran.ACTION_AZHAN_PROGRESS"
         
-        // Salawat broadcast events for JS layer
-        const val ACTION_SALAWAT_STARTED = "com.albayan.quran.ACTION_SALAWAT_STARTED"
-        const val ACTION_SALAWAT_FINISHED = "com.albayan.quran.ACTION_SALAWAT_FINISHED"
-
         // Global Stop Action (e.g. for Bathroom Mode)
         const val ACTION_STOP = "ACTION_STOP"
         
@@ -84,7 +76,6 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
     
     // State
     private var isPlayingAzhan = false
-    private var isPlayingSalawat = false
     private var isAzhanPaused = false
     private var isAzhanMuted = false
     private var isCurrentAzhanReal = false // NEW: Track if current playback is a real prayer time
@@ -94,8 +85,6 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
     private var savedMediaItem: MediaItem? = null
     private var savedPosition: Long = 0
     private var savedPlayWhenReady: Boolean = false
-    private var wasPlayingBeforeSalawat: Boolean = false
-    private var salawatFocusRequest: AudioFocusRequest? = null
     
     // Metadata
     private var currentPrayerName: String = "الصلاة"
@@ -403,24 +392,14 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
                     playAzhan(muazzinId, prayerName, muazzinName, volume, azhanUrl)
                 }
             }
-            ACTION_PLAY_SALAWAT -> {
-                val soundId = intent.getStringExtra(EXTRA_SOUND_ID) ?: "salawat_one"
-                val volume = intent.getIntExtra(EXTRA_VOLUME, 80)
-                val shouldResume = intent.getBooleanExtra(EXTRA_SHOULD_RESUME, false) // Read it
-                startForegroundForSalawat()
-                playSalawat(soundId, volume, shouldResume)
-            }
-            ACTION_STOP_SALAWAT -> stopSalawat()
 
         // 🛑 GLOBAL STOP (Bathroom Mode) 🛑
         ACTION_STOP -> {
             android.util.Log.d("AudioPlaybackService", "🛑 ACTION_STOP received (Bathroom Mode). Stopping everything.")
             // 1. Prevent Smart Resume from firing
-            wasPlayingBeforeSalawat = false 
             savedMediaItem = null
             
             // 2. Stop individual components
-            stopSalawat()
             stopAzhan()
             
             // 3. Ensure player is stopped forcefully
@@ -569,26 +548,6 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
         }
     }
 
-    private fun startForegroundForSalawat() {
-         val notification = NotificationCompat.Builder(this, "salawat_playback_channel")
-            .setContentTitle("تنبيه الصلاة على النبي")
-            .setContentText("اللهم صلِّ وسلم على نبينا محمد")
-            .setSmallIcon(R.mipmap.ic_launcher)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setCategory(NotificationCompat.CATEGORY_EVENT)
-            .setOngoing(true)
-            .setAutoCancel(false)
-            .build()
-            
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                startForeground(SALAWAT_NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
-            } else {
-                startForeground(SALAWAT_NOTIFICATION_ID, notification)
-            }
-        } catch (e: Exception) {}
-    }
-
     private val BUNDLED_MUAZZINS = listOf(
         "egy_abdulbasit", "egy_refat", "egy_minshawi", "egy_husary", "egy_mustafa",
         "egy_ali_mahmoud", "egy_toubar", "egy_fashni", "egy_naqshbandi", "egy_bahtimi",
@@ -643,13 +602,6 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
 
     private fun playAzhan(muazzinId: String, prayerName: String, muazzinName: String = "", volume: Int = 80, azhanUrl: String? = null) {
         val player = player ?: return
-        
-        // CRITICAL: Stop Salawat if playing - Azhan takes priority
-        // This ensures salawatFinished is broadcast before azhanStarted
-        if (isPlayingSalawat) {
-            android.util.Log.d("AudioPlaybackService", "⚠️ Stopping Salawat - Azhan takes priority")
-            stopSalawat(retainForeground = true)
-        }
         
         // ══════════════════════════════════════════════════════════════════════════
         // 🔍 DIAGNOSTICS: INTENT & REQUEST ANALYSIS
@@ -1372,7 +1324,6 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
                     if (playbackState == Player.STATE_ENDED) {
                         logToCatalog("⏹️ Playback Ended (STATE_ENDED)")
                         if (isPlayingAzhan) stopAzhan()
-                        else if (isPlayingSalawat) stopSalawat()
                     }
                 }
                 
@@ -1388,9 +1339,6 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
                     if (isPlayingAzhan) {
                         logToCatalog("❌ Azhan Stopped due to Player Error")
                         stopAzhan()
-                    } else if (isPlayingSalawat) {
-                         logToCatalog("❌ Salawat Stopped due to Player Error")
-                         stopSalawat()
                     }
                 }
             })
@@ -1409,8 +1357,8 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
         val prefs = getSharedPreferences("AlBayanPrefs", Context.MODE_PRIVATE)
         prefs.edit().remove("SLEEP_TIMER_END_TIME").apply()
         
-        // 2. Stop actual playback ONLY if it's not Azhan/Salawat
-        if (!isPlayingAzhan && !isPlayingSalawat) {
+        // 2. Stop actual playback ONLY if it's not Azhan
+        if (!isPlayingAzhan) {
             player?.stop()
         }
         

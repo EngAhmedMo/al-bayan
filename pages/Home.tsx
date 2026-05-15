@@ -125,7 +125,7 @@ export const Home: React.FC = () => {
 
   // Unified button style class
   /* Unified button style class - Premium Gold Update & Optimized */
-  const headerBtnClass = "w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-white/40 dark:bg-navy-800/40 backdrop-blur-md border border-white/60 dark:border-navy-600/50 text-navy-700 dark:text-gold-300 hover:bg-white/80 dark:hover:bg-navy-700/70 hover:border-gold-300 dark:hover:border-gold-500/60 hover:text-gold-600 dark:hover:text-gold-400 hover:shadow-[0_0_15px_rgba(251,191,36,0.3)] shadow-sm transition-all duration-300 active:scale-95 group relative overflow-hidden transform-gpu";
+  const headerBtnClass = "w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-white/40 dark:bg-navy-800/40 backdrop-blur-md border border-gold-400/60 dark:border-gold-500/50 shadow-[0_0_8px_rgba(251,191,36,0.25)] text-navy-700 dark:text-gold-300 hover:bg-white/80 dark:hover:bg-navy-700/70 hover:border-gold-300 dark:hover:border-gold-400 hover:text-gold-600 dark:hover:text-gold-400 hover:shadow-[0_0_15px_rgba(251,191,36,0.5)] transition-all duration-300 active:scale-95 group relative overflow-hidden transform-gpu ring-1 ring-gold-400/30 dark:ring-gold-500/30";
 
   useEffect(() => {
     setUnreadCount(getUnreadCount());
@@ -673,8 +673,9 @@ export const Home: React.FC = () => {
       <div className="w-full max-w-5xl mx-auto flex flex-col flex-1 relative z-10">
       {/* Top Bar Container */}
       <div className="sticky top-0 z-50 px-4 sm:px-5 pt-4 pb-2 transform-gpu">
-        <div className="flex justify-between items-center bg-white/60 dark:bg-navy-900/60 backdrop-blur-md rounded-[2rem] px-3 sm:px-4 py-2.5 sm:py-3 shadow-sm border border-white/40 dark:border-navy-600/30">
-          <div className="flex items-center gap-1.5 sm:gap-3 flex-1 min-w-0">
+        <div className="flex justify-between items-center bg-white/60 dark:bg-navy-900/60 backdrop-blur-md rounded-[2rem] px-3 sm:px-4 py-2.5 sm:py-3 shadow-[0_0_15px_rgba(251,191,36,0.2)] border border-gold-400/50 dark:border-gold-500/50 relative overflow-hidden ring-1 ring-gold-400/20 dark:ring-gold-500/20">
+          <div className="absolute inset-0 border border-gold-300/30 dark:border-gold-400/30 rounded-[2rem] pointer-events-none"></div>
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-1 min-w-0 relative z-10">
             <button onClick={openSidebar} className={`${headerBtnClass}`} title="القائمة الجانبية">
               <Menu size={18} className="group-hover:scale-110 transition-transform" />
             </button>
@@ -691,9 +692,9 @@ export const Home: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="flex gap-1.5 sm:gap-2 shrink-0">
-            <button className={`${headerBtnClass} hidden xs:flex`} onClick={() => setIsHistoryOpen(true)} title="الإحصائيات">
-              <Activity size={18} className="group-hover:rotate-12 transition-transform" />
+          <div className="flex gap-1.5 sm:gap-2 shrink-0 relative z-10">
+            <button className={`${headerBtnClass}`} onClick={() => setIsHistoryOpen(true)} title="الإنجازات">
+              <Award size={18} className="group-hover:scale-110 transition-transform" />
             </button>
 
             {/* BATHROOM MODE TOGGLE - NEW */}

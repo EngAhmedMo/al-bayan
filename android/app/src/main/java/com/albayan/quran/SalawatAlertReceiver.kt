@@ -1,23 +1,22 @@
 package com.albayan.quran
 
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
-import android.media.RingtoneManager
 import android.os.Build
-import android.os.PowerManager
-import android.os.VibrationEffect
-import android.os.Vibrator
-import android.os.VibratorManager
+import androidx.core.app.NotificationCompat
 
 /**
  * SalawatAlertReceiver - Plays Salawat (blessings upon the Prophet ﷺ) reminder
- * 
- * Similar to popular apps like Muslim Pro's Dhikr Reminder feature.
- * Plays offline audio files bundled with the app.
+ *
+ * Modified to be fully self-contained (Native Audio + Visual)
+ * Avoids Android 12+ Foreground Service Background Start Restrictions
  */
 class SalawatAlertReceiver : BroadcastReceiver() {
     
@@ -27,9 +26,15 @@ class SalawatAlertReceiver : BroadcastReceiver() {
         const val EXTRA_SOUND_ENABLED = "SOUND_ENABLED"
         const val EXTRA_VOLUME = "VOLUME"
         const val EXTRA_SHOULD_RESUME = "SHOULD_RESUME"
+        
+        // Broadcast actions for JS Layer to pause/resume Quran
+        const val ACTION_SALAWAT_STARTED = "com.albayan.quran.ACTION_SALAWAT_STARTED"
+        const val ACTION_SALAWAT_FINISHED = "com.albayan.quran.ACTION_SALAWAT_FINISHED"
     }
     
     override fun onReceive(context: Context, intent: Intent) {
+        val pendingResult = goAsync() // Keeps CPU awake for the duration of the audio
+        
         android.util.Log.d("SalawatAlert", "🤲 Received Salawat reminder broadcast! Action: ${intent.action}")
 
         // 🛡️ BATHROOM / PRIVACY MODE CHECK 🛡️
@@ -38,37 +43,134 @@ class SalawatAlertReceiver : BroadcastReceiver() {
         
         if (System.currentTimeMillis() < privacyEndTime) {
             android.util.Log.d("SalawatAlert", "🛑 BLOCKED: Bathroom/Privacy Mode is active. Skipping Salawat.")
+            pendingResult.finish()
             return
         }
 
-        
         val soundId = intent.getStringExtra(EXTRA_SOUND_ID) ?: "salawat_one"
         val soundEnabled = intent.getBooleanExtra(EXTRA_SOUND_ENABLED, true)
         val volume = intent.getIntExtra(EXTRA_VOLUME, 80)
-        val shouldResume = intent.getBooleanExtra(EXTRA_SHOULD_RESUME, false)
         
+        // 1. Show Native Visual Notification (Guarantees Sync)
+        showVisualNotification(context)
+
         if (!soundEnabled) {
              android.util.Log.d("SalawatAlert", "🔇 Sound disabled, skipping playback.")
+             pendingResult.finish()
              return
         }
 
-        // Delegate to AudioPlaybackService for robust audio focus handling
-        val serviceIntent = Intent(context, AudioPlaybackService::class.java).apply {
-            action = AudioPlaybackService.ACTION_PLAY_SALAWAT
-            putExtra(AudioPlaybackService.EXTRA_SOUND_ID, soundId)
-            putExtra(AudioPlaybackService.EXTRA_VOLUME, volume)
-            putExtra(AudioPlaybackService.EXTRA_SHOULD_RESUME, shouldResume)
-        }
-        
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent)
+        // 2. Resolve Sound File
+        var targetSoundId = soundId
+        if (targetSoundId == "random") {
+            val availableSounds = listOf("salawat_one", "salawat_two", "salawat_three", "salawat_four", "salawat_five")
+            val lastPlayed = prefs.getString("last_salawat_sound", "")
+            val candidates = if (availableSounds.size > 1 && lastPlayed != null) {
+                availableSounds.filter { it != lastPlayed }
             } else {
-                context.startService(serviceIntent)
+                availableSounds
             }
-            android.util.Log.d("SalawatAlert", "🚀 Started AudioPlaybackService for Salawat")
+            targetSoundId = candidates.random()
+            prefs.edit().putString("last_salawat_sound", targetSoundId).apply()
+        }
+
+        var resId = context.resources.getIdentifier(targetSoundId, "raw", context.packageName)
+        if (resId == 0) {
+            resId = context.resources.getIdentifier("salawat_one", "raw", context.packageName)
+        }
+        if (resId == 0) {
+            pendingResult.finish()
+            return
+        }
+
+        // 3. Play Audio and Manage Focus
+        try {
+            val mediaPlayer = MediaPlayer.create(context, resId)
+            if (mediaPlayer == null) {
+                pendingResult.finish()
+                return
+            }
+
+            val volumeFloat = volume.coerceIn(0, 100) / 100f
+            mediaPlayer.setVolume(volumeFloat, volumeFloat)
+            
+            val audioManager = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            var focusRequest: AudioFocusRequest? = null
+            
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+                    .setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .build()
+                    )
+                    .build()
+                audioManager.requestAudioFocus(focusRequest)
+            } else {
+                @Suppress("DEPRECATION")
+                audioManager.requestAudioFocus(null, AudioManager.STREAM_NOTIFICATION, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+            }
+
+            // Notify JS Layer to Pause Quran (if playing)
+            val startIntent = Intent(ACTION_SALAWAT_STARTED).apply {
+                setPackage(context.packageName)
+            }
+            context.sendBroadcast(startIntent)
+
+            mediaPlayer.setOnCompletionListener { mp ->
+                // Release Audio Focus
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && focusRequest != null) {
+                    audioManager.abandonAudioFocusRequest(focusRequest)
+                } else {
+                    @Suppress("DEPRECATION")
+                    audioManager.abandonAudioFocus(null)
+                }
+                
+                mp.release()
+                
+                // Notify JS Layer to Resume Quran
+                val finishIntent = Intent(ACTION_SALAWAT_FINISHED).apply {
+                    setPackage(context.packageName)
+                }
+                context.sendBroadcast(finishIntent)
+                
+                pendingResult.finish() // Let the system sleep
+            }
+            
+            mediaPlayer.start()
+            
         } catch (e: Exception) {
-             android.util.Log.e("SalawatAlert", "Failed to start service: ${e.message}")
+            android.util.Log.e("SalawatAlert", "Failed to play Salawat directly: ${e.message}")
+            pendingResult.finish()
+        }
+    }
+
+    private fun showVisualNotification(context: Context) {
+        try {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            
+            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            val pendingIntent = PendingIntent.getActivity(
+                context, 0, launchIntent, 
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+
+            val notification = NotificationCompat.Builder(context, "bayan_salawat")
+                .setContentTitle("🤲 صلّ على النبي ﷺ")
+                .setContentText("اللهم صلِّ وسلم على نبينا محمد")
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setPriority(NotificationCompat.PRIORITY_HIGH) // Shows Heads-up popup
+                .setCategory(NotificationCompat.CATEGORY_EVENT)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
+                .build()
+                
+            val notificationId = (System.currentTimeMillis() % 100000).toInt() + 800000
+            notificationManager.notify(notificationId, notification)
+            
+        } catch (e: Exception) {
+            android.util.Log.e("SalawatAlert", "Failed to show visual notification: ${e.message}")
         }
     }
 }

@@ -57,6 +57,10 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose }) =
         if (!isOpen) return;
 
         const handleNativeBack = async () => {
+            if (showFullHistory) {
+                setShowFullHistory(false);
+                return;
+            }
             onClose();
         };
 
@@ -64,7 +68,22 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({ isOpen, onClose }) =
         return () => {
             listener.then(l => l.remove());
         };
-    }, [isOpen, onClose]);
+    }, [isOpen, onClose, showFullHistory]);
+
+    // Handle Escape Key (Web/Desktop)
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && isOpen) {
+                if (showFullHistory) {
+                    setShowFullHistory(false);
+                } else {
+                    onClose();
+                }
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose, showFullHistory]);
 
     const loadStats = () => {
         try {

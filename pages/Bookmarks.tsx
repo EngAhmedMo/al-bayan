@@ -79,8 +79,8 @@ export const Bookmarks: React.FC = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 ${activeTab === tab.id
-                ? 'bg-gradient-to-br from-navy-700 to-navy-900 dark:from-gold-500 dark:to-amber-600 text-white shadow-lg shadow-navy-500/30 dark:shadow-gold-500/30'
-                : 'text-navy-500 hover:bg-navy-50 dark:hover:bg-navy-700 dark:text-navy-400'
+                ? 'bg-gradient-to-br from-[#DFCD92] to-[#9A7B3C] text-navy-900 shadow-[0_0_15px_rgba(251,191,36,0.3)] border border-gold-300/50'
+                : 'text-navy-500 hover:bg-gold-50/50 dark:hover:bg-navy-700 dark:text-navy-400'
                 }`}
             >
               {tab.icon}
@@ -108,7 +108,7 @@ export const Bookmarks: React.FC = () => {
               pages.map((item) => (
                 <div key={item.id} className="bg-white/95 dark:bg-navy-800/95 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-gold-100 dark:border-navy-700 shadow-lg shadow-gold-500/5 dark:shadow-navy-950/50 flex items-center justify-between group hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
                   <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => navigate(`/reader?page=${item.pageNumber}`)}>
-                    <div className="w-14 h-14 bg-gradient-to-br from-gold-400 to-amber-500 text-white rounded-2xl flex flex-col items-center justify-center shadow-lg shadow-gold-500/30">
+                    <div className="w-14 h-14 bg-gradient-to-br from-[#DFCD92] via-[#C6AD73] to-[#9A7B3C] text-navy-900 rounded-2xl flex flex-col items-center justify-center shadow-[0_0_15px_rgba(251,191,36,0.3)] border border-gold-300/40">
                       <span className="text-[10px] font-bold opacity-80">ص</span>
                       <span className="text-xl font-black leading-none font-sans">{toArabicDigits(item.pageNumber)}</span>
                     </div>
@@ -150,7 +150,7 @@ export const Bookmarks: React.FC = () => {
               ayahs.map((item) => (
                 <div key={item.id} className="bg-white/95 dark:bg-navy-800/95 backdrop-blur-xl p-4 sm:p-5 rounded-2xl border border-gold-100 dark:border-navy-700 shadow-lg shadow-gold-500/5 dark:shadow-navy-950/50 flex items-center justify-between group hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 animate-in fade-in slide-in-from-bottom-2">
                   <div className="flex items-center gap-4 cursor-pointer flex-1" onClick={() => navigate(`/reader?page=${item.pageNumber}&highlight=${item.surahNumber}:${item.ayahNumber}`)}>
-                    <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-emerald-600 text-white rounded-2xl flex flex-col items-center justify-center shadow-lg shadow-emerald-500/30">
+                    <div className="w-14 h-14 bg-gradient-to-br from-[#DFCD92] via-[#C6AD73] to-[#9A7B3C] text-navy-900 rounded-2xl flex flex-col items-center justify-center shadow-[0_0_15px_rgba(251,191,36,0.3)] border border-gold-300/40">
                       <span className="text-[10px] font-bold opacity-80">آية</span>
                       <span className="text-xl font-black leading-none font-sans">{toArabicDigits(item.ayahNumber)}</span>
                     </div>
@@ -291,7 +291,7 @@ export const Bookmarks: React.FC = () => {
 
 const EmptyState = ({ icon, text, subtext }: { icon: React.ReactNode, text: string, subtext?: string }) => (
   <div className="flex flex-col items-center justify-center py-20 sm:py-24 text-center animate-in fade-in zoom-in-95">
-    <div className="mb-5 w-20 h-20 bg-gradient-to-br from-gold-100 to-amber-100 dark:from-navy-800 dark:to-navy-900 rounded-2xl flex items-center justify-center shadow-lg shadow-gold-500/10 dark:shadow-navy-950/50 text-gold-500 dark:text-gold-400">
+    <div className="mb-5 w-20 h-20 bg-gradient-to-br from-[#DFCD92] to-[#9A7B3C] rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.3)] text-navy-900 border border-gold-300/50">
       {icon}
     </div>
     <p className="font-bold text-base text-navy-700 dark:text-navy-300 mb-2">{text}</p>
