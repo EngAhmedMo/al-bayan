@@ -52,22 +52,22 @@ export const Sidebar = React.memo(({ isOpen, close, navigateToSurah, openSetting
 
     const navItems = useMemo(() => [
         // القائمة الرئيسية
-        { label: "الرئيسية", path: "/", icon: <Home size={18} /> },
-        { label: "بحث", path: "/search", icon: <Search size={18} /> },
-        { label: "الإذاعة", path: "/radio", icon: <Radio size={18} /> },
-        { label: "أوفلاين", path: "/downloads", icon: <WifiOff size={18} /> },
+        { label: "الرئيسية", path: "/", icon: <Home size={16} />, textClass: 'text-gold-600 dark:text-gold-500' },
+        { label: "بحث", path: "/search", icon: <Search size={16} />, textClass: 'text-cyan-600 dark:text-cyan-400' },
+        { label: "الإذاعة", path: "/radio", icon: <Radio size={16} />, textClass: 'text-violet-600 dark:text-violet-400' },
+        { label: "أوفلاين", path: "/downloads", icon: <WifiOff size={16} />, textClass: 'text-slate-600 dark:text-slate-400' },
         // أدوات المسلم
-        { label: "الحفظ", path: "/hifz", icon: <Activity size={18} /> },
-        { label: "اختبارات قرآنية", path: "/quiz", icon: <Brain size={18} /> },
-        { label: "الأذكار", path: "/adhkar", icon: <Shield size={18} /> },
-        { label: "المناسبات", path: "/events", icon: <Calendar size={18} /> },
-        { label: "الحديث", path: "/hadith", icon: <BookHeart size={18} /> },
-        { label: "السبحة", path: "/tasbih", icon: <Grid size={18} /> },
-        { label: "المحفوظات", path: "/bookmarks", icon: <Bookmark size={18} /> },
-        { label: "الحج والعمرة", path: "/hajj-umrah", icon: <Landmark size={18} /> },
-        { label: "مكتبة التفسير", path: "/tafsir", icon: <Library size={18} /> },
+        { label: "الحفظ", path: "/hifz", icon: <Activity size={16} />, textClass: 'text-rose-600 dark:text-rose-400' },
+        { label: "اختبارات", path: "/quiz", icon: <Brain size={16} />, textClass: 'text-indigo-600 dark:text-indigo-400' },
+        { label: "الأذكار", path: "/adhkar", icon: <Shield size={16} />, textClass: 'text-emerald-600 dark:text-emerald-400' },
+        { label: "المناسبات", path: "/events", icon: <Calendar size={16} />, textClass: 'text-amber-600 dark:text-amber-500' },
+        { label: "الحديث", path: "/hadith", icon: <BookHeart size={16} />, textClass: 'text-sky-600 dark:text-sky-400' },
+        { label: "السبحة", path: "/tasbih", icon: <Grid size={16} />, textClass: 'text-amber-500 dark:text-amber-400' },
+        { label: "المحفوظات", path: "/bookmarks", icon: <Bookmark size={16} />, textClass: 'text-gold-600 dark:text-gold-500' },
+        { label: "الحج", path: "/hajj-umrah", icon: <Landmark size={16} />, textClass: 'text-teal-600 dark:text-teal-400' },
+        { label: "تفسير", path: "/tafsir", icon: <Library size={16} />, textClass: 'text-fuchsia-600 dark:text-fuchsia-400' },
         // معلومات
-        { label: "عن التطبيق", path: "/about", icon: <Info size={18} /> },
+        { label: "عن التطبيق", path: "/about", icon: <Info size={16} />, textClass: 'text-blue-600 dark:text-blue-400' },
     ], []);
 
     // إغلاق القائمة عند الضغط على زر الرجوع في الموبايل
@@ -115,7 +115,7 @@ export const Sidebar = React.memo(({ isOpen, close, navigateToSurah, openSetting
 
             {/* Drawer - Hardware Accelerated Transform */}
             <div
-                className={`fixed inset-y-0 right-0 w-[85%] max-w-sm md:max-w-md lg:max-w-lg bg-gradient-to-b from-white via-white to-gold-50/30 dark:from-navy-950 dark:via-navy-900 dark:to-navy-950 shadow-2xl z-50 will-change-transform transform-gpu transition-transform duration-300 ease-out`}
+                className={`fixed inset-y-0 right-0 w-[85%] max-w-sm md:max-w-md lg:max-w-lg bg-white/70 dark:bg-navy-900/60 backdrop-blur-3xl shadow-[-10px_0_30px_rgba(0,0,0,0.1)] dark:shadow-[-10px_0_30px_rgba(0,0,0,0.4)] z-50 will-change-transform transform-gpu transition-transform duration-300 ease-out border-l border-white/50 dark:border-navy-600/30`}
                 style={{ transform: isOpen ? 'translate3d(0,0,0)' : 'translate3d(100%,0,0)' }}
             >
 
@@ -123,57 +123,52 @@ export const Sidebar = React.memo(({ isOpen, close, navigateToSurah, openSetting
                     <div className="flex flex-col min-h-full">
 
                         {/* Header with Logo */}
-                        <div className="relative h-36 bg-gradient-to-br from-navy-900 via-navy-800 to-navy-900 shrink-0 overflow-hidden flex items-center px-6">
-                            {/* Decorative Pattern - GPU Optimized with opacity */}
-                            <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: "url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMjAgMEwyMCA0ME0wIDIwTDQwIDIwIiAvPjwvc3ZnPg==')" }}></div>
+                        <div className="relative h-40 bg-gradient-to-br from-navy-800/90 via-navy-900/90 to-black/90 shrink-0 overflow-hidden flex items-center px-6 border-b border-navy-700/50">
+                            {/* Decorative Pattern */}
+                            <div className="absolute inset-0 opacity-10 pointer-events-none mix-blend-overlay" style={{ backgroundImage: "url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIiBzdHJva2U9IiNmZmYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIgb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMjAgMEwyMCA0ME0wIDIwTDQwIDIwIiAvPjwvc3ZnPg==')" }}></div>
+                            
+                            {/* Ambient Glow */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-gold-400/20 rounded-full blur-[40px] pointer-events-none"></div>
 
                             {/* Close Button */}
                             <button
                                 onClick={close}
-                                className="absolute top-4 left-4 p-2.5 bg-white/10 text-white rounded-xl hover:bg-white/20 transition-all z-20 border border-white/10 active:scale-95"
+                                className="absolute top-4 left-4 p-2.5 bg-white/10 backdrop-blur-md text-white rounded-full hover:bg-red-500/80 hover:shadow-[0_0_15px_rgba(239,68,68,0.5)] transition-all duration-300 z-20 border border-white/20 active:scale-95 group"
                                 aria-label="إغلاق القائمة"
                             >
-                                <X size={18} />
+                                <X size={18} className="group-hover:rotate-90 transition-transform duration-300" />
                             </button>
 
                             {/* Logo */}
-                            <div className="relative z-10 flex items-center gap-4 cursor-pointer" onClick={() => { navigate('/'); close(); }}>
-                                <div className="w-16 h-16 bg-gradient-to-br from-[#D4B978] via-[#C6AD73] to-[#9A7B3C] rounded-2xl flex items-center justify-center text-white shadow-xl shadow-gold-500/40 transform rotate-3 border-2 border-[#F0CF85]/50">
-                                    <span className="font-quran text-4xl font-bold mt-2">ب</span>
+                            <div className="relative z-10 flex items-center gap-4 cursor-pointer group" onClick={() => { navigate('/'); close(); }}>
+                                <div className="relative">
+                                    <div className="absolute inset-0 bg-gold-400/30 blur-xl rounded-2xl scale-110 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                    <div className="w-16 h-16 bg-gradient-to-br from-[#D4B978] via-[#C6AD73] to-[#9A7B3C] rounded-2xl flex items-center justify-center text-[#1A314D] shadow-xl shadow-gold-500/40 transform rotate-3 group-hover:rotate-12 transition-transform duration-500 border border-gold-300/40">
+                                        <span className="font-quran text-4xl font-bold mt-2 drop-shadow-sm">ب</span>
+                                    </div>
                                 </div>
                                 <div>
-                                    <h2 className="font-bold text-2xl text-white font-quran">البيان</h2>
-                                    <p className="text-[11px] text-gold-300 font-bold tracking-wider mt-1">القرآن والسنة</p>
+                                    <h2 className="font-bold text-3xl text-white font-quran drop-shadow-md tracking-wide">البيان</h2>
+                                    <p className="text-[11px] text-gold-400 font-bold tracking-wider mt-1 drop-shadow-sm">القرآن والسنة</p>
                                 </div>
                             </div>
                         </div>
 
                         {/* Navigation Grid */}
-                        <div className="p-4 grid grid-cols-4 md:grid-cols-5 gap-2.5 shrink-0 bg-gradient-to-b from-gold-50/80 to-white dark:from-navy-900/80 dark:to-navy-900 border-b border-gold-100 dark:border-navy-800">
+                        <div className="p-4 grid grid-cols-4 md:grid-cols-5 gap-3 shrink-0 bg-white/30 dark:bg-navy-900/30 backdrop-blur-md border-b border-white/40 dark:border-navy-700/50">
                             {navItems.map((item) => {
-                                const isBookmarks = item.path === '/bookmarks';
                                 return (
                                     <button
                                         key={item.path}
                                         onClick={() => { navigate(item.path); close(); }}
-                                        className={`flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl border shadow-sm active:scale-95 transition-transform duration-150 group
-                                        ${isBookmarks
-                                                ? 'bg-gradient-to-br from-gold-50 to-amber-50 dark:from-navy-800 dark:to-navy-800 border-gold-200 dark:border-gold-500/30'
-                                                : 'bg-white/95 dark:bg-navy-800/95 border-gold-100/50 dark:border-navy-700'
-                                            }`}
+                                        className="sidebar-nav-btn relative flex flex-col items-center justify-start gap-1.5 focus:outline-none rounded-xl p-1 transition-transform active:scale-95 group"
                                     >
-                                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center transition-colors duration-200
-                                        ${isBookmarks
-                                                ? 'bg-gradient-to-br from-gold-400 to-amber-500 text-white shadow-lg shadow-gold-500/30'
-                                                : 'bg-gradient-to-br from-navy-50 to-stone-100 dark:from-navy-700 dark:to-navy-800 text-navy-500 dark:text-navy-400 group-hover:from-gold-100 group-hover:to-amber-100 dark:group-hover:from-gold-900/30 dark:group-hover:to-amber-900/20 group-hover:text-gold-600 dark:group-hover:text-gold-400'
-                                            }`}>
+                                        <div className={`sidebar-nav-circle w-[46px] h-[46px] mb-1 relative z-10 ${item.textClass}`}>
                                             {item.icon}
                                         </div>
-                                        <span className={`text-[9px] font-bold truncate w-full text-center transition-colors
-                                        ${isBookmarks
-                                                ? 'text-gold-700 dark:text-gold-400'
-                                                : 'text-navy-700 dark:text-navy-300 group-hover:text-gold-700 dark:group-hover:text-gold-400'
-                                            }`}>{item.label}</span>
+                                        <span className="relative z-10 text-[10px] font-bold text-center text-navy-700 dark:text-navy-300 group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors px-1 w-full truncate">
+                                            {item.label}
+                                        </span>
                                     </button>
                                 );
                             })}
@@ -181,27 +176,25 @@ export const Sidebar = React.memo(({ isOpen, close, navigateToSurah, openSetting
                             {/* Settings Button */}
                             <button
                                 onClick={() => { openSettings(); close(); }}
-                                className="flex flex-col items-center justify-center gap-1.5 p-2.5 rounded-xl bg-white/95 dark:bg-navy-800/95 border border-gold-100/50 dark:border-navy-700 shadow-sm active:scale-95 transition-transform duration-150 group"
+                                className="sidebar-nav-btn relative flex flex-col items-center justify-start gap-1.5 focus:outline-none rounded-xl p-1 transition-transform active:scale-95 group"
                             >
-                                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-navy-50 to-stone-100 dark:from-navy-700 dark:to-navy-800 flex items-center justify-center group-hover:from-gold-100 group-hover:to-amber-100 dark:group-hover:from-gold-900/30 dark:group-hover:to-amber-900/20 transition-colors duration-200">
-                                    <div className="text-navy-500 dark:text-navy-400 group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors">
-                                        <Settings size={18} />
-                                    </div>
+                                <div className="sidebar-nav-circle w-[46px] h-[46px] mb-1 relative z-10 text-navy-500 dark:text-navy-400 group-hover:text-gold-600 dark:group-hover:text-gold-400 group-hover:rotate-90 transition-all duration-500">
+                                    <Settings size={18} />
                                 </div>
-                                <span className="text-[9px] font-bold text-navy-700 dark:text-navy-300 truncate w-full text-center group-hover:text-gold-700 dark:group-hover:text-gold-400 transition-colors">الإعدادات</span>
+                                <span className="relative z-10 text-[10px] font-bold text-center text-navy-700 dark:text-navy-300 group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors px-1 w-full truncate">الإعدادات</span>
                             </button>
 
                             {/* Notifications Button */}
-                            <button onClick={() => { navigate('/notifications'); close(); }} className="col-span-4 flex items-center justify-between px-4 py-3 rounded-xl bg-gradient-to-r from-navy-800 via-navy-700 to-navy-800 text-white shadow-lg shadow-navy-900/20 relative overflow-hidden group active:scale-95 transition-transform">
-                                <div className="absolute inset-0 bg-gradient-to-r from-gold-500/10 to-amber-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                            <button onClick={() => { navigate('/notifications'); close(); }} className="col-span-4 flex items-center justify-between px-4 py-3.5 rounded-2xl bg-gradient-to-r from-navy-800 via-navy-700 to-navy-900 border border-navy-600/50 text-white shadow-lg shadow-navy-900/30 relative overflow-hidden group active:scale-95 transition-all duration-300">
+                                <div className="absolute inset-0 bg-gold-400/20 blur-2xl rounded-full scale-110 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                                 <div className="flex items-center gap-3 relative z-10">
-                                    <div className="w-8 h-8 rounded-lg bg-gold-500/20 flex items-center justify-center">
-                                        <Bell size={16} className="text-gold-400" />
+                                    <div className="w-10 h-10 rounded-xl bg-gold-500/20 flex items-center justify-center border border-gold-400/30 group-hover:bg-gold-500/30 transition-colors">
+                                        <Bell size={18} className="text-gold-400 group-hover:scale-110 transition-transform origin-top" />
                                     </div>
-                                    <span className="text-sm font-bold">التنبيهات</span>
+                                    <span className="text-[13px] font-bold tracking-wide">التنبيهات</span>
                                 </div>
                                 {unreadCount > 0 && (
-                                    <span className="bg-gradient-to-br from-red-500 to-red-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full shadow-lg shadow-red-500/40 animate-pulse relative z-10">
+                                    <span className="bg-gradient-to-br from-red-500 to-red-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-[0_0_12px_rgba(239,68,68,0.6)] animate-pulse relative z-10 border border-red-400/50">
                                         {unreadCount > 9 ? '9+' : unreadCount}
                                     </span>
                                 )}

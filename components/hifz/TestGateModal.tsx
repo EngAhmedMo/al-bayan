@@ -135,12 +135,12 @@ export const TestGateModal: React.FC = () => {
                     className="relative w-full max-w-2xl bg-white dark:bg-navy-900 rounded-3xl shadow-2xl border border-gold-500/20 overflow-hidden max-h-[90vh] overflow-y-auto"
                 >
                     {/* Header Bar */}
-                    <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-navy-800">
-                        <button onClick={handleClose} className="p-2 hover:bg-gray-100 dark:hover:bg-navy-800 rounded-full transition-colors">
-                            <X size={20} className="text-gray-500" />
-                        </button>
-                        <h3 className="font-bold text-navy-900 dark:text-white">بوابة الحفظ</h3>
+                    <div className="flex items-center justify-between p-4 border-b border-gold-100 dark:border-navy-800 bg-gradient-to-b from-navy-50 to-white dark:from-navy-900 dark:to-navy-950">
                         <div className="w-8"></div>
+                        <h3 className="font-bold text-lg text-navy-900 dark:text-white">بوابة الحفظ</h3>
+                        <button onClick={handleClose} className="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors text-navy-400 hover:text-red-500">
+                            <X size={20} />
+                        </button>
                     </div>
 
                     <div className="p-6 md:p-8 text-center min-h-[400px] flex flex-col items-center justify-center">

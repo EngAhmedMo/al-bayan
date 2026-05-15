@@ -544,7 +544,7 @@ export const Hifz: React.FC = () => {
         </div>
 
         {/* BOTTOM SHEET ACTIONS (Fixed) */}
-        <div className="fixed bottom-[70px] left-0 right-0 bg-white dark:bg-navy-900 border-t border-gray-200 dark:border-navy-800 rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50">
+        <div className="fixed bottom-[86px] sm:bottom-[90px] left-0 right-0 bg-white dark:bg-navy-900 border-t border-gray-200 dark:border-navy-800 rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] z-50">
           <div className="max-w-3xl mx-auto px-6 py-6">
 
             {/* Summary Row */}

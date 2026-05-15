@@ -178,9 +178,9 @@ export const QuranReader: React.FC = () => {
   const { fontSize, setFontSize, reciterId, setReciterId, textAlign, setTextAlign } = useSettings();
 
   // ── QCF Mushaf Mode ──────────────────────────────────────────────────────
-  // Reads preference from localStorage; defaults to true (QCF enabled)
+  // Reads preference from localStorage; defaults to false (Classic Mode enabled)
   const [isQcfMode, setIsQcfMode] = useState<boolean>(() => {
-    try { return localStorage.getItem('qcfMode') !== 'false'; } catch { return true; }
+    try { return localStorage.getItem('qcfMode') === 'true'; } catch { return false; }
   });
 
   const toggleQcfMode = () => {
@@ -1028,8 +1028,8 @@ export const QuranReader: React.FC = () => {
           ${isImmersive
             ? 'fixed inset-0 z-50 fullscreen-container flex-col items-center bg-[#fffcf5] dark:bg-[#1a202c] w-full p-0'
             : isLandscape
-              ? currentTrack ? 'p-2 sm:p-4 pb-36' : 'p-2 sm:p-4 pb-20'
-              : currentTrack ? 'p-2 sm:p-4 pb-48' : 'p-2 sm:p-4 pb-24'}
+              ? currentTrack ? 'p-2 sm:p-4 pb-56 sm:pb-60' : 'p-2 sm:p-4 pb-36 sm:pb-40'
+              : currentTrack ? 'p-2 sm:p-4 pb-60 sm:pb-64' : 'p-2 sm:p-4 pb-40 sm:pb-44'}
         `}
         onClick={(e) => {
           // Clicking the "void" area exits immersive mode
@@ -1120,10 +1120,10 @@ export const QuranReader: React.FC = () => {
         ) : (
           <div
             className={`
-              transition-all duration-500 mx-auto relative w-full
+              transition-all duration-500 mx-auto relative w-full flex flex-col
               ${isImmersive
-                ? 'w-full md:w-[95%] lg:w-[90%] max-w-[1400px] h-full flex-1 py-0 flex flex-col'
-                : 'max-w-4xl h-full flex flex-col'} 
+                ? 'w-full md:w-[95%] lg:w-[90%] max-w-[1400px] min-h-full py-0'
+                : 'max-w-4xl min-h-[90vh]'} 
             `}
           >
             {/* Side Click Navigation Areas (Desktop) */}
@@ -1340,40 +1340,35 @@ export const QuranReader: React.FC = () => {
           </div>
         )}
 
-        {/* 3. Footer Navigation (Collapsible & Auto-Lift with Auto-Hide) */}
         <div
-          className={`absolute left-0 right-0 h-16 bg-gradient-to-b from-white to-gold-50/50 dark:from-navy-900 dark:to-navy-950 border-t border-gold-100 dark:border-navy-800 z-40 transition-all duration-500 ease-in-out shadow-[0_-5px_30px_rgba(0,0,0,0.08)] backdrop-blur-md
-          ${isImmersive || !showFooterBar ? 'translate-y-[200%] opacity-0' : 'translate-y-0 opacity-100'}
-          ${currentTrack ? 'bottom-[150px] md:bottom-[150px]' : 'bottom-[70px] md:bottom-[70px]'} 
+          className={`fixed left-0 right-0 flex justify-center z-40 transition-all duration-500 ease-in-out pointer-events-none
+          ${isImmersive || !showFooterBar ? 'translate-y-[150%] opacity-0' : 'translate-y-0 opacity-100'}
+          ${currentTrack ? 'bottom-[154px] sm:bottom-[162px]' : 'bottom-[88px] sm:bottom-[96px]'} 
         `}
         >
-          <div className="max-w-4xl mx-auto w-full h-full flex justify-between items-center px-4 sm:px-6">
+          <div className="pointer-events-auto flex justify-between items-center px-2 py-1.5 bg-white/75 dark:bg-navy-900/75 backdrop-blur-xl rounded-[1.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/40 dark:border-navy-700/50 gap-4 sm:gap-6">
             {/* Previous Page (Appears on the RIGHT in RTL) */}
-            <button onClick={handlePrev} disabled={page <= 1} className="flex items-center gap-1.5 sm:gap-2 text-navy-700 dark:text-navy-300 disabled:opacity-30 hover:bg-gradient-to-r hover:from-gold-50 hover:to-amber-50 dark:hover:from-navy-800 dark:hover:to-navy-800 px-2 sm:px-4 py-2 rounded-xl transition-all border border-transparent hover:border-gold-200 dark:hover:border-navy-700 group">
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gold-100 dark:bg-navy-800 flex items-center justify-center group-hover:bg-gold-200 dark:group-hover:bg-navy-700 transition-colors">
-                <ChevronRight size={18} className="text-gold-600 dark:text-gold-400" />
-              </div>
-              <span className="font-bold text-[11px] sm:text-sm">السابق</span>
+            <button onClick={handlePrev} disabled={page <= 1} className="flex flex-col items-center gap-1 text-navy-700 dark:text-navy-300 disabled:opacity-30 hover:bg-gold-50/50 dark:hover:bg-navy-800/50 px-4 py-1.5 rounded-xl transition-all group">
+              <ChevronRight size={20} className="text-gold-600 dark:text-gold-400 group-hover:-translate-x-1 transition-transform" />
+              <span className="font-bold text-[10px]">السابق</span>
             </button>
 
             {/* Page Number / Navigation Trigger */}
             <div
-              className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform"
+              className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform px-4"
               onClick={() => setIsNavOpen(true)}
             >
-              <span className="text-[10px] text-navy-400 font-bold mb-0.5">رقم الصفحة</span>
-              <span className="text-base font-bold text-navy-900 dark:text-white bg-gradient-to-r from-gold-100 to-amber-100 dark:from-navy-800 dark:to-navy-800 px-5 py-1 rounded-xl border border-gold-200 dark:border-navy-700 shadow-sm flex items-center gap-2 hover:shadow-md transition-shadow">
+              <span className="text-[9px] text-navy-400 font-bold mb-1 tracking-wide">رقم الصفحة</span>
+              <span className="text-base font-bold text-navy-900 dark:text-white bg-gradient-to-r from-gold-100/50 to-amber-100/50 dark:from-navy-800/80 dark:to-navy-800/80 backdrop-blur-sm px-5 py-1.5 rounded-xl border border-gold-200/50 dark:border-navy-700/50 shadow-sm flex items-center gap-2 hover:shadow-md transition-all">
                 <Grid size={14} className="text-gold-600 dark:text-gold-400" />
                 {toArabicDigits(page)}
               </span>
             </div>
 
             {/* Next Page (Appears on the LEFT in RTL) */}
-            <button onClick={handleNext} disabled={page >= 604} className="flex items-center gap-1.5 sm:gap-2 text-navy-700 dark:text-navy-300 disabled:opacity-30 hover:bg-gradient-to-r hover:from-gold-50 hover:to-amber-50 dark:hover:from-navy-800 dark:hover:to-navy-800 px-2 sm:px-4 py-2 rounded-xl transition-all border border-transparent hover:border-gold-200 dark:hover:border-navy-700 group">
-              <span className="font-bold text-[11px] sm:text-sm">التالي</span>
-              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gold-100 dark:bg-navy-800 flex items-center justify-center group-hover:bg-gold-200 dark:group-hover:bg-navy-700 transition-colors">
-                <ChevronLeft size={18} className="text-gold-600 dark:text-gold-400" />
-              </div>
+            <button onClick={handleNext} disabled={page >= 604} className="flex flex-col items-center gap-1 text-navy-700 dark:text-navy-300 disabled:opacity-30 hover:bg-gold-50/50 dark:hover:bg-navy-800/50 px-4 py-1.5 rounded-xl transition-all group">
+              <ChevronLeft size={20} className="text-gold-600 dark:text-gold-400 group-hover:translate-x-1 transition-transform" />
+              <span className="font-bold text-[10px]">التالي</span>
             </button>
           </div>
         </div>

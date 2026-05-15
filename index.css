@@ -1044,4 +1044,227 @@ article {
 
 .dark .qcf-ayah-span:focus-visible {
   outline-color: rgba(234, 179, 8, 0.8);
-}
+}
+
+/* ==========================================
+   HOME MENU — CIRCULAR GLOW ICON SYSTEM
+   Inspired by premium Islamic app designs
+   Premium dark-mode neon glow with ring border
+   ========================================== */
+
+/* ── Base Circle Container ─────────────────────────────────────────────────── */
+.menu-icon-circle {
+  position: relative;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.25s ease;
+  /* Subtle inner bg — semi-transparent so the page bg bleeds through */
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* Light mode: softer, brighter inner fill */
+html:not(.dark) .menu-icon-circle {
+  background: rgba(255, 255, 255, 0.75);
+}
+
+/* ── Hover / Active ────────────────────────────────────────────────────────── */
+.menu-icon-btn:hover .menu-icon-circle {
+  transform: translateY(-3px) scale(1.08);
+}
+
+.menu-icon-btn:active .menu-icon-circle {
+  transform: scale(0.93);
+  transition-duration: 0.1s;
+}
+
+/* ── Breathing Glow Animation (dark mode only, always-on) ─────────────────── */
+@keyframes icon-glow-breathe {
+  0%, 100% {
+    box-shadow: 0 0 6px 0 var(--icon-glow-color, rgba(198, 173, 115, 0.2)),
+                0 0 0 1.5px var(--icon-ring-color, rgba(198, 173, 115, 0.35));
+  }
+  50% {
+    box-shadow: 0 0 18px 4px var(--icon-glow-color, rgba(198, 173, 115, 0.35)),
+                0 0 0 2px var(--icon-ring-color, rgba(198, 173, 115, 0.55));
+  }
+}
+
+/* Only breathe in dark mode (less distracting in light mode) */
+.dark .menu-icon-circle {
+  animation: icon-glow-breathe 3.5s ease-in-out infinite;
+}
+
+/* Light mode: glow only on hover */
+html:not(.dark) .menu-icon-circle {
+  box-shadow: 0 0 0 1.5px var(--icon-ring-color, rgba(198, 173, 115, 0.35)),
+              0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+html:not(.dark) .menu-icon-btn:hover .menu-icon-circle {
+  box-shadow: 0 0 14px 3px var(--icon-glow-color, rgba(198, 173, 115, 0.25)),
+              0 0 0 2px var(--icon-ring-color, rgba(198, 173, 115, 0.5)),
+              0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Hover Glow Override (dark — stronger) ─────────────────────────────────── */
+.dark .menu-icon-btn:hover .menu-icon-circle {
+  animation: none;
+  box-shadow: 0 0 24px 8px var(--icon-glow-color, rgba(198, 173, 115, 0.45)),
+              0 0 0 2.5px var(--icon-ring-color, rgba(198, 173, 115, 0.7));
+}
+
+/* ── Label Text ────────────────────────────────────────────────────────────── */
+.menu-icon-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+  transition: color 0.2s ease;
+  color: #334e68; /* navy-700 */
+}
+
+.dark .menu-icon-label {
+  color: #bcccdc; /* navy-300 */
+}
+
+.menu-icon-btn:hover .menu-icon-label {
+  color: #8d6e3f; /* gold-600 */
+}
+
+.dark .menu-icon-btn:hover .menu-icon-label {
+  color: #c6ad73; /* gold-400 */
+}
+
+/* ── Responsive sizing ─────────────────────────────────────────────────────── */
+
+/* Very small phones < 360px */
+@media (max-width: 359px) {
+  .menu-icon-circle {
+    width: 48px !important;
+    height: 48px !important;
+  }
+  .menu-icon-label {
+    font-size: 9px !important;
+  }
+}
+
+/* Standard mobile 360-428px */
+@media (min-width: 360px) and (max-width: 428px) {
+  .menu-icon-circle {
+    width: 54px;
+    height: 54px;
+  }
+  .menu-icon-label {
+    font-size: 10.5px;
+  }
+}
+
+/* Large mobile 429-640px */
+@media (min-width: 429px) and (max-width: 640px) {
+  .menu-icon-circle {
+    width: 58px;
+    height: 58px;
+  }
+  .menu-icon-label {
+    font-size: 11px;
+  }
+}
+
+/* Tablet 641-1024px */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .menu-icon-circle {
+    width: 62px;
+    height: 62px;
+  }
+  .menu-icon-label {
+    font-size: 12px;
+  }
+}
+
+/* Desktop 1025px+ */
+@media (min-width: 1025px) {
+  .menu-icon-circle {
+    width: 62px;
+    height: 62px;
+  }
+  .menu-icon-label {
+    font-size: 12px;
+  }
+}
+
+/* Landscape mobile: smaller to save vertical space */
+@media (orientation: landscape) and (max-height: 500px) {
+  .menu-icon-circle {
+    width: 44px !important;
+    height: 44px !important;
+  }
+  .menu-icon-label {
+    font-size: 9px !important;
+  }
+}
+
+/* Reduce motion: disable breathing animation */
+@media (prefers-reduced-motion: reduce) {
+  .dark .menu-icon-circle {
+    animation: none;
+  }
+  .menu-icon-btn:hover .menu-icon-circle {
+    transform: none;
+  }
+}
+
+/* ── Bottom Navigation Bar — Active Pill Glow ──────────────────────────────── */
+@keyframes nav-active-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(198, 173, 115, 0.0);
+  }
+  50% {
+    box-shadow: 0 0 10px 2px rgba(198, 173, 115, 0.25);
+  }
+}
+
+.dark .nav-active-pill {
+  animation: nav-active-pulse 2.5s ease-in-out infinite;
+}
+
+/* Sidebar nav grid items — smaller subtle version */
+.sidebar-nav-circle {
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+html:not(.dark) .sidebar-nav-circle {
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 0 1.5px rgba(198, 173, 115, 0.25),
+              0 1px 4px rgba(0, 0, 0, 0.05);
+}
+
+.dark .sidebar-nav-circle {
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 0 0 1.5px rgba(198, 173, 115, 0.2),
+              0 0 8px 1px rgba(198, 173, 115, 0.08);
+}
+
+.sidebar-nav-btn:hover .sidebar-nav-circle,
+.sidebar-nav-btn:focus-visible .sidebar-nav-circle {
+  transform: scale(1.1);
+}
+
+html:not(.dark) .sidebar-nav-btn:hover .sidebar-nav-circle {
+  box-shadow: 0 0 10px 2px rgba(198, 173, 115, 0.2),
+              0 0 0 2px rgba(198, 173, 115, 0.4);
+}
+
+.dark .sidebar-nav-btn:hover .sidebar-nav-circle {
+  box-shadow: 0 0 14px 4px rgba(198, 173, 115, 0.3),
+              0 0 0 2px rgba(198, 173, 115, 0.5);
+}
+

@@ -126,6 +126,8 @@ interface SettingsContextType {
   azhanId: string;
   setAzhanId: (id: string) => void;
   openSettings: () => void;
+  previewPlayingId: string | null;
+  handlePreviewAzhan: (id: string, name: string) => void;
 }
 export const SettingsContext = createContext<SettingsContextType>({
   fontSize: 22,
@@ -136,7 +138,9 @@ export const SettingsContext = createContext<SettingsContextType>({
   setReciterId: () => { },
   azhanId: 'egy_abdulbasit',
   setAzhanId: () => { },
-  openSettings: () => { }
+  openSettings: () => { },
+  previewPlayingId: null,
+  handlePreviewAzhan: () => { }
 });
 export const useSettings = () => useContext(SettingsContext);
 
@@ -235,9 +239,11 @@ const AudioPlayerBar = () => {
   };
 
   return (
-    <div className={`fixed bottom-[70px] left-0 right-0 z-50 animate-in slide-in-from-bottom-10 pointer-events-auto`}>
+    <div className={`fixed ${isFullscreen ? 'bottom-4 sm:bottom-6' : 'bottom-[86px] sm:bottom-[92px]'} left-0 right-0 px-2 sm:px-4 z-50 transition-all duration-500 animate-in slide-in-from-bottom-10 pointer-events-none`}>
+      {/* Container is pointer-events-none, inner elements must be auto to avoid blocking touches on page content */}
+      <div className="max-w-4xl mx-auto w-full relative pointer-events-auto">
       {showReciterMenu && (
-        <div className="absolute bottom-full left-2 right-2 md:left-6 md:right-auto md:w-[450px] lg:w-[500px] mb-2 bg-white/95 dark:bg-navy-950/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-navy-100 dark:border-navy-700 overflow-hidden animate-in zoom-in-95 duration-200 origin-bottom">
+        <div className="absolute bottom-full left-0 md:left-6 md:right-auto md:w-[450px] lg:w-[500px] mb-2 bg-white/95 dark:bg-navy-950/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-navy-100 dark:border-navy-700 overflow-hidden animate-in zoom-in-95 duration-200 origin-bottom">
           <div className="p-3 border-b border-navy-100 dark:border-navy-800 flex justify-between items-center bg-navy-50 dark:bg-navy-900/50">
             <h4 className="text-xs font-bold text-navy-600 dark:text-white">اختر القارئ</h4>
             <button onClick={() => setShowReciterMenu(false)}><X size={16} className="text-navy-400 hover:text-red-500 transition-colors" /></button>
@@ -287,9 +293,12 @@ const AudioPlayerBar = () => {
       )}
 
       <div className="mx-3 md:mx-0 mb-3 md:mb-0">
-        <div className="bg-white/95 dark:bg-navy-900/95 backdrop-blur-xl border border-gold-500/20 dark:border-navy-700 rounded-2xl md:rounded-none md:border-x-0 md:border-b-0 p-3 md:px-6 shadow-[0_8px_30px_rgba(0,0,0,0.12)] flex items-center justify-between gap-3 relative">
+        <div className="bg-white/95 dark:bg-[#0f172a]/95 backdrop-blur-xl border border-gold-300/40 dark:border-gold-500/20 rounded-2xl md:rounded-3xl md:border-b-0 p-3 md:px-6 shadow-[0_8px_30px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.4)] flex items-center justify-between gap-3 relative overflow-hidden transition-all duration-500">
+          
+          {/* Subtle glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gold-50/40 to-transparent dark:via-gold-500/5 opacity-60 pointer-events-none"></div>
 
-          <div className="flex items-center gap-3 overflow-hidden flex-1 group cursor-pointer select-none" onClick={() => setShowReciterMenu(!showReciterMenu)}>
+          <div className="flex items-center gap-3 overflow-hidden flex-1 group cursor-pointer select-none relative z-10" onClick={() => setShowReciterMenu(!showReciterMenu)}>
             <button
               className="relative w-10 h-10 md:w-12 md:h-12 flex-shrink-0 bg-gold-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-gold-500/30 transition-transform group-hover:scale-105"
             >
@@ -318,7 +327,7 @@ const AudioPlayerBar = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0 relative z-10">
             <button
               onClick={playNext}
               className="p-2 text-navy-400 hover:text-gold-600 dark:text-navy-400 dark:hover:text-gold-400 transition-colors rounded-full hover:bg-navy-50 dark:hover:bg-navy-800"
@@ -355,6 +364,7 @@ const AudioPlayerBar = () => {
 
         </div>
       </div>
+      </div>
     </div>
   );
 };
@@ -366,7 +376,7 @@ const RadioPlayerBar = () => {
   if (!activeStation) return null;
 
   return (
-    <div className={`fixed bottom-[80px] left-2 right-2 z-50 pointer-events-none flex justify-center`}>
+    <div className={`fixed ${isFullscreen ? 'bottom-4 sm:bottom-6' : 'bottom-[86px] sm:bottom-[92px]'} left-2 right-2 z-50 pointer-events-none flex justify-center transition-all duration-500`}>
       <div className="w-full max-w-3xl pointer-events-auto animate-in slide-in-from-bottom-10 fade-in duration-500">
         <div className={`relative overflow-hidden rounded-2xl md:rounded-3xl p-3 md:p-4 flex items-center justify-between gap-3 md:gap-6 shadow-xl shadow-black/10 hover:shadow-2xl transition-all duration-500 bg-white/95 border border-gold-200/60 backdrop-blur-xl text-navy-900 dark:bg-[#0f172a]/95 dark:border-emerald-500/20 dark:text-white dark:shadow-black/40`}>
           {/* ... Radio content ... */}
@@ -432,7 +442,7 @@ const NavItem = ({ to, icon, label }: { to: string; icon: React.ReactNode; label
   <NavLink
     to={to}
     className={({ isActive }) =>
-      `flex flex-col items-center justify-center w-full h-full space-y-1 transition-all duration-150 relative ${isActive
+      `group flex flex-col items-center justify-center w-full h-full gap-1 transition-all duration-300 relative ${isActive
         ? 'text-gold-600 dark:text-gold-400'
         : 'text-navy-400 dark:text-navy-500 hover:text-navy-600 dark:hover:text-navy-300'
       }`
@@ -440,10 +450,19 @@ const NavItem = ({ to, icon, label }: { to: string; icon: React.ReactNode; label
   >
     {({ isActive }) => (
       <>
-        <div className={`p-1.5 rounded-xl transition-all duration-150 ${isActive ? 'bg-gold-50 dark:bg-gold-900/20 -translate-y-0.5' : ''}`}>
+        {/* Active Pill Background */}
+        <div className={`absolute inset-y-1.5 inset-x-2 rounded-[14px] transition-all duration-300 ${
+          isActive ? 'bg-gold-50/80 dark:bg-gold-500/10 shadow-sm border border-gold-100/50 dark:border-gold-500/20' : 'opacity-0 scale-95'
+        }`} />
+        
+        <div
+          className={`relative z-10 transition-all duration-300 ${
+            isActive ? '-translate-y-1 scale-110 drop-shadow-md' : 'group-hover:scale-105 group-hover:-translate-y-0.5'
+          }`}
+        >
           {icon}
         </div>
-        <span className={`text-[9px] font-bold transition-all duration-150 ${isActive ? '-translate-y-0.5' : ''}`}>{label}</span>
+        <span className={`relative z-10 text-[10px] font-bold transition-all duration-300 ${isActive ? '-translate-y-0.5 opacity-100' : 'opacity-80 group-hover:opacity-100'}`}>{label}</span>
       </>
     )}
   </NavLink>
@@ -583,7 +602,6 @@ export const Layout: React.FC = () => {
   const [textAlign, setTextAlignState] = useState<TextAlignMode>(getStoredTextAlign());
   const [reciterId, setReciterIdState] = useState(getStoredReciter());
   const [azhanId, setAzhanIdState] = useState(getStoredAzhan());
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [perPrayerEnabled, setPerPrayerEnabled] = useState(isPerPrayerMuazzinEnabled());
   const [gestureSettings, setGestureSettings] = useState({ masterEnabled: true, flipEnabled: true, volumeEnabled: true });
 
@@ -671,38 +689,7 @@ export const Layout: React.FC = () => {
   useEffect(() => { activeStationRef.current = radioStation; }, [radioStation]);
   useEffect(() => { urlIndexRef.current = currentUrlIndex; }, [currentUrlIndex]);
 
-  useEffect(() => {
-    if (isSettingsOpen) {
-      // Settings modal opened
-      if (Capacitor.isNativePlatform()) {
-        MediaBridge.getAzhanStopMethods().then(res => {
-            setGestureSettings(res);
-        }).catch(() => { });
-      }
-    } else {
-      // Stop azhan preview when settings modal closes
-      // IMPORTANT: Only stop MediaBridge if azhan preview was actually playing
-      // to avoid stopping Quran/Radio playback
-      const wasPreviewPlaying = previewPlayingId !== null;
-
-      if (azhanPreviewRef.current) {
-        azhanPreviewRef.current.pause();
-        azhanPreviewRef.current.src = ""; // Clear src
-      }
-
-      setPreviewPlayingId(null);
-
-      // Only stop native MediaBridge if azhan PREVIEW was playing
-      // SAFEGUARD: Do not stop if it's a real Azhan running in background
-      if (isAndroid && wasPreviewPlaying) {
-        MediaBridge.getCurrentAzhanState().then(state => {
-          if (!state.isReal) {
-            MediaBridge.stop();
-          }
-        }).catch(() => MediaBridge.stop());
-      }
-    }
-  }, [isSettingsOpen]);
+  // Clean up azhan preview when leaving preview route (handled in SettingsPage)
 
   // --- Initial System Checks & Prayer Watcher ---
   useEffect(() => {
@@ -1397,7 +1384,7 @@ export const Layout: React.FC = () => {
   };
 
   const playTrack = async (url: string, title: string, subtitle: string, globalAyahNumber?: number, shouldAutoAdvance = false, repeat = 0, forceReciterId?: string, continuousRepeatCount = 0, surahRepeatCount = 0, pageRepeatCount = 0, rangeStartGlobal = 0, rangeEndGlobal = 0, rangeRepeatCount = 0) => {
-    if (radioStation) stopRadio();
+    if (activeStationRef.current) stopRadio();
     if (previewPlayingId && azhanPreviewRef.current) { azhanPreviewRef.current.pause(); setPreviewPlayingId(null); }
     const requestId = ++playTrackId.current;
     
@@ -1544,6 +1531,7 @@ export const Layout: React.FC = () => {
       pauseTrack();
     }
     else if (currentTrack) { // Removed audioRef dependence
+      if (activeStationRef.current) stopRadio();
       if (isAndroid) {
         // Native Toggle Logic (Strictly uses toggle() as requested)
         MediaBridge.toggle();
@@ -1581,7 +1569,7 @@ export const Layout: React.FC = () => {
   };
 
   const playStation = (station: RadioStation) => {
-    if (currentTrack) closePlayer();
+    if (trackRef.current) closePlayer();
     if (previewPlayingId && azhanPreviewRef.current) { azhanPreviewRef.current.pause(); setPreviewPlayingId(null); }
     setRadioStation(station);
     setRadioLoading(true);
@@ -1638,6 +1626,7 @@ export const Layout: React.FC = () => {
       setIsRadioPlaying(false);
     } else {
       if (radioStation) {
+        if (trackRef.current) closePlayer();
         if (isAndroid) {
           setRadioLoading(true);
           playStation(radioStation); // Use playStation to re-trigger
@@ -1844,7 +1833,7 @@ export const Layout: React.FC = () => {
   }, [currentTrack, isPlaying, radioStation, isRadioPlaying]);
 
   const themeContextValue = useMemo(() => ({ isDark, toggleTheme }), [isDark]);
-  const settingsContextValue = useMemo(() => ({ fontSize, setFontSize, textAlign, setTextAlign, reciterId, setReciterId, azhanId, setAzhanId, openSettings: () => setIsSettingsOpen(true) }), [fontSize, textAlign, reciterId, azhanId]);
+  const settingsContextValue = useMemo(() => ({ fontSize, setFontSize, textAlign, setTextAlign, reciterId, setReciterId, azhanId, setAzhanId, openSettings: () => navigate('/settings'), previewPlayingId, handlePreviewAzhan }), [fontSize, textAlign, reciterId, azhanId, navigate, previewPlayingId, handlePreviewAzhan]);
   const networkContextValue = useMemo(() => ({ isOnline }), [isOnline]);
   const radioContextValue = useMemo(() => ({ activeStation: radioStation, isPlaying: isRadioPlaying, isLoading: radioLoading, error: radioError, playStation, stopRadio, toggleRadio, playNextStation: () => changeStation('next'), playPrevStation: () => changeStation('prev'), sleepTimerEnd, setSleepTimer: handleSetSleepTimer }), [radioStation, isRadioPlaying, radioLoading, radioError, sleepTimerEnd]);
 
@@ -1861,251 +1850,7 @@ export const Layout: React.FC = () => {
                     dir="rtl"
                   >
                   {/* Offline Banner - REMOVED: was covering UI content */}
-                  {/* Settings Modal (Global) */}
-                  {isSettingsOpen && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                      <div className="absolute inset-0 bg-navy-900/80 backdrop-blur-sm" onClick={() => setIsSettingsOpen(false)}></div>
-                      <div className="relative w-full max-w-sm md:max-w-lg lg:max-w-xl bg-white dark:bg-navy-900 rounded-3xl shadow-2xl overflow-hidden border border-navy-100 dark:border-navy-800 animate-in zoom-in-95">
-                        <div className="p-5 border-b border-navy-100 dark:border-navy-800 flex justify-between items-center bg-navy-50 dark:bg-navy-950">
-                          <h3 className="font-bold text-lg text-navy-900 dark:text-white flex items-center gap-2">
-                            <Settings size={20} className="text-gold-500" /> إعدادات التطبيق
-                          </h3>
-                          <button onClick={() => setIsSettingsOpen(false)} className="p-1.5 rounded-full hover:bg-navy-200 dark:hover:bg-navy-800 text-navy-500"><X size={20} /></button>
-                        </div>
-                        <div className="p-5 overflow-y-auto max-h-[70vh] custom-scrollbar space-y-6">
-                          {/* Azhan Settings (Modern UI) */}
-                          <div className="space-y-4">
-                            {/* Volume Slider Card */}
-                            <div className="bg-gradient-to-br from-gold-50 to-amber-50 dark:from-navy-800/50 dark:to-navy-900/50 p-4 rounded-2xl border border-gold-100 dark:border-navy-700">
-                              {/* Header */}
-                              <div className="flex items-center gap-3 mb-4">
-                                <div className="p-2.5 bg-gradient-to-br from-gold-500 to-amber-500 rounded-xl text-white shadow-lg shadow-gold-500/20">
-                                  <Volume2 size={20} />
-                                </div>
-                                <div className="flex-1">
-                                  <h4 className="font-bold text-navy-800 dark:text-white text-sm">مستوى صوت الأذان</h4>
-                                  <p className="text-[10px] text-navy-500 dark:text-navy-400">يُستخدم لتنبيهات الصلاة</p>
-                                </div>
-                                <span className="text-lg font-bold text-gold-600 dark:text-gold-400 bg-white dark:bg-navy-800 px-3 py-1.5 rounded-xl shadow-sm">
-                                  {azhanVolume}%
-                                </span>
-                              </div>
-
-                              {/* Volume Slider */}
-                              <div className="flex items-center gap-3">
-                                <Volume2 size={18} className="text-gold-500 flex-shrink-0" />
-                                <div className="flex-1 relative" style={{ direction: 'ltr' }}>
-                                  <input
-                                    type="range"
-                                    min="0"
-                                    max="100"
-                                    step="5"
-                                    value={azhanVolume}
-                                    onChange={(e) => handleAzhanVolumeChange(Number(e.target.value))}
-                                    className="w-full h-2.5 rounded-full appearance-none cursor-pointer"
-                                    style={{
-                                      background: `linear-gradient(to right, #D97706 0%, #F59E0B ${azhanVolume}%, ${isDark ? '#1f2937' : '#e5e7eb'} ${azhanVolume}%, ${isDark ? '#1f2937' : '#e5e7eb'} 100%)`
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Current Muazzin Display */}
-                            <div className="bg-gradient-to-r from-gold-50 via-amber-50/80 to-gold-50 dark:from-navy-800/80 dark:via-navy-850/80 dark:to-navy-800/80 rounded-2xl p-4 border border-gold-200/50 dark:border-navy-700 mb-3">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-bold text-navy-500 dark:text-navy-400">المؤذن الحالي</span>
-                                <div className="flex items-center gap-2 bg-white dark:bg-navy-900 px-3 py-1.5 rounded-xl border border-gold-300/50 dark:border-navy-600 shadow-sm">
-                                  <span className="text-sm font-bold text-gold-700 dark:text-gold-400">
-                                    {MUAZZINS.find(m => m.id === azhanId)?.name || 'غير محدد'}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Alert when per-prayer customization is enabled */}
-                              {perPrayerEnabled && (
-                                <div className="mt-3 p-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200/50 dark:border-amber-800/50 flex items-start gap-2">
-                                  <AlertCircle size={14} className="text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
-                                  <div>
-                                    <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400">تم تفعيل التخصيص لكل صلاة</p>
-                                    <p className="text-[9px] text-amber-600 dark:text-amber-500 mt-0.5">بعض الصلوات قد تستخدم مؤذناً مختلفاً. لتعديلها، اذهب لـ إعدادات الإشعارات.</p>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-
-                            <label className="flex items-center gap-2 text-xs font-bold text-navy-400 dark:text-navy-500 px-1">
-                              المؤذن المفضل
-                            </label>
-
-                            {/* Muazzins List (Modern Cards) */}
-                            <div className="space-y-3">
-                              {MUAZZINS.map(m => {
-                                const isSelected = azhanId === m.id;
-                                const isPlaying = previewPlayingId === m.id;
-
-                                return (
-                                  <div
-                                    key={m.id}
-                                    onClick={() => setAzhanId(m.id)}
-                                    className={`flex items-center justify-between p-4 rounded-xl border shadow-sm cursor-pointer transition-all ${isSelected
-                                      ? 'bg-gold-50 dark:bg-gold-900/10 border-gold-500 ring-1 ring-gold-500'
-                                      : 'bg-white dark:bg-navy-950 border-navy-100 dark:border-navy-800 hover:border-gold-300'
-                                      }`}
-                                  >
-                                    <div className="flex items-center gap-3 flex-1">
-                                      <button
-                                        onClick={(e) => { e.stopPropagation(); handlePreviewAzhan(m.id, m.name); }}
-                                        className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${isPlaying
-                                          ? 'bg-gold-500 text-white shadow-lg scale-105'
-                                          : 'bg-navy-50 dark:bg-navy-800 text-navy-500 hover:bg-gold-100 hover:text-gold-600'
-                                          }`}
-                                      >
-                                        {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} className="ml-0.5" />}
-                                      </button>
-
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                          <span className={`font-bold text-base ${isSelected ? 'text-navy-900 dark:text-white' : 'text-navy-700 dark:text-navy-200'}`}>{m.name}</span>
-                                          {isSelected && <CheckCircle size={14} className="text-gold-500" />}
-                                        </div>
-                                        <div className="flex gap-2 mt-1">
-                                          <span className="text-[9px] font-bold bg-white dark:bg-navy-900 border border-navy-100 dark:border-navy-700 px-1.5 py-0.5 rounded text-navy-500">
-                                            {m.style === 'saudi' || m.id === 'ksa_suraihi' ? 'المدرسة السعودية' : m.style === 'algerian' ? 'المدرسة الجزائرية' : 'المدرسة المصرية'}
-                                          </span>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    <div className="pr-4 border-r border-navy-100 dark:border-navy-800">
-                                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
-                                        ? 'border-gold-500 bg-gold-500 text-white'
-                                        : 'border-navy-200 dark:border-navy-700'
-                                        }`}>
-                                        {isSelected && <Check size={14} strokeWidth={3} />}
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </div>
-
-                            {/* Add Custom Muazzin - Navigate to Downloads */}
-                            <button
-                              onClick={() => {
-                                setIsSettingsOpen(false);
-                                navigate('/downloads?tab=azhan');
-                              }}
-                              className="mt-3 w-full py-3 px-4 bg-navy-50 dark:bg-navy-800/50 hover:bg-navy-100 dark:hover:bg-navy-800 border border-dashed border-navy-200 dark:border-navy-700 rounded-xl text-navy-600 dark:text-navy-300 font-bold text-xs flex items-center justify-center gap-2 transition-all hover:border-gold-400 dark:hover:border-gold-500"
-                            >
-                              <Plus size={16} className="text-gold-500" />
-                              إضافة مؤذن مخصص من الجهاز
-                            </button>
-                          </div>
-
-                          {/* Azhan Stop Methods Settings */}
-                          {Capacitor.isNativePlatform() && (
-                            <div className="bg-gradient-to-br from-emerald-50/50 to-teal-50/50 dark:from-navy-800/50 dark:to-navy-900/50 p-4 rounded-2xl border border-emerald-100/50 dark:border-navy-700">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2.5">
-                                  <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl text-white shadow-lg shadow-emerald-500/20">
-                                    <ShieldCheck size={18} />
-                                  </div>
-                                  <div>
-                                    <h4 className="font-bold text-sm text-navy-800 dark:text-white">طرق إيقاف الأذان (الذكية)</h4>
-                                    <p className="text-[10px] text-navy-500 dark:text-navy-400">الوسائل المفضلة لإيقاف الأذان</p>
-                                  </div>
-                                </div>
-                                <ToggleSwitch
-                                  enabled={gestureSettings.masterEnabled}
-                                  onChange={async (val) => {
-                                    const newSettings = { ...gestureSettings, masterEnabled: val };
-                                    setGestureSettings(newSettings);
-                                    await MediaBridge.setAzhanStopMethods({ masterEnabled: val });
-                                  }}
-                                />
-                              </div>
-
-                              {gestureSettings.masterEnabled && (
-                                <div className="space-y-2 mt-3 p-3 bg-white/60 dark:bg-navy-950/40 rounded-xl border border-emerald-100/30 dark:border-navy-800">
-                                  <div className="flex items-center justify-between p-2 hover:bg-white dark:hover:bg-navy-900 rounded-lg transition-colors">
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-lg">🔄</span>
-                                      <div>
-                                        <span className="block text-xs font-bold text-navy-700 dark:text-navy-200">قلب الجهاز</span>
-                                        <span className="text-[10px] text-navy-500">بقلب الموبايل على وجهه</span>
-                                      </div>
-                                    </div>
-                                    <ToggleSwitch
-                                      enabled={gestureSettings.flipEnabled}
-                                      onChange={async (val) => {
-                                        const newSettings = { ...gestureSettings, flipEnabled: val };
-                                        setGestureSettings(newSettings);
-                                        await MediaBridge.setAzhanStopMethods({ flipEnabled: val });
-                                      }}
-                                    />
-                                  </div>
-
-
-                                  <div className="flex items-center justify-between p-2 hover:bg-white dark:hover:bg-navy-900 rounded-lg transition-colors">
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-lg">🔉</span>
-                                      <div>
-                                        <span className="block text-xs font-bold text-navy-700 dark:text-navy-200">زر الصوت</span>
-                                        <span className="text-[10px] text-navy-500">بالضغط على زر الصوت</span>
-                                      </div>
-                                    </div>
-                                    <ToggleSwitch
-                                      enabled={gestureSettings.volumeEnabled}
-                                      onChange={async (val) => {
-                                        const newSettings = { ...gestureSettings, volumeEnabled: val };
-                                        setGestureSettings(newSettings);
-                                        await MediaBridge.setAzhanStopMethods({ volumeEnabled: val });
-                                      }}
-                                    />
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                        </div>
-
-                        {/* Advanced Notification Settings Button */}
-                        <div className="pt-2 border-t border-navy-100 dark:border-navy-800">
-                          <button
-                            onClick={() => {
-                              setIsSettingsOpen(false);
-                              navigate('/notification-settings');
-                            }}
-                            className="w-full group relative overflow-hidden rounded-2xl p-4 transition-all duration-300 hover:shadow-lg hover:shadow-gold-500/20 active:scale-[0.98]"
-                          >
-                            {/* Gradient Background - Light mode: light, Dark mode: dark */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-white via-gray-50 to-white dark:from-navy-900 dark:via-navy-800 dark:to-navy-900"></div>
-
-                            {/* Decorative Glow */}
-                            <div className="absolute top-0 right-0 w-20 h-20 bg-gold-500/10 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2"></div>
-
-                            <div className="relative flex items-center justify-between z-10">
-                              <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gold-500 to-amber-600 flex items-center justify-center text-white shadow-lg shadow-gold-500/30 group-hover:scale-110 transition-transform duration-300">
-                                  <Bell size={22} className="fill-white/20" />
-                                </div>
-                                <div className="text-right">
-                                  <h4 className="font-bold text-base text-navy-900 dark:text-white mb-1">إعدادات التنبيهات والأذان</h4>
-                                  <p className="text-[11px] text-navy-500 dark:text-navy-300 font-medium">الآذان • الأذكار • الصلاة على النبي</p>
-                                </div>
-                              </div>
-
-                              <div className="w-8 h-8 rounded-full bg-navy-100 dark:bg-white/10 flex items-center justify-center text-navy-600 dark:text-white group-hover:bg-gold-500 group-hover:text-white transition-colors duration-300">
-                                <Settings size={16} />
-                              </div>
-                            </div>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  {/* Settings Modal moved to SettingsPage */}
 
                   <TestGateModal />
                   <PermissionGate>
@@ -2113,7 +1858,7 @@ export const Layout: React.FC = () => {
                       isOpen={isSidebarOpen}
                       close={() => setSidebarOpen(false)}
                       navigateToSurah={(n) => navigate(`/reader?surah=${n}`)}
-                      openSettings={() => setIsSettingsOpen(true)}
+                      openSettings={() => navigate('/settings')}
                       surahs={surahs}
                     />
 
@@ -2137,7 +1882,7 @@ export const Layout: React.FC = () => {
                           }}
                         />
                       )}
-                      <nav className={`h-[70px] bg-white dark:bg-navy-900 border-t border-navy-100 dark:border-navy-800 grid grid-cols-6 gap-0 items-center px-2 z-40 fixed bottom-0 left-0 right-0 w-full shadow-[0_-5px_20px_rgba(0,0,0,0.03)] pb-2 pt-1 transition-all duration-500 ease-in-out ${isFullscreen ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}>
+                      <nav className={`h-[68px] bg-white/85 dark:bg-navy-900/85 backdrop-blur-xl border border-white/40 dark:border-navy-700/50 grid grid-cols-6 gap-0 items-center px-1 z-40 fixed bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.4)] transition-all duration-500 ease-in-out pb-1 pt-1 ${isFullscreen ? 'translate-y-[150%] opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}>
                         <NavItem to="/" icon={<Home size={22} />} label="الرئيسية" />
                         <NavItem to="/reader" icon={<BookOpen size={22} />} label="المصحف" />
                         <NavItem to="/hifz" icon={<Activity size={22} />} label="الحفظ" />

@@ -29,6 +29,7 @@ const TafsirLibrary = React.lazy(() => import('./pages/TafsirLibrary').then(m =>
 const TafsirReader = React.lazy(() => import('./pages/TafsirReader').then(m => ({ default: m.TafsirReader })));
 const AzhanDiagnostics = React.lazy(() => import('./pages/AzhanDiagnostics').then(m => ({ default: m.AzhanDiagnostics })));
 const QuranQuiz = React.lazy(() => import('./pages/QuranQuiz').then(m => ({ default: m.QuranQuiz })));
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 
 // Loading Component
 const LoadingSpinner = () => (
@@ -229,6 +230,11 @@ const App: React.FC = () => {
               <Route path="tafsir/:slug" element={
                 <Suspense fallback={<LoadingSpinner />}>
                   <TafsirReader />
+                </Suspense>
+              } />
+              <Route path="settings" element={
+                <Suspense fallback={<LoadingSpinner />}>
+                  <SettingsPage />
                 </Suspense>
               } />
               {/* Ensure any unknown path redirects to Home */}

@@ -18,6 +18,8 @@ import { FirebaseService } from '../services/firebase';
 import { calculateLocalPrayerTimes, getTodayPrayerTimesLocal, getWeekPrayerTimes } from '../services/prayerCalculator';
 import { MediaBridge } from '../services/mediaBridge';
 import { Capacitor } from '@capacitor/core';
+import { Share } from '@capacitor/share';
+
 
 import { getPrayerCount } from '../services/storage';
 import { PrayerTimesModal } from '../components/PrayerTimesModal';
@@ -35,7 +37,14 @@ export const Home: React.FC = () => {
   const { isDark, toggleTheme } = useTheme();
   const { openSidebar } = useContext(NavigationContext);
   const { openSettings } = useSettings();
-  const [lastRead, setLastRead] = useState<{ surah: string, page: number } | null>(null);
+  const [lastRead, setLastRead] = useState<{ surah: string, page: number } | null>(() => {
+    try {
+      const saved = localStorage.getItem('lastRead');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
   const [unreadCount, setUnreadCount] = useState(0);
   const hijri = useHijriDate();
 
@@ -92,6 +101,7 @@ export const Home: React.FC = () => {
   const [dailyHadith, setDailyHadith] = useState<{ hadith: Hadith, bookId: string, bookName: string } | null>(null);
   const [loadingHadith, setLoadingHadith] = useState(true);
   const [isHadithCopied, setIsHadithCopied] = useState(false);
+  const [isHadithExpanded, setIsHadithExpanded] = useState(false);
 
   // Prayer Times State
   const [prayerData, setPrayerData] = useState<PrayerData | null>(null);
@@ -115,17 +125,11 @@ export const Home: React.FC = () => {
 
   // Unified button style class
   /* Unified button style class - Premium Gold Update */
-  const headerBtnClass = "w-10 h-10 flex items-center justify-center rounded-xl bg-white dark:bg-navy-900/40 border border-navy-100 dark:border-[#C6AD73]/60 text-navy-600 dark:text-[#C6AD73] hover:border-gold-400 dark:hover:border-[#C6AD73] hover:text-gold-600 dark:hover:text-[#F0CF85] dark:hover:bg-[#C6AD73]/10 shadow-sm hover:shadow-md transition-all duration-200 active:scale-95 relative overflow-hidden";
+  const headerBtnClass = "w-10 h-10 flex items-center justify-center rounded-full bg-white/40 dark:bg-navy-800/40 backdrop-blur-xl border border-white/60 dark:border-navy-600/50 text-navy-700 dark:text-gold-300 hover:bg-white/80 dark:hover:bg-navy-700/70 hover:border-gold-300 dark:hover:border-gold-500/60 hover:text-gold-600 dark:hover:text-gold-400 hover:shadow-[0_0_15px_rgba(251,191,36,0.3)] shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all duration-300 active:scale-95 group relative overflow-hidden";
 
   useEffect(() => {
-    const saved = localStorage.getItem('lastRead');
-    if (saved) {
-      setLastRead(JSON.parse(saved));
-    }
-    setUnreadCount(getUnreadCount());
     setUnreadCount(getUnreadCount());
     // setHijri removed, using reactive hook
-
 
     // Initial Load of Benefit (Respects Date)
     loadDailyBenefit();
@@ -259,7 +263,7 @@ export const Home: React.FC = () => {
   // Copy & Share helpers
   const copyBenefit = async () => {
     if (!dailyBenefit) return;
-    const text = `${dailyBenefit.ayah.text}\n﴿${dailyBenefit.surahName} - الآية ${dailyBenefit.ayah.numberInSurah}﴾\n\n[البيان - القرآن والسنة]`;
+    const text = `﴿ ${dailyBenefit.ayah.text} ﴾\n[سورة ${dailyBenefit.surahName} - الآية ${dailyBenefit.ayah.numberInSurah}]\n\nالتفسير الميسر:\n${dailyBenefit.tafsir}\n\n[البيان - القرآن والسنة]`;
     try {
       await navigator.clipboard.writeText(text);
       setIsBenefitCopied(true);
@@ -267,15 +271,38 @@ export const Home: React.FC = () => {
     } catch { setToastMessage('تعذّر النسخ'); }
   };
 
+  const shareContent = async (title: string, text: string, fallbackSuccessMsg: string) => {
+    try {
+      // 1. Native Mobile Sharing (Android/iOS via Capacitor)
+      if (Capacitor.isNativePlatform()) {
+        await Share.share({
+          title: title,
+          text: text,
+          dialogTitle: 'مشاركة عبر',
+        });
+      } 
+      // 2. Web Share API (Modern Browsers)
+      else if (navigator.share) {
+        await navigator.share({
+          title: title,
+          text: text,
+        });
+      } 
+      // 3. Fallback to Clipboard (Desktop/Unsupported)
+      else {
+        await navigator.clipboard.writeText(text);
+        setToastMessage(fallbackSuccessMsg);
+      }
+    } catch (err) {
+      console.log('Error sharing content', err);
+      // If user cancelled, it throws an error usually, we can ignore it
+    }
+  };
+
   const shareBenefit = async () => {
     if (!dailyBenefit) return;
-    const text = `${dailyBenefit.ayah.text}\n﴿${dailyBenefit.surahName} - الآية ${dailyBenefit.ayah.numberInSurah}﴾\n\n[البيان - القرآن والسنة]`;
-    if (navigator.share) {
-      try { await navigator.share({ text }); } catch {}
-    } else {
-      await navigator.clipboard.writeText(text);
-      setToastMessage('تم نسخ الآية للمشاركة');
-    }
+    const text = `﴿ ${dailyBenefit.ayah.text} ﴾\n[سورة ${dailyBenefit.surahName} - الآية ${dailyBenefit.ayah.numberInSurah}]\n\nالتفسير الميسر:\n${dailyBenefit.tafsir}\n\n[البيان - القرآن والسنة]`;
+    await shareContent('فائدة اليوم', text, 'تم نسخ الآية للمشاركة');
   };
 
   const copyHadith = async () => {
@@ -291,12 +318,7 @@ export const Home: React.FC = () => {
   const shareHadith = async () => {
     if (!dailyHadith) return;
     const text = `${dailyHadith.hadith.arabic || dailyHadith.hadith.text}\n\n[${dailyHadith.bookName}]\n[البيان - القرآن والسنة]`;
-    if (navigator.share) {
-      try { await navigator.share({ text }); } catch {}
-    } else {
-      await navigator.clipboard.writeText(text);
-      setToastMessage('تم نسخ الحديث للمشاركة');
-    }
+    await shareContent('حديث اليوم', text, 'تم نسخ الحديث للمشاركة');
   };
 
   const getGradeBadge = (grades?: { name: string; grade: string }[]) => {
@@ -568,86 +590,145 @@ export const Home: React.FC = () => {
     };
   };
 
+  // Each item: glow = outer glow rgba, ring = border color rgba, iconClass = Tailwind text color
+  // Unified to a premium Gold theme as requested
   const menuItems = [
-    { title: 'المصحف الشريف', icon: <BookOpen size={28} />, path: '/reader', bg: 'bg-navy-800', text: 'text-white' },
-    { title: 'اختبارات قرآنية', icon: <Brain size={28} />, path: '/quiz', bg: 'bg-gradient-to-br from-indigo-500 to-indigo-700 border border-indigo-400/50 shadow-indigo-500/30', text: 'text-white' },
-    { title: 'حصن المسلم', icon: <Shield size={28} />, path: '/adhkar', bg: 'bg-gold-600', text: 'text-white' },
-    { title: 'الحديث الشريف', icon: <BookHeart size={28} />, path: '/hadith', bg: 'bg-navy-700', text: 'text-white' },
-    { title: 'بحث في القرآن', icon: <Search size={28} />, path: '/search', bg: 'bg-sky-600', text: 'text-white' },
-    { title: 'الإذاعة المباشرة', icon: <Radio size={28} />, path: '/radio', bg: 'bg-emerald-600', text: 'text-white' },
-    { title: 'السبحة', icon: <Grid size={28} />, path: '/tasbih', bg: 'bg-navy-600', text: 'text-white' },
-    { title: 'خطة الحفظ', icon: <Activity size={28} />, path: '/hifz', bg: 'bg-gold-500', text: 'text-white' },
-    { title: 'المحفوظات', icon: <Bookmark size={28} />, path: '/bookmarks', bg: 'bg-gold-700', text: 'text-white' },
-    { title: 'التحميلات (أوفلاين)', icon: <WifiOff size={28} />, path: '/downloads', bg: 'bg-slate-600', text: 'text-white' },
+    {
+      title: 'اختبارات',
+      icon: <Brain size={22} />,
+      path: '/quiz',
+      glow: 'rgba(198,173,115,0.25)',
+      ring: 'rgba(198,173,115,0.45)',
+      iconClass: 'text-gold-600 dark:text-gold-400',
+    },
+    {
+      title: 'الحديث',
+      icon: <BookHeart size={22} />,
+      path: '/hadith',
+      glow: 'rgba(198,173,115,0.25)',
+      ring: 'rgba(198,173,115,0.45)',
+      iconClass: 'text-gold-600 dark:text-gold-400',
+    },
+    {
+      title: 'تفسير',
+      icon: <Library size={22} />,
+      path: '/tafsir',
+      glow: 'rgba(198,173,115,0.25)',
+      ring: 'rgba(198,173,115,0.45)',
+      iconClass: 'text-gold-600 dark:text-gold-400',
+    },
+    {
+      title: 'البحث',
+      icon: <Search size={22} />,
+      path: '/search',
+      glow: 'rgba(198,173,115,0.25)',
+      ring: 'rgba(198,173,115,0.45)',
+      iconClass: 'text-gold-600 dark:text-gold-400',
+    },
+    {
+      title: 'المحفوظات',
+      icon: <Bookmark size={22} />,
+      path: '/bookmarks',
+      glow: 'rgba(198,173,115,0.25)',
+      ring: 'rgba(198,173,115,0.45)',
+      iconClass: 'text-gold-600 dark:text-gold-400',
+    },
+    {
+      title: 'المناسبات',
+      icon: <Calendar size={22} />,
+      path: '/events',
+      glow: 'rgba(198,173,115,0.25)',
+      ring: 'rgba(198,173,115,0.45)',
+      iconClass: 'text-gold-600 dark:text-gold-400',
+    },
+    {
+      title: 'أوفلاين',
+      icon: <WifiOff size={22} />,
+      path: '/downloads',
+      glow: 'rgba(198,173,115,0.25)',
+      ring: 'rgba(198,173,115,0.45)',
+      iconClass: 'text-gold-600 dark:text-gold-400',
+    },
+    {
+      title: 'الإعدادات',
+      icon: <Settings size={22} />,
+      path: '/settings',
+      glow: 'rgba(198,173,115,0.25)',
+      ring: 'rgba(198,173,115,0.45)',
+      iconClass: 'text-gold-600 dark:text-gold-400',
+    },
   ];
 
   const daysRemaining = 30 - hijri.day;
   const gregorianDateStr = new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <div className="flex flex-col min-h-full bg-gradient-to-b from-gold-50 via-white to-gold-50/50 dark:from-navy-950 dark:via-navy-900 dark:to-navy-950 pb-24 font-sans relative overflow-hidden">
-      {/* Background Decorative Elements */}
-      <div className="absolute inset-0 pointer-events-none">
+    <div className="flex flex-col min-h-full bg-gradient-to-b from-gold-50 via-white to-gold-50/50 dark:from-navy-950 dark:via-navy-900 dark:to-navy-950 pb-28 font-sans relative overflow-x-hidden">
+      {/* Background Decorative Elements - Fixed for Performance */}
+      <div className="fixed inset-0 pointer-events-none z-0">
         <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 dark:bg-gold-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
         <div className="absolute bottom-1/4 left-0 w-80 h-80 bg-amber-400/10 dark:bg-amber-500/5 rounded-full blur-3xl -translate-x-1/2"></div>
       </div>
 
       <div className="w-full max-w-5xl mx-auto flex flex-col flex-1 relative z-10">
-      {/* Top Bar */}
-      <div className="flex justify-between items-center px-5 sm:px-6 pt-6 pb-2 relative z-10">
-        <div className="flex items-center gap-3">
-          <button onClick={openSidebar} className={`${headerBtnClass}`} title="القائمة الجانبية">
-            <Menu size={20} />
-          </button>
-          <div className="flex items-center gap-2.5 cursor-pointer group select-none" onClick={() => navigate('/about')} title="عن التطبيق">
-            <div className="flex items-center gap-2.5">
-              <div className="w-11 h-11 bg-gradient-to-br from-navy-800 to-navy-950 dark:from-[#D4B978] dark:via-[#C6AD73] dark:to-[#9A7B3C] rounded-xl flex items-center justify-center text-white dark:text-white shadow-lg shadow-navy-500/20 dark:shadow-gold-500/30 border border-transparent dark:border-[#C6AD73]/30">
-                <span className="font-quran text-2xl font-bold mt-1">ب</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-navy-900 dark:text-white font-quran leading-none">البيان</h1>
-                <p className="text-[9px] font-bold text-gold-600 dark:text-gold-400 tracking-wider">القرآن والسنة</p>
+      {/* Top Bar Container */}
+      <div className="sticky top-0 z-50 px-4 sm:px-5 pt-4 pb-2">
+        <div className="flex justify-between items-center bg-white/30 dark:bg-navy-900/40 backdrop-blur-2xl rounded-[2rem] px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] border border-white/40 dark:border-navy-600/30">
+          <div className="flex items-center gap-3">
+            <button onClick={openSidebar} className={`${headerBtnClass}`} title="القائمة الجانبية">
+              <Menu size={18} className="group-hover:scale-110 transition-transform" />
+            </button>
+            <div className="flex items-center gap-2.5 cursor-pointer group select-none relative" onClick={() => navigate('/about')} title="عن التطبيق">
+              <div className="absolute inset-0 bg-gold-400/20 blur-xl rounded-full scale-110 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="flex items-center gap-2.5 relative z-10">
+                <div className="w-10 h-10 shrink-0 aspect-square bg-gradient-to-br from-[#DFCD92] via-[#C6AD73] to-[#9A7B3C] rounded-full flex items-center justify-center text-white shadow-lg border border-gold-300/50 group-hover:rotate-12 transition-transform duration-300">
+                  <span className="font-quran text-2xl font-bold mt-1.5 drop-shadow-sm">ب</span>
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold text-navy-900 dark:text-white font-quran leading-none drop-shadow-sm tracking-wide">البيان</h1>
+                  <p className="text-[9px] font-bold text-gold-600 dark:text-gold-400 tracking-wider">القرآن والسنة</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <button className={headerBtnClass} onClick={() => setIsHistoryOpen(true)} title="الإحصائيات">
-            <Activity size={20} />
-          </button>
+          <div className="flex gap-2">
+            <button className={headerBtnClass} onClick={() => setIsHistoryOpen(true)} title="الإحصائيات">
+              <Activity size={18} className="group-hover:rotate-12 transition-transform" />
+            </button>
 
-          {/* BATHROOM MODE TOGGLE - NEW */}
-          <button
-            className={`${headerBtnClass} ${isBathroomModeActive ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : ''}`}
-            onClick={() => setIsBathroomModalOpen(true)}
-            title={isBathroomModeActive ? "وضع الصمت نشط" : "وضع الصمت المؤقت"}
-          >
-            {isBathroomModeActive ? (
-              <div className="relative">
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
-                <Pause size={20} className="text-red-500" fill="currentColor" />
+            {/* BATHROOM MODE TOGGLE - NEW */}
+            <button
+              className={`${headerBtnClass} ${isBathroomModeActive ? '!bg-red-500/20 !border-red-500/50' : ''}`}
+              onClick={() => setIsBathroomModalOpen(true)}
+              title={isBathroomModeActive ? "وضع الصمت نشط" : "وضع الصمت المؤقت"}
+            >
+              {isBathroomModeActive ? (
+                <div className="relative">
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
+                  <Pause size={18} className="text-red-500" fill="currentColor" />
+                </div>
+              ) : (
+                <Pause size={18} className="group-hover:scale-110 transition-transform" />
+              )}
+            </button>
+
+            <button className={headerBtnClass} onClick={() => navigate('/notifications')}>
+              <Bell size={18} className="group-hover:scale-110 transition-transform origin-top" />
+              {unreadCount > 0 && (
+                <span className="absolute top-0 right-0 w-4 h-4 bg-gradient-to-br from-red-500 to-red-600 text-white text-[9px] font-bold flex items-center justify-center rounded-full shadow-[0_0_8px_rgba(239,68,68,0.6)] animate-pulse">
+                  {unreadCount > 9 ? '9+' : toArabicDigits(unreadCount)}
+                </span>
+              )}
+            </button>
+            <button onClick={toggleTheme} className={headerBtnClass}>
+              <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 transform ${isDark ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-50 rotate-90'}`}>
+                <Sun size={18} className="text-gold-400 drop-shadow-[0_0_5px_rgba(251,191,36,0.5)] group-hover:rotate-45 transition-transform duration-500" fill="currentColor" />
               </div>
-            ) : (
-              <Pause size={20} className="text-navy-600 dark:text-[#C6AD73]" />
-            )}
-          </button>
-
-          <button className={headerBtnClass} onClick={() => navigate('/notifications')}>
-            <Bell size={20} />
-            {unreadCount > 0 && (
-              <span className="absolute -top-2 -right-2 min-w-[20px] h-[20px] bg-gradient-to-br from-red-500 to-red-600 text-white text-[11px] font-bold flex items-center justify-center rounded-full ring-2 ring-white dark:ring-navy-950 shadow-lg shadow-red-500/30 px-1.5 animate-pulse">
-                {unreadCount > 9 ? '9+' : toArabicDigits(unreadCount)}
-              </span>
-            )}
-          </button>
-          <button onClick={toggleTheme} className={headerBtnClass}>
-            <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 transform ${isDark ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-50 rotate-90'}`}>
-              <Sun size={20} className="text-gold-500" fill="currentColor" />
-            </div>
-            <div className={`absolute inset-0 flex items-center justify-center transition-all duration-300 transform ${!isDark ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-50 -rotate-90'}`}>
-              <Moon size={20} className="text-navy-600" />
-            </div>
-          </button>
+              <div className={`absolute inset-0 flex items-center justify-center transition-all duration-500 transform ${!isDark ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-50 -rotate-90'}`}>
+                <Moon size={18} className="text-navy-600 group-hover:-rotate-12 transition-transform duration-500" />
+              </div>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -660,48 +741,44 @@ export const Home: React.FC = () => {
       )}
 
       {/* --- PREMIUM DATE CARD --- */}
-      <div className="px-5 mt-4 relative z-10">
-        <div className="relative w-full bg-gradient-to-br from-[#0F2238] via-[#132A42] to-[#0A1929] dark:from-[#0A1929] dark:via-[#0D1F33] dark:to-[#071320] rounded-[2rem] shadow-2xl shadow-navy-500/20 dark:shadow-navy-950/50 overflow-hidden text-white p-5 sm:p-6 border border-navy-700/30">
+      <div className="px-4 sm:px-5 mt-4 relative z-10">
+        {/* Subtle Ambient Glow behind the card */}
+        <div className="absolute inset-0 bg-gold-400/20 dark:bg-gold-500/10 blur-[40px] rounded-full scale-90 -z-10"></div>
+        
+        <div className="relative w-full bg-gradient-to-br from-[#0F2238]/95 via-[#132A42]/95 to-[#0A1929]/95 dark:from-[#081321]/95 dark:via-[#0A1828]/95 dark:to-[#050D17]/95 backdrop-blur-2xl rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.25)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden text-white p-5 sm:p-6 border border-white/10 dark:border-white/5">
           {/* Islamic Pattern Overlay */}
-          <div className="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')]"></div>
+          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] mix-blend-overlay"></div>
 
-          {/* Decorative Glows */}
-          <div className="absolute top-0 right-0 w-40 h-40 bg-gold-500/10 rounded-full -mr-12 -mt-12 blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-32 h-32 bg-gold-400/10 rounded-full -ml-8 -mb-8 blur-2xl"></div>
+          {/* Decorative Glows inside */}
+          <div className="absolute top-0 right-0 w-48 h-48 bg-gold-400/15 rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-gold-500/10 rounded-full -ml-12 -mb-12 blur-2xl pointer-events-none"></div>
 
           {/* Main Content Row: Day Box (Right) + Month/Year Block (Left) */}
           <div className="flex items-stretch justify-between gap-4 relative z-10 h-[90px] sm:h-[100px]">
-            {/* Right Gold Square (Day) */}
-            <div className="w-[90px] h-[90px] sm:w-[100px] sm:h-[100px] bg-gradient-to-br from-[#D4B978] via-[#C6AD73] to-[#9A7B3C] rounded-2xl flex flex-col items-center justify-center shadow-xl shadow-gold-500/30 flex-shrink-0 border border-gold-400/30">
-              <span className="text-[3.2rem] sm:text-[3.5rem] font-black font-sans text-white drop-shadow-lg leading-none">
-                {toArabicDigits(hijri.day)}
-              </span>
+            {/* Right Gold Square (Day) with glowing ring */}
+            <div className="relative w-[90px] h-[90px] sm:w-[100px] sm:h-[100px] flex-shrink-0 group cursor-default">
+              {/* Outer Glow Ring */}
+              <div className="absolute inset-0 bg-gold-400/30 rounded-2xl blur-md group-hover:blur-lg transition-all duration-500"></div>
+              {/* Inner Card */}
+              <div className="relative w-full h-full bg-gradient-to-br from-[#DFCD92] via-[#C6AD73] to-[#9A7B3C] rounded-2xl flex flex-col items-center justify-center shadow-inner border border-gold-300/40">
+                <span className="text-[3.2rem] sm:text-[3.5rem] font-black font-sans text-[#1A314D] drop-shadow-sm leading-none">
+                  {toArabicDigits(hijri.day)}
+                </span>
+              </div>
             </div>
 
             {/* Left Block: flex container for (Month) and (Button + Year) */}
-            <div className="flex-1 flex justify-between h-full">
+            <div className="flex-1 flex justify-between h-full pl-1">
               
               {/* Right Side: Month Name */}
               <div className="flex flex-col justify-center h-full pt-1">
-                <h2 className="text-[2.2rem] sm:text-[2.5rem] font-bold font-quran text-white leading-none drop-shadow-lg">
+                <h2 className="text-[2.2rem] sm:text-[2.6rem] font-bold font-quran text-white leading-none drop-shadow-lg tracking-wide">
                   {MONTH_MAP[hijri.month]}
                 </h2>
               </div>
 
-              {/* Left Side: Events Button + Year */}
-              <div className="flex flex-col items-end justify-between h-full py-0.5">
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate('/events');
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-r from-[#1A314D]/80 to-[#1A314D]/60 hover:from-[#1A314D] hover:to-[#253D5C] text-white border border-[#C6AD73]/40 shadow-sm hover:shadow-lg transition-all group active:scale-95"
-                  title="المناسبات الإسلامية"
-                >
-                  <Calendar size={15} className="text-[#C6AD73] group-hover:text-gold-400 transition-colors" />
-                  <span className="text-[12px] sm:text-[13px] font-bold">المناسبات</span>
-                </button>
-
+              {/* Left Side: Year */}
+              <div className="flex flex-col items-end justify-end h-full py-0.5">
                 <div className="text-lg text-[#C6AD73] font-bold flex items-center justify-end gap-1.5">
                   <span>{toArabicDigits(hijri.year)}</span>
                   <span className="text-sm opacity-70">هـ</span>
@@ -711,18 +788,21 @@ export const Home: React.FC = () => {
           </div>
 
           {/* Middle Row: Gregorian Date (Left) + Days Remaining (Right) */}
-          <div className="flex justify-between items-center mt-4 relative z-10">
+          <div className="flex justify-between items-center mt-5 relative z-10">
             {/* Gregorian Date */}
-            <div className="bg-[#1A314D]/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-[#2A4566]/50">
-              <span className="text-[11px] sm:text-[12px] font-bold text-gray-300">
+            <div className="bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 shadow-inner">
+              <span className="text-[11px] sm:text-[12px] font-bold text-gray-200">
                 {gregorianDateStr}
               </span>
             </div>
 
             {/* Days Remaining */}
-            <div className="flex items-center gap-1.5 bg-[#1A314D]/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-[#2A4566]/50">
-              <span className="w-2 h-2 rounded-full bg-gradient-to-br from-gold-400 to-amber-500 shadow-sm shadow-gold-500/50"></span>
-              <span className="text-[11px] sm:text-[12px] font-bold text-[#C6AD73]">
+            <div className="flex items-center gap-2 bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 shadow-inner">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gold-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-gold-400"></span>
+              </span>
+              <span className="text-[11px] sm:text-[12px] font-bold text-gold-300">
                 {toArabicDigits(daysRemaining > 0 ? daysRemaining : 0)} يوم لنهاية الشهر الهجري
               </span>
             </div>
@@ -731,9 +811,14 @@ export const Home: React.FC = () => {
           {/* Bottom Row: Location (Right) + Prayer Button (Left) */}
           <div className="flex justify-between items-center mt-3 relative z-10 gap-3">
             {/* Location Display */}
-            <div className="flex items-center gap-1.5 bg-[#1A314D]/60 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-[#2A4566]/50">
-              <MapPin size={14} className="text-[#C6AD73]" />
-              <span className="text-[11px] font-bold text-gray-300 truncate max-w-[150px] sm:max-w-[200px]">
+            <div className="flex items-center gap-1.5 bg-white/5 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 hover:bg-white/10 cursor-pointer transition-colors"
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   setIsCitySearchModalOpen(true);
+                 }}
+            >
+              <MapPin size={14} className="text-gold-300" />
+              <span className="text-[11px] font-bold text-gray-200 truncate max-w-[150px] sm:max-w-[200px]">
                 {localStorage.getItem('user_location_name') || (prayerData?.meta?.timezone?.split('/').pop() || 'تحديد الموقع')}
               </span>
               <button
@@ -741,7 +826,7 @@ export const Home: React.FC = () => {
                   e.stopPropagation();
                   setIsCitySearchModalOpen(true);
                 }}
-                className="hidden lg:flex p-1 rounded-full hover:bg-white/10 text-stone-300 hover:text-white transition-colors"
+                className="hidden lg:flex p-1 rounded-full hover:bg-white/20 text-gray-300 hover:text-white transition-colors"
                 title="تحديد الموقع يدوياً"
               >
                 <Search size={12} />
@@ -752,7 +837,7 @@ export const Home: React.FC = () => {
                   fetchLocationAndPrayers(true);
                 }}
                 disabled={loadingPrayer}
-                className={`p-1 rounded-full hover:bg-white/10 text-gold-500 transition-colors ${loadingPrayer ? 'animate-spin' : ''}`}
+                className={`p-1 rounded-full hover:bg-white/20 text-gold-400 transition-colors ${loadingPrayer ? 'animate-spin' : ''}`}
                 title="تحديث الموقع تلقائياً"
               >
                 <RefreshCw size={12} />
@@ -796,63 +881,89 @@ export const Home: React.FC = () => {
 
 
 
-      <div className="px-5 mt-6 relative z-10">
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+      {/* ── Circular Glow Menu Grid ─────────────────────────────────── */}
+      <div className="px-4 sm:px-5 mt-5 relative z-10">
+        <div className="grid grid-cols-4 lg:grid-cols-8 gap-x-2 gap-y-5 sm:gap-x-4 sm:gap-y-6">
           {menuItems.map((item, idx) => (
             <button
               key={idx}
               onClick={() => navigate(item.path)}
-              className={`${item.bg} ${item.text} p-4 sm:p-5 rounded-2xl shadow-lg hover:shadow-xl flex items-center gap-3 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-95 transition-all duration-300 relative overflow-hidden group`}
+              className="menu-icon-btn flex flex-col items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2 rounded-xl"
+              aria-label={item.title}
             >
-              <div className="absolute right-0 top-0 w-20 h-20 bg-white/10 rounded-bl-full -mr-6 -mt-6 transition-transform duration-500 group-hover:scale-150"></div>
-              <div className="absolute bottom-0 left-0 w-16 h-16 bg-black/5 rounded-tr-full -ml-4 -mb-4"></div>
-              <div className="relative z-10 w-12 h-12 sm:w-14 sm:h-14 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-inner">
+              {/* Circular icon with per-item glow */}
+              <div
+                className={`menu-icon-circle ${item.iconClass}`}
+                style={{
+                  '--icon-glow-color': item.glow,
+                  '--icon-ring-color': item.ring,
+                  width: '56px',
+                  height: '56px',
+                } as React.CSSProperties}
+              >
                 {item.icon}
               </div>
-              <span className="relative z-10 font-bold text-sm sm:text-base">{item.title}</span>
+              {/* Label */}
+              <span className="menu-icon-label">{item.title}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="px-5 mt-6 relative z-10">
-        <div className="bg-white/95 dark:bg-navy-800/95 backdrop-blur-xl rounded-2xl p-5 shadow-lg shadow-gold-500/5 dark:shadow-navy-950/50 border-r-4 border-gradient-to-b border-gold-500 flex justify-between items-center cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 group" onClick={() => navigate(lastRead ? `/reader?page=${lastRead.page}` : '/reader')}>
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-gold-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-gold-500/30">
-              <BookOpen size={24} className="text-white" />
+      <div className="px-4 sm:px-5 mt-6 relative z-10 group cursor-pointer" onClick={() => navigate(lastRead ? `/reader?page=${lastRead.page}` : '/reader')}>
+        {/* Ambient Glow */}
+        <div className="absolute inset-0 bg-gold-400/10 dark:bg-gold-500/5 blur-2xl rounded-2xl scale-95 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        
+        <div className="bg-white/60 dark:bg-navy-800/50 backdrop-blur-2xl rounded-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] border border-white/50 dark:border-navy-600/30 flex justify-between items-center group-hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+          {/* Edge Glow effect */}
+          <div className="absolute top-0 right-0 w-1.5 h-full bg-gradient-to-b from-gold-400 to-amber-500 shadow-[0_0_10px_rgba(251,191,36,0.5)]"></div>
+
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="relative w-14 h-14">
+              <div className="absolute inset-0 bg-gold-400/40 blur-md rounded-full scale-90 group-hover:scale-110 transition-transform duration-500"></div>
+              <div className="relative w-full h-full bg-gradient-to-br from-gold-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg border border-gold-300/50">
+                <BookOpen size={24} className="text-white drop-shadow-sm" />
+              </div>
             </div>
             <div>
-              <h3 className="text-xs font-bold text-navy-400 dark:text-navy-400 mb-1">آخر قراءة</h3>
-              <p className="text-lg sm:text-xl font-bold text-navy-900 dark:text-white font-quran">{lastRead ? lastRead.surah : 'القرآن الكريم'}</p>
-              <p className="text-xs text-navy-500 dark:text-navy-400 mt-1">{lastRead ? `صفحة ${toArabicDigits(lastRead.page)}` : 'اضغط للبدء'}</p>
+              <h3 className="text-[11px] font-bold text-navy-500 dark:text-navy-400 mb-1 tracking-wide">آخر قراءة</h3>
+              <p className="text-lg sm:text-xl font-bold text-navy-900 dark:text-white font-quran drop-shadow-sm">{lastRead ? lastRead.surah : 'القرآن الكريم'}</p>
+              <p className="text-[11px] text-navy-500 dark:text-navy-400 mt-1">{lastRead ? `صفحة ${toArabicDigits(lastRead.page)}` : 'اضغط للبدء'}</p>
             </div>
           </div>
-          <div className="w-10 h-10 bg-gradient-to-br from-navy-100 to-navy-200 dark:from-navy-700 dark:to-navy-800 rounded-xl flex items-center justify-center text-navy-600 dark:text-gold-400 group-hover:from-gold-400 group-hover:to-amber-500 group-hover:text-white transition-all shadow-sm"><ChevronLeft size={20} /></div>
+          <div className="relative w-10 h-10 bg-white/50 dark:bg-navy-700/50 backdrop-blur-md rounded-full flex items-center justify-center text-navy-600 dark:text-gold-400 border border-white/40 dark:border-navy-600/50 group-hover:bg-gold-400 group-hover:text-white group-hover:border-gold-400 group-hover:shadow-[0_0_15px_rgba(251,191,36,0.4)] transition-all duration-300">
+            <ChevronLeft size={20} className="group-hover:-translate-x-0.5 transition-transform" />
+          </div>
         </div>
       </div>
 
-      <div className="px-5 mt-6 mb-4 relative z-10">
-        <div className="bg-white/95 dark:bg-navy-800/95 backdrop-blur-xl rounded-2xl p-5 sm:p-6 shadow-lg shadow-gold-500/5 dark:shadow-navy-950/50 relative overflow-hidden border border-gold-100 dark:border-navy-700">
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-gold-400 via-amber-500 to-navy-500"></div>
+      <div className="px-4 sm:px-5 mt-6 mb-4 relative z-10">
+        <div className="bg-white/60 dark:bg-navy-800/50 backdrop-blur-2xl rounded-2xl p-5 sm:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] relative overflow-hidden border border-white/50 dark:border-navy-600/30">
+          
+          {/* Top Ambient Glow (Gold/Amber) */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-gold-400/15 dark:bg-gold-500/10 blur-[50px] pointer-events-none"></div>
 
           {/* Decorative Quote Icon */}
-          <div className="absolute top-4 left-4 opacity-5">
-            <Quote size={80} className="text-gold-500" />
+          <div className="absolute top-2 left-2 opacity-5 dark:opacity-10 transform -scale-x-100">
+            <Quote size={100} className="text-gold-500" />
           </div>
 
           <div className="flex justify-between items-center mb-5 relative z-10">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 bg-gradient-to-br from-gold-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-gold-500/30">
-                <BookHeart size={18} className="text-white" />
+            <div className="flex items-center gap-3">
+              <div className="relative w-11 h-11">
+                <div className="absolute inset-0 bg-gold-400/40 blur-md rounded-full scale-90"></div>
+                <div className="relative w-full h-full bg-gradient-to-br from-gold-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg border border-gold-300/50">
+                  <BookHeart size={20} className="text-white drop-shadow-sm" />
+                </div>
               </div>
-              <span className="text-sm font-bold text-navy-800 dark:text-white">فائدة اليوم</span>
+              <span className="text-[13px] font-bold text-navy-800 dark:text-white drop-shadow-sm">فائدة اليوم</span>
             </div>
             <button
               onClick={() => loadDailyBenefit(true)}
               disabled={loadingBenefit}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-br from-navy-100 to-navy-200 dark:from-navy-700 dark:to-navy-800 text-navy-600 dark:text-navy-300 hover:from-gold-400 hover:to-amber-500 hover:text-white transition-all text-xs font-bold shadow-sm hover:shadow-md ${loadingBenefit ? 'opacity-50' : ''}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/50 dark:bg-navy-700/50 backdrop-blur-md text-gold-600 dark:text-gold-400 hover:bg-gold-50 dark:hover:bg-navy-600 border border-white/50 dark:border-navy-600/50 hover:border-gold-300 dark:hover:border-gold-500/50 transition-all text-[11px] font-bold shadow-sm active:scale-95 ${loadingBenefit ? 'opacity-50' : ''}`}
             >
-              {loadingBenefit ? (<RefreshCw size={14} className="animate-spin" />) : (<Sparkles size={14} />)}
+              {loadingBenefit ? (<RefreshCw size={13} className="animate-spin" />) : (<Sparkles size={13} />)}
               <span>فائدة جديدة</span>
             </button>
           </div>
@@ -874,13 +985,13 @@ export const Home: React.FC = () => {
               </div>
 
               {/* Action Bar */}
-              <div className="flex items-center justify-center gap-2 my-4">
+              <div className="flex flex-wrap items-center justify-center gap-2.5 my-5">
                 <button
                   onClick={copyBenefit}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm ${
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold transition-all duration-300 backdrop-blur-md border shadow-[0_4px_12px_rgba(0,0,0,0.05)] ${
                     isBenefitCopied
-                      ? 'bg-emerald-500 text-white border-emerald-500 scale-95'
-                      : 'bg-white dark:bg-navy-700 text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-600 hover:border-gold-400 hover:text-gold-600 dark:hover:text-gold-400'
+                      ? 'bg-emerald-500/90 text-white border-emerald-500/50 scale-95'
+                      : 'bg-white/60 dark:bg-navy-700/50 text-navy-600 dark:text-navy-300 border-white/50 dark:border-navy-600/50 hover:bg-gold-50 dark:hover:bg-navy-600 hover:text-gold-600 dark:hover:text-gold-400 hover:border-gold-300 dark:hover:border-gold-500/50'
                   }`}
                   title="نسخ الآية"
                 >
@@ -890,7 +1001,7 @@ export const Home: React.FC = () => {
 
                 <button
                   onClick={shareBenefit}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm bg-white dark:bg-navy-700 text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-600 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-95"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold transition-all duration-300 backdrop-blur-md border shadow-[0_4px_12px_rgba(0,0,0,0.05)] bg-white/60 dark:bg-navy-700/50 text-navy-600 dark:text-navy-300 border-white/50 dark:border-navy-600/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-500/50 active:scale-95"
                   title="مشاركة الآية"
                 >
                   <Share2 size={14} />
@@ -899,7 +1010,11 @@ export const Home: React.FC = () => {
 
                 <button
                   onClick={() => setShowBenefitTafsir(v => !v)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm bg-white dark:bg-navy-700 text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-600 hover:border-amber-400 hover:text-amber-600 dark:hover:text-amber-400 active:scale-95"
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold transition-all duration-300 backdrop-blur-md border shadow-[0_4px_12px_rgba(0,0,0,0.05)] active:scale-95 ${
+                    showBenefitTafsir 
+                      ? 'bg-gold-50 dark:bg-gold-900/20 text-gold-600 dark:text-gold-400 border-gold-300 dark:border-gold-500/50'
+                      : 'bg-white/60 dark:bg-navy-700/50 text-navy-600 dark:text-navy-300 border-white/50 dark:border-navy-600/50 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 dark:hover:text-amber-400 hover:border-amber-300 dark:hover:border-amber-500/50'
+                  }`}
                   title="إظهار / إخفاء التفسير"
                 >
                   <Library size={14} />
@@ -914,12 +1029,12 @@ export const Home: React.FC = () => {
                   showBenefitTafsir ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
                 }`}
               >
-                <div className="bg-gradient-to-br from-amber-50 to-gold-50/50 dark:from-navy-900 dark:to-navy-950 p-4 rounded-2xl border border-amber-100 dark:border-navy-700">
+                <div className="bg-white/40 dark:bg-navy-900/40 backdrop-blur-md p-4 rounded-2xl border border-white/50 dark:border-navy-700/50 shadow-inner">
                   <h4 className="text-[11px] font-bold text-gold-600 dark:text-gold-400 mb-2.5 flex items-center gap-1.5">
                     <Library size={12} />
                     التفسير الميسر
                   </h4>
-                  <p className="text-xs sm:text-sm text-navy-700 dark:text-navy-200 leading-[2] text-right">{dailyBenefit.tafsir}</p>
+                  <p className="text-xs sm:text-[13px] text-navy-700 dark:text-navy-200 leading-[2.2] text-right drop-shadow-sm">{dailyBenefit.tafsir}</p>
                 </div>
               </div>
             </div>
@@ -930,23 +1045,33 @@ export const Home: React.FC = () => {
       </div>
 
       {/* Daily Hadith Section */}
-      <div className="px-5 mb-10 relative z-10">
-        <div className="bg-white/95 dark:bg-navy-800/95 backdrop-blur-xl rounded-2xl p-5 sm:p-6 shadow-lg shadow-gold-500/5 dark:shadow-navy-950/50 relative overflow-hidden border border-gold-100 dark:border-navy-700">
-          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-navy-500 via-gold-400 to-amber-500"></div>
+      <div className="px-4 sm:px-5 mb-10 relative z-10">
+        <div className="bg-white/60 dark:bg-navy-800/50 backdrop-blur-2xl rounded-2xl p-5 sm:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] relative overflow-hidden border border-white/50 dark:border-navy-600/30">
+          
+          {/* Top Ambient Glow (Blue/Cyan) */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-sky-400/15 dark:bg-sky-500/10 blur-[50px] pointer-events-none"></div>
+
+          {/* Decorative Quote Icon */}
+          <div className="absolute top-2 left-2 opacity-5 dark:opacity-10 transform -scale-x-100">
+            <Quote size={100} className="text-sky-500" />
+          </div>
 
           <div className="flex justify-between items-center mb-5 relative z-10">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 bg-gradient-to-br from-navy-400 to-navy-600 rounded-xl flex items-center justify-center shadow-lg shadow-navy-500/30">
-                <BookOpen size={18} className="text-white" />
+            <div className="flex items-center gap-3">
+              <div className="relative w-11 h-11">
+                <div className="absolute inset-0 bg-sky-400/40 blur-md rounded-full scale-90"></div>
+                <div className="relative w-full h-full bg-gradient-to-br from-sky-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg border border-sky-300/50">
+                  <BookOpen size={20} className="text-white drop-shadow-sm" />
+                </div>
               </div>
-              <span className="text-sm font-bold text-navy-800 dark:text-white">حديث اليوم</span>
+              <span className="text-[13px] font-bold text-navy-800 dark:text-white drop-shadow-sm">حديث اليوم</span>
             </div>
             <button
               onClick={() => loadDailyHadith(true)}
               disabled={loadingHadith}
-              className={`flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-br from-navy-100 to-navy-200 dark:from-navy-700 dark:to-navy-800 text-navy-600 dark:text-navy-300 hover:from-navy-400 hover:to-navy-500 hover:text-white transition-all text-xs font-bold shadow-sm hover:shadow-md ${loadingHadith ? 'opacity-50' : ''}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/50 dark:bg-navy-700/50 backdrop-blur-md text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-navy-600 border border-white/50 dark:border-navy-600/50 hover:border-sky-300 dark:hover:border-sky-500/50 transition-all text-[11px] font-bold shadow-sm active:scale-95 ${loadingHadith ? 'opacity-50' : ''}`}
             >
-              {loadingHadith ? (<RefreshCw size={14} className="animate-spin" />) : (<Sparkles size={14} />)}
+              {loadingHadith ? (<RefreshCw size={13} className="animate-spin" />) : (<Sparkles size={13} />)}
               <span>حديث جديد</span>
             </button>
           </div>
@@ -961,20 +1086,31 @@ export const Home: React.FC = () => {
             <div className="relative z-10">
               {/* Hadith Text */}
               <div className="relative mb-4">
-                <Quote size={24} className="text-navy-200 dark:text-navy-600 absolute -top-2 right-0 rotate-180" />
-                <p className="font-quran text-lg sm:text-xl leading-[2.2] text-center text-navy-900 dark:text-white px-4">
-                  {dailyHadith.hadith.arabic || dailyHadith.hadith.text}
-                </p>
+                <Quote size={24} className="text-sky-200 dark:text-navy-600 absolute -top-2 right-0 rotate-180" />
+                <div className="px-4">
+                  <p className={`font-quran text-lg sm:text-xl leading-[2.4] text-center text-navy-900 dark:text-white drop-shadow-sm transition-all duration-500 ease-in-out ${isHadithExpanded ? '' : 'line-clamp-4'}`}>
+                    {dailyHadith.hadith.arabic || dailyHadith.hadith.text}
+                  </p>
+                  {((dailyHadith.hadith.arabic || dailyHadith.hadith.text || '').length > 300) && (
+                    <button
+                      onClick={() => setIsHadithExpanded(!isHadithExpanded)}
+                      className="mt-2 text-[12px] font-bold text-sky-500 dark:text-sky-400 hover:text-sky-600 dark:hover:text-sky-300 w-full text-center flex items-center justify-center gap-1 transition-colors"
+                    >
+                      {isHadithExpanded ? 'طي الحديث' : 'اقرأ المزيد'}
+                      {isHadithExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Action Bar */}
-              <div className="flex items-center justify-center gap-2 my-4">
+              <div className="flex flex-wrap items-center justify-center gap-2.5 my-5">
                 <button
                   onClick={copyHadith}
-                  className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm ${
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold transition-all duration-300 backdrop-blur-md border shadow-[0_4px_12px_rgba(0,0,0,0.05)] ${
                     isHadithCopied
-                      ? 'bg-emerald-500 text-white border-emerald-500 scale-95'
-                      : 'bg-white dark:bg-navy-700 text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-600 hover:border-gold-400 hover:text-gold-600 dark:hover:text-gold-400'
+                      ? 'bg-emerald-500/90 text-white border-emerald-500/50 scale-95'
+                      : 'bg-white/60 dark:bg-navy-700/50 text-navy-600 dark:text-navy-300 border-white/50 dark:border-navy-600/50 hover:bg-sky-50 dark:hover:bg-navy-600 hover:text-sky-600 dark:hover:text-sky-400 hover:border-sky-300 dark:hover:border-sky-500/50'
                   }`}
                   title="نسخ الحديث"
                 >
@@ -984,7 +1120,7 @@ export const Home: React.FC = () => {
 
                 <button
                   onClick={shareHadith}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm bg-white dark:bg-navy-700 text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-600 hover:border-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-400 active:scale-95"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold transition-all duration-300 backdrop-blur-md border shadow-[0_4px_12px_rgba(0,0,0,0.05)] bg-white/60 dark:bg-navy-700/50 text-navy-600 dark:text-navy-300 border-white/50 dark:border-navy-600/50 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600 dark:hover:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-500/50 active:scale-95"
                   title="مشاركة الحديث"
                 >
                   <Share2 size={14} />
@@ -993,11 +1129,11 @@ export const Home: React.FC = () => {
 
                 <button
                   onClick={() => navigate(`/hadith?book=${dailyHadith.bookId}&target=${String(dailyHadith.hadith.id || dailyHadith.hadith.hadithnumber)}`)}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 border shadow-sm bg-white dark:bg-navy-700 text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-600 hover:border-navy-400 hover:text-navy-800 dark:hover:text-white active:scale-95"
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold transition-all duration-300 backdrop-blur-md border shadow-[0_4px_12px_rgba(0,0,0,0.05)] bg-white/60 dark:bg-navy-700/50 text-navy-600 dark:text-navy-300 border-white/50 dark:border-navy-600/50 hover:bg-navy-100 dark:hover:bg-navy-600 hover:text-navy-800 dark:hover:text-white hover:border-navy-300 dark:hover:border-navy-500/50 active:scale-95"
                   title="الانتقال للحديث"
                 >
                   <ExternalLink size={14} />
-                  <span>عرض</span>
+                  <span>عرض الحديث</span>
                 </button>
               </div>
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Zap, Layers, AlignJustify, ChevronRight, Brain, Shuffle, ChevronLeft, Type, Feather, Flame } from 'lucide-react';
+import { Zap, Layers, AlignJustify, ChevronRight, Brain, Shuffle, ChevronLeft, Type, Feather, Flame, X } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toArabicDigits } from '../../services/normalization';
 import { QuizDifficulty } from '../../services/hifzManager';
@@ -104,9 +104,15 @@ export const QuizPhaseSelector: React.FC<QuizPhaseSelectorProps> = ({
   ];
 
   return (
-    <div className="flex flex-col gap-5 py-2">
+    <div className="flex flex-col gap-5 py-2 relative">
       {/* Header */}
-      <div className="text-center">
+      <div className="relative text-center">
+        <button
+          onClick={onClose}
+          className="absolute top-0 left-0 p-2 rounded-full text-navy-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+        >
+          <X size={20} />
+        </button>
         <div className="inline-flex items-center justify-center w-14 h-14 mx-auto mb-3 rounded-2xl bg-gradient-to-br from-gold-400 to-amber-500 shadow-lg shadow-gold-500/25">
           <span className="text-white text-2xl">📖</span>
         </div>
@@ -199,14 +205,6 @@ export const QuizPhaseSelector: React.FC<QuizPhaseSelectorProps> = ({
           );
         })}
       </div>
-
-      {/* Close */}
-      <button
-        onClick={onClose}
-        className="w-full py-3 rounded-xl text-sm font-bold text-navy-500 dark:text-navy-400 hover:bg-navy-100 dark:hover:bg-navy-800 transition-colors"
-      >
-        إغلاق
-      </button>
     </div>
   );
 };
