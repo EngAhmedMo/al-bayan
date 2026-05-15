@@ -849,141 +849,7 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
         return null
     }
 
-    private fun playSalawat(soundId: String, volume: Int, shouldResume: Boolean = false) {
-        // CONCURRENCY PROTECTION: Never interrupt Azhan for a reminder
-        if (isPlayingAzhan) {
-            android.util.Log.w("AudioPlaybackService", "Skipping Salawat: Azhan is currently playing.")
-            stopSalawat() // Release wake lock if held
-            return
-        }
 
-        val currentPlayer = player ?: return
-        
-        acquireWakeLock()
-
-        // ══════════════════════════════════════════════════════════════════════════
-        // SMART RESUME LOGIC (Save State)
-        // ══════════════════════════════════════════════════════════════════════════
-        if (shouldResume && !isPlayingSalawat && currentPlayer.playbackState != Player.STATE_IDLE) {
-             if (currentPlayer.isPlaying || currentPlayer.playbackState == Player.STATE_READY) {
-                 wasPlayingBeforeSalawat = true
-                 savedMediaItem = currentPlayer.currentMediaItem
-                 savedPosition = currentPlayer.currentPosition
-                 savedPlayWhenReady = currentPlayer.playWhenReady
-                 android.util.Log.d("AudioPlaybackService", "💾 Smart Resume: State Saved (Item=${savedMediaItem?.mediaId}, Pos=$savedPosition)")
-             }
-        }
-        
-        // Request Focus (Transient Duck)
-        val am = audioManager
-        if (am != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-                    .setAudioAttributes(
-                        android.media.AudioAttributes.Builder()
-                            .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
-                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
-                            .build()
-                    )
-                    //.setAcceptsDelayedFocusGain(true)
-                    .setOnAudioFocusChangeListener { focusChange ->
-                        // Optional: Handle focus loss while playing Salawat
-                         if (focusChange == AudioManager.AUDIOFOCUS_LOSS) {
-                             stopSalawat()
-                         }
-                    }
-                    .build()
-                
-                salawatFocusRequest = focusRequest // SAVE REQUEST
-                am.requestAudioFocus(focusRequest)
-            } else {
-                 @Suppress("DEPRECATION")
-                 am.requestAudioFocus(null, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
-            }
-        }
-        
-        isPlayingSalawat = true
-        
-        // ══════════════════════════════════════════════════════════════════════════
-        // 🎯 FIX: SMART SHUFFLE & RELIABILITY
-        // 1. Remember last played sound to avoid repetition
-        // 2. Defensive checks to ensure file existence
-        // ══════════════════════════════════════════════════════════════════════════
-        
-        // Handle "Random" Selection with Smart Shuffle
-        var targetSoundId = soundId
-        if (targetSoundId == "random") {
-            val availableSounds = listOf("salawat_one", "salawat_two", "salawat_three", "salawat_four", "salawat_five")
-            val prefs = getSharedPreferences("AlBayanPrefs", Context.MODE_PRIVATE)
-            val lastPlayed = prefs.getString("last_salawat_sound", "")
-            
-            // Filter out the last played sound to avoid repetition (Smart Shuffle)
-            val candidates = if (availableSounds.size > 1 && lastPlayed != null) {
-                availableSounds.filter { it != lastPlayed }
-            } else {
-                availableSounds
-            }
-            
-            targetSoundId = candidates.random()
-            
-            // Save this choice for next time
-            prefs.edit().putString("last_salawat_sound", targetSoundId).apply()
-            android.util.Log.d("AudioPlaybackService", "🎲 Smart Shuffle: Selected $targetSoundId (Avoided: $lastPlayed)")
-        }
-        
-        var resId = resources.getIdentifier(targetSoundId, "raw", packageName)
-        
-        // SAFE FALLBACK: If file missing, try 'salawat_one', but NEVER fall back to a full Azhan
-        if (resId == 0) {
-            android.util.Log.w("AudioPlaybackService", "⚠️ Requested sound '$targetSoundId' not found, falling back to salawat_one")
-            resId = resources.getIdentifier("salawat_one", "raw", packageName)
-        }
-        
-        if (resId == 0) {
-            // If still missing, simply log and exit. Do NOT play Azhan alert.
-            android.util.Log.e("AudioPlaybackService", "❌ Critical: Salawat audio file '$targetSoundId' or 'salawat_one' not found in raw resources.")
-            stopSalawat()
-            return
-        }
-        
-        try {
-            val uri = RawResourceDataSource.buildRawResourceUri(resId)
-            val mediaItem = MediaItem.fromUri(uri)
-            
-            val attributes = AudioAttributes.Builder()
-                .setUsage(C.USAGE_MEDIA) // FIXED: Use MEDIA for ExoPlayer too
-                .setContentType(C.AUDIO_CONTENT_TYPE_SPEECH)
-                .build()
-                
-            
-            player?.apply {
-                setAudioAttributes(attributes, false)
-                setMediaItem(mediaItem)
-                
-                // Respect system volume logic if volume passed is standard
-                val volumeFloat = volume.coerceIn(0, 100) / 100f
-                
-                prepare()
-                fadeInCurrentPlayer(volumeFloat)
-                play()
-            }
-            
-            // NOTIFY JS LAYER: Salawat started (for Quran pause/resume)
-            val startIntent = Intent(ACTION_SALAWAT_STARTED).apply {
-                setPackage(packageName)
-            }
-            sendBroadcast(startIntent)
-            android.util.Log.d("AudioPlaybackService", "📢 Broadcast: ACTION_SALAWAT_STARTED")
-            
-            // VISUAL FEEDBACK: Show a Toast (on Main Thread)
-            android.os.Handler(android.os.Looper.getMainLooper()).post {
-                android.widget.Toast.makeText(this, "اللهم صلِّ وسلم على نبينا محمد", android.widget.Toast.LENGTH_SHORT).show()
-            }
-        } catch (e: Exception) {
-             android.util.Log.e("AudioPlaybackService", "❌ Error playing Salawat: ${e.message}", e)
-             stopSalawat()
-        }
-    }
 
     private fun stopAzhan() {
         stopProgressUpdates()
@@ -1011,6 +877,15 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
         isAzhanMuted = false
         currentPrayerTime = ""
         
+        // --- AUDIO ROUTING FIX ---
+        // Restore media attributes so next time media plays, it plays over the correct channel
+        val mediaAttributes = androidx.media3.common.AudioAttributes.Builder()
+            .setUsage(androidx.media3.common.C.USAGE_MEDIA)
+            .setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC)
+            .build()
+        player?.setAudioAttributes(mediaAttributes, true) // Turn auto audio focus back ON
+        // -------------------------
+        
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
              stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
@@ -1023,73 +898,7 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
         sendBroadcast(finishIntent)
     }
 
-    private fun stopSalawat(retainForeground: Boolean = false) {
-        if (!isPlayingSalawat) return
-        
-        android.util.Log.d("AudioPlaybackService", "🛑 Stopping Salawat...")
 
-        // 1. Release Focus
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-             salawatFocusRequest?.let { audioManager?.abandonAudioFocusRequest(it) }
-        } else {
-             @Suppress("DEPRECATION")
-             audioManager?.abandonAudioFocus(null)
-        }
-        salawatFocusRequest = null
-
-        // 2. Stop Player (only if we are NOT going to resume immediately)
-        // If we want to resume, we probably shouldn't 'stop' effectively but just swap?
-        // Actually, stopping is fine, as we will re-prepare.
-        player?.stop()
-        isPlayingSalawat = false
-        
-        if (!retainForeground) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                 stopForeground(STOP_FOREGROUND_REMOVE)
-            } else {
-                 @Suppress("DEPRECATION")
-                 stopForeground(true)
-            }
-        }
-        
-        wakeLock?.let { if (it.isHeld) it.release() }
-        wakeLock = null
-        
-        // NOTIFY JS LAYER: Salawat finished (for UI update)
-        val finishIntent = Intent(ACTION_SALAWAT_FINISHED).apply {
-            setPackage(packageName)
-        }
-        sendBroadcast(finishIntent)
-        android.util.Log.d("AudioPlaybackService", "📢 Broadcast: ACTION_SALAWAT_FINISHED")
-
-        // ══════════════════════════════════════════════════════════════════════════
-        // SMART RESUME LOGIC (Restore State)
-        // ══════════════════════════════════════════════════════════════════════════
-        if (wasPlayingBeforeSalawat && savedMediaItem != null) {
-             val p = player
-             if (p != null) {
-                 android.util.Log.d("AudioPlaybackService", "♻️ Smart Resume: Restoring content...")
-                 
-                 // Restore attributes? Assuming standard media attributes
-                 val attributes = AudioAttributes.Builder()
-                    .setUsage(C.USAGE_MEDIA)
-                    .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC) // Or SPEECH?
-                    .build()
-                 p.setAudioAttributes(attributes, true) // Handle focus automatically now
-
-                 p.setMediaItem(savedMediaItem!!)
-                 p.prepare()
-                 p.seekTo(savedPosition)
-                 p.playWhenReady = true // Always resume if it was playing, or if we want to force resume
-                 // p.playWhenReady = savedPlayWhenReady 
-             }
-             
-             // Reset state
-             wasPlayingBeforeSalawat = false
-             savedMediaItem = null
-             savedPosition = 0
-        }
-    }
 
     private val audioFocusChangeListener = AudioManager.OnAudioFocusChangeListener { focusChange ->
         when (focusChange) {
@@ -1102,10 +911,9 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
             }
             AudioManager.AUDIOFOCUS_LOSS -> {
                 // Permanent loss: Stop
-                if (isPlayingAzhan || isPlayingSalawat) {
-                    val type = if (isPlayingAzhan) "Azhan" else "Salawat"
-                    logToCatalog("🛑 AudioFocus Loss: Stopping $type")
-                    if (isPlayingAzhan) stopAzhan() else stopSalawat()
+                if (isPlayingAzhan) {
+                    logToCatalog("🛑 AudioFocus Loss: Stopping Azhan")
+                    stopAzhan()
                 }
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
@@ -1316,8 +1124,14 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
         
         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
         
+        val mediaAttributes = androidx.media3.common.AudioAttributes.Builder()
+            .setUsage(androidx.media3.common.C.USAGE_MEDIA)
+            .setContentType(androidx.media3.common.C.AUDIO_CONTENT_TYPE_MUSIC)
+            .build()
+        
         player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(mediaSourceFactory)
+            .setAudioAttributes(mediaAttributes, true)
             .build().apply {
             addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(playbackState: Int) {
@@ -1349,7 +1163,6 @@ class AudioPlaybackService : MediaSessionService(), SensorEventListener {
         android.util.Log.d("AudioPlaybackService", "💤 Sleep Timer Finished! Stopping audio...")
         
         // 1. Clear Smart Resume states so nothing resumes!
-        wasPlayingBeforeSalawat = false
         savedMediaItem = null
         savedPosition = 0
         sleepTimerEndTime = 0
