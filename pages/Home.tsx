@@ -124,8 +124,8 @@ export const Home: React.FC = () => {
   }, [prayerTracking]);
 
   // Unified button style class
-  /* Unified button style class - Premium Gold Update */
-  const headerBtnClass = "w-10 h-10 flex items-center justify-center rounded-full bg-white/40 dark:bg-navy-800/40 backdrop-blur-xl border border-white/60 dark:border-navy-600/50 text-navy-700 dark:text-gold-300 hover:bg-white/80 dark:hover:bg-navy-700/70 hover:border-gold-300 dark:hover:border-gold-500/60 hover:text-gold-600 dark:hover:text-gold-400 hover:shadow-[0_0_15px_rgba(251,191,36,0.3)] shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all duration-300 active:scale-95 group relative overflow-hidden";
+  /* Unified button style class - Premium Gold Update & Optimized */
+  const headerBtnClass = "w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-white/40 dark:bg-navy-800/40 backdrop-blur-md border border-white/60 dark:border-navy-600/50 text-navy-700 dark:text-gold-300 hover:bg-white/80 dark:hover:bg-navy-700/70 hover:border-gold-300 dark:hover:border-gold-500/60 hover:text-gold-600 dark:hover:text-gold-400 hover:shadow-[0_0_15px_rgba(251,191,36,0.3)] shadow-sm transition-all duration-300 active:scale-95 group relative overflow-hidden transform-gpu";
 
   useEffect(() => {
     setUnreadCount(getUnreadCount());
@@ -664,35 +664,35 @@ export const Home: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-full bg-gradient-to-b from-gold-50 via-white to-gold-50/50 dark:from-navy-950 dark:via-navy-900 dark:to-navy-950 pb-28 font-sans relative overflow-x-hidden">
-      {/* Background Decorative Elements - Fixed for Performance */}
+      {/* Background Decorative Elements - Optimized for Performance */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-400/10 dark:bg-gold-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
-        <div className="absolute bottom-1/4 left-0 w-80 h-80 bg-amber-400/10 dark:bg-amber-500/5 rounded-full blur-3xl -translate-x-1/2"></div>
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.1),transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.05),transparent_70%)] -translate-y-1/2 translate-x-1/3 transform-gpu"></div>
+        <div className="absolute bottom-1/4 left-0 w-[400px] h-[400px] bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.1),transparent_70%)] dark:bg-[radial-gradient(circle_at_center,rgba(245,158,11,0.05),transparent_70%)] -translate-x-1/2 transform-gpu"></div>
       </div>
 
       <div className="w-full max-w-5xl mx-auto flex flex-col flex-1 relative z-10">
       {/* Top Bar Container */}
-      <div className="sticky top-0 z-50 px-4 sm:px-5 pt-4 pb-2">
-        <div className="flex justify-between items-center bg-white/30 dark:bg-navy-900/40 backdrop-blur-2xl rounded-[2rem] px-4 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] border border-white/40 dark:border-navy-600/30">
-          <div className="flex items-center gap-3">
+      <div className="sticky top-0 z-50 px-4 sm:px-5 pt-4 pb-2 transform-gpu">
+        <div className="flex justify-between items-center bg-white/60 dark:bg-navy-900/60 backdrop-blur-md rounded-[2rem] px-3 sm:px-4 py-2.5 sm:py-3 shadow-sm border border-white/40 dark:border-navy-600/30">
+          <div className="flex items-center gap-1.5 sm:gap-3 flex-1 min-w-0">
             <button onClick={openSidebar} className={`${headerBtnClass}`} title="القائمة الجانبية">
               <Menu size={18} className="group-hover:scale-110 transition-transform" />
             </button>
-            <div className="flex items-center gap-2.5 cursor-pointer group select-none relative" onClick={() => navigate('/about')} title="عن التطبيق">
-              <div className="absolute inset-0 bg-gold-400/20 blur-xl rounded-full scale-110 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <div className="flex items-center gap-2.5 relative z-10">
-                <div className="w-10 h-10 shrink-0 aspect-square bg-gradient-to-br from-[#DFCD92] via-[#C6AD73] to-[#9A7B3C] rounded-full flex items-center justify-center text-white shadow-lg border border-gold-300/50 group-hover:rotate-12 transition-transform duration-300">
-                  <span className="font-quran text-2xl font-bold mt-1.5 drop-shadow-sm">ب</span>
+            <div className="flex items-center gap-1.5 sm:gap-2.5 cursor-pointer group select-none relative flex-1 min-w-0 shrink-0" onClick={() => navigate('/about')} title="عن التطبيق">
+              <div className="absolute inset-0 bg-gold-400/20 blur-md rounded-full scale-110 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="flex items-center gap-2 sm:gap-2.5 relative z-10 min-w-0 shrink-0">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 aspect-square bg-gradient-to-br from-[#DFCD92] via-[#C6AD73] to-[#9A7B3C] rounded-full flex items-center justify-center text-white shadow-md border border-gold-300/50 group-hover:rotate-12 transition-transform duration-300">
+                  <span className="font-quran text-[22px] sm:text-2xl font-bold mt-1.5 drop-shadow-sm">ب</span>
                 </div>
-                <div>
-                  <h1 className="text-xl font-bold text-navy-900 dark:text-white font-quran leading-none drop-shadow-sm tracking-wide">البيان</h1>
-                  <p className="text-[9px] font-bold text-gold-600 dark:text-gold-400 tracking-wider">القرآن والسنة</p>
+                <div className="shrink min-w-0">
+                  <h1 className="text-lg sm:text-xl font-bold text-navy-900 dark:text-white font-quran leading-none drop-shadow-sm tracking-wide shrink min-w-0 truncate">البيان</h1>
+                  <p className="hidden xs:block text-[8px] sm:text-[9px] font-bold text-gold-600 dark:text-gold-400 tracking-wider shrink min-w-0 truncate">القرآن والسنة</p>
                 </div>
               </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <button className={headerBtnClass} onClick={() => setIsHistoryOpen(true)} title="الإحصائيات">
+          <div className="flex gap-1.5 sm:gap-2 shrink-0">
+            <button className={`${headerBtnClass} hidden xs:flex`} onClick={() => setIsHistoryOpen(true)} title="الإحصائيات">
               <Activity size={18} className="group-hover:rotate-12 transition-transform" />
             </button>
 
@@ -919,9 +919,9 @@ export const Home: React.FC = () => {
           <div className="absolute top-0 right-0 w-1.5 h-full bg-gradient-to-b from-gold-400 to-amber-500 shadow-[0_0_10px_rgba(251,191,36,0.5)]"></div>
 
           <div className="flex items-center gap-4 relative z-10">
-            <div className="relative w-14 h-14">
-              <div className="absolute inset-0 bg-gold-400/40 blur-md rounded-full scale-90 group-hover:scale-110 transition-transform duration-500"></div>
-              <div className="relative w-full h-full bg-gradient-to-br from-gold-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg border border-gold-300/50">
+            <div className="relative w-14 h-14 shrink-0">
+              <div className="absolute inset-0 bg-gold-400/30 blur-sm rounded-full scale-90 group-hover:scale-105 transition-transform duration-500 transform-gpu"></div>
+              <div className="relative w-full h-full bg-gradient-to-br from-gold-400 to-amber-500 rounded-xl flex items-center justify-center shadow-sm border border-gold-300/50">
                 <BookOpen size={24} className="text-white drop-shadow-sm" />
               </div>
             </div>
@@ -938,10 +938,10 @@ export const Home: React.FC = () => {
       </div>
 
       <div className="px-4 sm:px-5 mt-6 mb-4 relative z-10">
-        <div className="bg-white/60 dark:bg-navy-800/50 backdrop-blur-2xl rounded-2xl p-5 sm:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] relative overflow-hidden border border-white/50 dark:border-navy-600/30">
+        <div className="bg-white/60 dark:bg-navy-800/50 backdrop-blur-md rounded-2xl p-5 sm:p-6 shadow-sm relative overflow-hidden border border-white/50 dark:border-navy-600/30 transform-gpu">
           
           {/* Top Ambient Glow (Gold/Amber) */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-gold-400/15 dark:bg-gold-500/10 blur-[50px] pointer-events-none"></div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-[radial-gradient(ellipse_at_top,rgba(251,191,36,0.15),transparent_70%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(251,191,36,0.1),transparent_70%)] pointer-events-none transform-gpu"></div>
 
           {/* Decorative Quote Icon */}
           <div className="absolute top-2 left-2 opacity-5 dark:opacity-10 transform -scale-x-100">
@@ -950,9 +950,9 @@ export const Home: React.FC = () => {
 
           <div className="flex justify-between items-center mb-5 relative z-10">
             <div className="flex items-center gap-3">
-              <div className="relative w-11 h-11">
-                <div className="absolute inset-0 bg-gold-400/40 blur-md rounded-full scale-90"></div>
-                <div className="relative w-full h-full bg-gradient-to-br from-gold-400 to-amber-500 rounded-xl flex items-center justify-center shadow-lg border border-gold-300/50">
+              <div className="relative w-11 h-11 shrink-0">
+                <div className="absolute inset-0 bg-gold-400/30 blur-sm rounded-full scale-90 transform-gpu"></div>
+                <div className="relative w-full h-full bg-gradient-to-br from-gold-400 to-amber-500 rounded-xl flex items-center justify-center shadow-sm border border-gold-300/50">
                   <BookHeart size={20} className="text-white drop-shadow-sm" />
                 </div>
               </div>
@@ -1025,16 +1025,18 @@ export const Home: React.FC = () => {
 
               {/* Collapsible Tafsir */}
               <div
-                className={`overflow-hidden transition-all duration-500 ${
-                  showBenefitTafsir ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
+                className={`grid transition-[grid-template-rows,opacity,margin] duration-300 ease-in-out ${
+                  showBenefitTafsir ? 'grid-rows-[1fr] opacity-100 mt-4' : 'grid-rows-[0fr] opacity-0 mt-0'
                 }`}
               >
-                <div className="bg-white/40 dark:bg-navy-900/40 backdrop-blur-md p-4 rounded-2xl border border-white/50 dark:border-navy-700/50 shadow-inner">
-                  <h4 className="text-[11px] font-bold text-gold-600 dark:text-gold-400 mb-2.5 flex items-center gap-1.5">
-                    <Library size={12} />
-                    التفسير الميسر
-                  </h4>
-                  <p className="text-xs sm:text-[13px] text-navy-700 dark:text-navy-200 leading-[2.2] text-right drop-shadow-sm">{dailyBenefit.tafsir}</p>
+                <div className="overflow-hidden">
+                  <div className="bg-white/80 dark:bg-navy-900/80 p-4 rounded-2xl border border-white/50 dark:border-navy-700/50 shadow-inner">
+                    <h4 className="text-[11px] font-bold text-gold-600 dark:text-gold-400 mb-2.5 flex items-center gap-1.5">
+                      <Library size={12} />
+                      التفسير الميسر
+                    </h4>
+                    <p className="text-xs sm:text-[13px] text-navy-700 dark:text-navy-200 leading-[2.2] text-right drop-shadow-sm">{dailyBenefit.tafsir}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1046,10 +1048,10 @@ export const Home: React.FC = () => {
 
       {/* Daily Hadith Section */}
       <div className="px-4 sm:px-5 mb-10 relative z-10">
-        <div className="bg-white/60 dark:bg-navy-800/50 backdrop-blur-2xl rounded-2xl p-5 sm:p-6 shadow-[0_8px_32px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] relative overflow-hidden border border-white/50 dark:border-navy-600/30">
+        <div className="bg-white/60 dark:bg-navy-800/50 backdrop-blur-md rounded-2xl p-5 sm:p-6 shadow-sm relative overflow-hidden border border-white/50 dark:border-navy-600/30 transform-gpu">
           
           {/* Top Ambient Glow (Blue/Cyan) */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-sky-400/15 dark:bg-sky-500/10 blur-[50px] pointer-events-none"></div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-32 bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.15),transparent_70%)] dark:bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.1),transparent_70%)] pointer-events-none transform-gpu"></div>
 
           {/* Decorative Quote Icon */}
           <div className="absolute top-2 left-2 opacity-5 dark:opacity-10 transform -scale-x-100">
@@ -1058,9 +1060,9 @@ export const Home: React.FC = () => {
 
           <div className="flex justify-between items-center mb-5 relative z-10">
             <div className="flex items-center gap-3">
-              <div className="relative w-11 h-11">
-                <div className="absolute inset-0 bg-sky-400/40 blur-md rounded-full scale-90"></div>
-                <div className="relative w-full h-full bg-gradient-to-br from-sky-400 to-blue-500 rounded-xl flex items-center justify-center shadow-lg border border-sky-300/50">
+              <div className="relative w-11 h-11 shrink-0">
+                <div className="absolute inset-0 bg-sky-400/30 blur-sm rounded-full scale-90 transform-gpu"></div>
+                <div className="relative w-full h-full bg-gradient-to-br from-sky-400 to-blue-500 rounded-xl flex items-center justify-center shadow-sm border border-sky-300/50">
                   <BookOpen size={20} className="text-white drop-shadow-sm" />
                 </div>
               </div>
