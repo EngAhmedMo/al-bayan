@@ -348,11 +348,11 @@ export const Tasbih: React.FC = () => {
     // Check if it's a horizontal swipe (more horizontal than vertical)
     if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
       if (deltaX > 0) {
-        // Swiped Left -> Next Dhikr
-        changeZekr('next');
-      } else {
-        // Swiped Right -> Prev Dhikr
+        // Swiped Left -> Prev Dhikr (RTL logic)
         changeZekr('prev');
+      } else {
+        // Swiped Right -> Next Dhikr (RTL logic)
+        changeZekr('next');
       }
     }
     
