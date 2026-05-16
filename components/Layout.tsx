@@ -1316,7 +1316,7 @@ export const Layout: React.FC = () => {
       repeatCountRef.current = newRepeatCount;
 
       // WEB GAPLESS: Disable preloaded gapless swap if repeating to prevent audio context overlaps
-      if (!isAndroid && preloadAudioRef.current && preloadAudioRef.current.readyState >= 2 && newRepeatCount === 0) {
+      if (!isAndroid && preloadAudioRef.current && newRepeatCount === 0) {
         // Swap players for seamless transition
         const oldAudio = audioRef.current;
         audioRef.current = preloadAudioRef.current;
