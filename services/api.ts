@@ -25,7 +25,8 @@ export interface ReciterWithImage extends Reciter {
 }
 
 // FIXED: Replaced broken Khalid Al-Jaleel with Mishary Alafasy (Stable Source)
-// ADDED: 9 New Reciters as requested
+// ADDED: 8 New Reciters (Alafasy, Qatami, Rifai, Sowaid, Tunaiji, Basfar, Husary Muallim, Akhdar)
+// UPDATED: Maher Al Muaiqly audio quality to pure 128kbps studio version
 export const RECITERS: ReciterWithImage[] = [
   {
     id: 'ar.minshawi_murattal',
@@ -42,25 +43,25 @@ export const RECITERS: ReciterWithImage[] = [
     folder: 'Minshawy_Mujawwad_192kbps'
   },
   {
-    id: 'ar.yasseraddosari',
-    name: 'ياسر الدوسري',
-    image: 'https://static.qurancentral.com/authors/yasser-al-dosari.jpg',
+    id: 'ar.husary',
+    name: 'محمود خليل الحصري',
+    image: 'https://static.qurancentral.com/authors/mahmoud-khalil-al-hussary.jpg',
     source: 'everyayah',
-    folder: 'Yasser_Ad-Dussary_128kbps'
+    folder: 'Husary_128kbps'
   },
   {
-    id: 'ar.faresabbad',
-    name: 'فارس عباد',
-    image: 'https://static.qurancentral.com/authors/fares-abbad.jpg',
+    id: 'ar.husary_mujawwad',
+    name: 'الحصري (مجود)',
+    image: 'https://static.qurancentral.com/authors/mahmoud-khalil-al-hussary.jpg',
     source: 'everyayah',
-    folder: 'Fares_Abbad_64kbps'
+    folder: 'Husary_Mujawwad_64kbps'
   },
   {
-    id: 'ar.ghamdi',
-    name: 'سعد الغامدي',
-    image: 'https://static.qurancentral.com/authors/saad-al-ghamdi.jpg',
+    id: 'ar.husary_muallim',
+    name: 'الحصري (المعلم)',
+    image: 'https://static.qurancentral.com/authors/mahmoud-khalil-al-hussary.jpg',
     source: 'everyayah',
-    folder: 'Ghamadi_40kbps'
+    folder: 'Husary_Muallim_128kbps'
   },
   {
     id: 'ar.abdulbasitmurattal',
@@ -77,18 +78,32 @@ export const RECITERS: ReciterWithImage[] = [
     folder: 'Abdul_Basit_Mujawwad_128kbps'
   },
   {
-    id: 'ar.husary',
-    name: 'محمود خليل الحصري',
-    image: 'https://static.qurancentral.com/authors/mahmoud-khalil-al-hussary.jpg',
-    source: 'everyayah',
-    folder: 'Husary_128kbps'
+    id: 'ar.mahermuaiqly',
+    name: 'ماهر المعيقلي',
+    image: 'https://static.qurancentral.com/authors/maher-al-mueaqly.jpg',
+    source: 'islamic-network',
+    bitrate: 128
   },
   {
-    id: 'ar.husary_mujawwad',
-    name: 'الحصري (مجود)',
-    image: 'https://static.qurancentral.com/authors/mahmoud-khalil-al-hussary.jpg',
+    id: 'ar.alafasy',
+    name: 'مشاري العفاسي',
+    image: 'https://static.qurancentral.com/authors/mishary-rashid-alafasy.jpg',
     source: 'everyayah',
-    folder: 'Husary_Mujawwad_64kbps'
+    folder: 'Alafasy_128kbps'
+  },
+  {
+    id: 'ar.yasseraddosari',
+    name: 'ياسر الدوسري',
+    image: 'https://static.qurancentral.com/authors/yasser-al-dosari.jpg',
+    source: 'everyayah',
+    folder: 'Yasser_Ad-Dussary_128kbps'
+  },
+  {
+    id: 'ar.nasseralqatami',
+    name: 'ناصر القطامي',
+    image: 'https://static.qurancentral.com/authors/nasser-al-qatami.jpg',
+    source: 'everyayah',
+    folder: 'Nasser_Alqatami_128kbps'
   },
   {
     id: 'ar.abdulrahmansudais',
@@ -98,18 +113,32 @@ export const RECITERS: ReciterWithImage[] = [
     folder: 'Abdurrahmaan_As-Sudais_192kbps'
   },
   {
+    id: 'ar.saudshuraim',
+    name: 'سعود الشريم',
+    image: 'https://static.qurancentral.com/authors/saud-al-shuraim.jpg',
+    source: 'everyayah',
+    folder: 'Saood_ash-Shuraym_128kbps'
+  },
+  {
+    id: 'ar.faresabbad',
+    name: 'فارس عباد',
+    image: 'https://static.qurancentral.com/authors/fares-abbad.jpg',
+    source: 'everyayah',
+    folder: 'Fares_Abbad_64kbps'
+  },
+  {
+    id: 'ar.ghamdi',
+    name: 'سعد الغامدي',
+    image: 'https://static.qurancentral.com/authors/saad-al-ghamdi.jpg',
+    source: 'everyayah',
+    folder: 'Ghamadi_40kbps'
+  },
+  {
     id: 'ar.hudhaify',
     name: 'علي الحذيفي',
     image: 'https://static.qurancentral.com/authors/ali-al-huthaify.jpg',
     source: 'everyayah',
     folder: 'Hudhaify_128kbps'
-  },
-  {
-    id: 'ar.mahermuaiqly',
-    name: 'ماهر المعيقلي',
-    image: 'https://static.qurancentral.com/authors/maher-al-mueaqly.jpg',
-    source: 'everyayah',
-    folder: 'MaherAlMuaiqly128kbps'
   },
   {
     id: 'ar.banna',
@@ -126,13 +155,6 @@ export const RECITERS: ReciterWithImage[] = [
     folder: 'Mohammad_al_Tablaway_128kbps'
   },
   {
-    id: 'ar.jibreel',
-    name: 'محمد جبريل',
-    image: 'https://static.qurancentral.com/authors/muhammad-jibreel.jpg',
-    source: 'everyayah',
-    folder: 'Muhammad_Jibreel_128kbps'
-  },
-  {
     id: 'ar.ayyoub',
     name: 'محمد أيوب',
     image: 'https://static.qurancentral.com/authors/muhammad-ayyoub.jpg',
@@ -140,11 +162,11 @@ export const RECITERS: ReciterWithImage[] = [
     folder: 'Muhammad_Ayyoub_128kbps'
   },
   {
-    id: 'ar.naina',
-    name: 'أحمد نعينع',
-    image: 'https://static.qurancentral.com/authors/ahmed-neana.jpg',
+    id: 'ar.jibreel',
+    name: 'محمد جبريل',
+    image: 'https://static.qurancentral.com/authors/muhammad-jibreel.jpg',
     source: 'everyayah',
-    folder: 'Ahmed_Neana_128kbps'
+    folder: 'Muhammad_Jibreel_128kbps'
   },
   {
     id: 'ar.juhany',
@@ -161,13 +183,6 @@ export const RECITERS: ReciterWithImage[] = [
     folder: 'Ali_Jaber_64kbps'
   },
   {
-    id: 'ar.saudshuraim',
-    name: 'سعود الشريم',
-    image: 'https://static.qurancentral.com/authors/saud-al-shuraim.jpg',
-    source: 'everyayah',
-    folder: 'Saood_ash-Shuraym_128kbps'
-  },
-  {
     id: 'ar.ahmedajamy',
     name: 'أحمد العجمي',
     image: 'https://static.qurancentral.com/authors/ahmed-al-ajmi.jpg',
@@ -180,6 +195,27 @@ export const RECITERS: ReciterWithImage[] = [
     image: 'https://static.qurancentral.com/authors/abu-bakr-al-shatri.jpg',
     source: 'everyayah',
     folder: 'Abu_Bakr_Ash-Shaatree_128kbps'
+  },
+  {
+    id: 'ar.ibrahimakhbar',
+    name: 'إبراهيم الأخضر',
+    image: 'https://static.qurancentral.com/authors/ibrahim-al-akhdar.jpg',
+    source: 'everyayah',
+    folder: 'Ibrahim_Akhdar_32kbps'
+  },
+  {
+    id: 'ar.abdullahbasfar',
+    name: 'عبدالله بصفر',
+    image: 'https://static.qurancentral.com/authors/abdullah-basfar.jpg',
+    source: 'everyayah',
+    folder: 'Abdullah_Basfar_192kbps'
+  },
+  {
+    id: 'ar.hanirifai',
+    name: 'هاني الرفاعي',
+    image: 'https://static.qurancentral.com/authors/hani-ar-rifai.jpg',
+    source: 'everyayah',
+    folder: 'Hani_Rifai_192kbps'
   }
 ];
 

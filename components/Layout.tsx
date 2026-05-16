@@ -329,9 +329,9 @@ const AudioPlayerBar = () => {
 
           <div className="flex items-center gap-2 md:gap-4 flex-shrink-0 relative z-10">
             <button
-              onClick={playNext}
+              onClick={playPrev}
               className="p-2 text-navy-400 hover:text-gold-600 dark:text-navy-400 dark:hover:text-gold-400 transition-colors rounded-full hover:bg-navy-50 dark:hover:bg-navy-800"
-              title="الآية التالية"
+              title="الآية السابقة"
             >
               <SkipForward size={20} className="fill-current" />
             </button>
@@ -344,9 +344,9 @@ const AudioPlayerBar = () => {
             </button>
 
             <button
-              onClick={playPrev}
+              onClick={playNext}
               className="p-2 text-navy-400 hover:text-gold-600 dark:text-navy-400 dark:hover:text-gold-400 transition-colors rounded-full hover:bg-navy-50 dark:hover:bg-navy-800"
-              title="الآية السابقة"
+              title="الآية التالية"
             >
               <SkipBack size={20} className="fill-current" />
             </button>
@@ -406,9 +406,9 @@ const RadioPlayerBar = () => {
             </div>
           </div>
           <div className="flex items-center gap-2 md:gap-3 shrink-0 relative z-10 pl-1">
-            <button onClick={playNextStation} className="p-2 rounded-full text-navy-500 hover:bg-navy-100/80 dark:text-slate-400 dark:hover:bg-white/10"><SkipForward size={20} className="fill-current md:w-6 md:h-6" /></button>
+            <button onClick={playPrevStation} title="المحطة السابقة" className="p-2 rounded-full text-navy-500 hover:bg-navy-100/80 dark:text-slate-400 dark:hover:bg-white/10"><SkipForward size={20} className="fill-current md:w-6 md:h-6" /></button>
             <button onClick={toggleRadio} className={`w-10 h-10 md:w-14 md:h-14 rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95 ${isPlaying ? 'bg-navy-900 text-white dark:bg-white dark:text-navy-900' : 'bg-gold-500 text-white dark:bg-emerald-600'}`}>{isPlaying ? <Pause size={18} fill="currentColor" className="md:w-5 md:h-5" /> : <Play size={18} fill="currentColor" className="ml-0.5 md:w-5 md:h-5" />}</button>
-            <button onClick={playPrevStation} className="p-2 rounded-full text-navy-500 hover:bg-navy-100/80 dark:text-slate-400 dark:hover:bg-white/10"><SkipBack size={20} className="fill-current md:w-6 md:h-6" /></button>
+            <button onClick={playNextStation} title="المحطة التالية" className="p-2 rounded-full text-navy-500 hover:bg-navy-100/80 dark:text-slate-400 dark:hover:bg-white/10"><SkipBack size={20} className="fill-current md:w-6 md:h-6" /></button>
             <div className="w-px h-6 md:h-8 bg-navy-100 dark:bg-white/10 mx-1 md:mx-1.5"></div>
             <button onClick={stopRadio} className="p-2 rounded-full bg-red-50 text-red-500 hover:bg-red-100 dark:bg-red-500/10 dark:hover:bg-red-500/20"><X size={18} className="md:w-5 md:h-5" /></button>
           </div>
