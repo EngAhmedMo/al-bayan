@@ -1729,14 +1729,18 @@ export const QuranReader: React.FC = () => {
           isModalOpen && selectedAyah && (
             <div 
               className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4 isolate"
-              onTouchStart={(e) => setModalTouch({ x: e.touches[0].clientX, y: e.touches[0].clientY })}
+              onTouchStart={(e) => {
+                // Only record touch that starts on the backdrop or non-scrollable areas
+                setModalTouch({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+              }}
               onTouchEnd={(e) => {
                 if (!modalTouch) return;
                 const dx = modalTouch.x - e.changedTouches[0].clientX;
                 const dy = modalTouch.y - e.changedTouches[0].clientY;
-                if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
-                  if (dx > 0) navigateAyah('next'); // Swipe left = Next
-                  else navigateAyah('prev'); // Swipe right = Prev
+                // Trigger swipe if horizontal movement > 40px AND is more horizontal than vertical
+                if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+                  if (dx > 0) navigateAyah('next'); // Swipe left ← = Next (تالية)
+                  else navigateAyah('prev');          // Swipe right → = Prev (سابقة)
                 }
                 setModalTouch(null);
               }}
@@ -1748,6 +1752,11 @@ export const QuranReader: React.FC = () => {
               ></div>
 
               <div className="relative w-full sm:max-w-lg bg-white dark:bg-navy-950 rounded-t-3xl sm:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)] border-t-4 border-gold-500 overflow-hidden flex flex-col max-h-[85vh] animate-in slide-in-from-bottom-full duration-300 ease-out">
+
+                {/* ── iOS-style swipe handle — mobile only ── */}
+                <div className="sm:hidden flex justify-center pt-3 pb-0 flex-shrink-0 select-none">
+                  <div className="w-10 h-1 bg-navy-200 dark:bg-navy-700 rounded-full" />
+                </div>
 
                 <div className="flex-shrink-0 p-5 border-b border-navy-100 dark:border-navy-800 bg-gradient-to-b from-navy-50 to-white dark:from-navy-900 dark:to-navy-950 relative">
 
@@ -1779,15 +1788,40 @@ export const QuranReader: React.FC = () => {
                     <ChevronRight size={20} />
                   </button>
 
-                  {/* ── Mobile swipe hint strip (RTL order: سابقة right | تالية left) ── */}
-                  <div className="sm:hidden flex justify-between px-2 mt-2 mb-1">
-                    <button onClick={() => navigateAyah('next')} className="flex items-center gap-1 text-[10px] font-bold text-navy-400 active:text-gold-600 px-3 py-1 rounded-lg hover:bg-navy-50 dark:hover:bg-navy-800">
-                      <ChevronLeft size={14} /> تالية
+                  {/* ── Mobile swipe hint strip ──
+                      dir="ltr" prevents RTL page direction from reversing button order.
+                      LEFT = تالية (next, ChevronLeft ←)
+                      RIGHT = سابقة (prev, ChevronRight →) */}
+                  <div
+                    dir="ltr"
+                    className="sm:hidden flex justify-between items-center mt-3 mb-1 border-t border-navy-100 dark:border-navy-800 pt-2.5"
+                  >
+                    {/* LEFT: Next (تالية) with ← */}
+                    <button
+                      onClick={() => navigateAyah('next')}
+                      className="flex items-center gap-2 text-[12px] font-bold text-navy-500 dark:text-navy-400 active:text-gold-600 dark:active:text-gold-400 px-5 py-2.5 rounded-xl active:bg-gold-50 dark:active:bg-navy-800 transition-colors select-none"
+                    >
+                      <ChevronLeft size={18} className="text-gold-500" />
+                      <span>تالية</span>
                     </button>
-                    <button onClick={() => navigateAyah('prev')} className="flex items-center gap-1 text-[10px] font-bold text-navy-400 active:text-gold-600 px-3 py-1 rounded-lg hover:bg-navy-50 dark:hover:bg-navy-800">
-                      سابقة <ChevronRight size={14} />
+
+                    {/* Divider */}
+                    <div className="flex flex-col items-center gap-0.5 opacity-40">
+                      <span className="w-px h-3 bg-navy-300 dark:bg-navy-600" />
+                      <span className="text-[9px] font-bold text-navy-300 dark:text-navy-600 tracking-wider">swipe</span>
+                      <span className="w-px h-3 bg-navy-300 dark:bg-navy-600" />
+                    </div>
+
+                    {/* RIGHT: Prev (سابقة) with → */}
+                    <button
+                      onClick={() => navigateAyah('prev')}
+                      className="flex items-center gap-2 text-[12px] font-bold text-navy-500 dark:text-navy-400 active:text-gold-600 dark:active:text-gold-400 px-5 py-2.5 rounded-xl active:bg-gold-50 dark:active:bg-navy-800 transition-colors select-none"
+                    >
+                      <span>سابقة</span>
+                      <ChevronRight size={18} className="text-gold-500" />
                     </button>
                   </div>
+
 
                   <div className="flex flex-col items-center justify-center gap-2 pt-2">
                     <div className="relative">
