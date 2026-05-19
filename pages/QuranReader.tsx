@@ -895,10 +895,15 @@ export const QuranReader: React.FC = () => {
         if (showNoteInput && e.key !== 'Escape') return;
 
         if (e.key === 'ArrowRight') {
-          navigateAyah('prev'); // RTL
+          e.preventDefault();
+          e.stopPropagation();
+          navigateAyah('prev'); // RTL: سابقة على اليمين
         } else if (e.key === 'ArrowLeft') {
-          navigateAyah('next'); // RTL
+          e.preventDefault();
+          e.stopPropagation();
+          navigateAyah('next'); // RTL: تالية على اليسار
         } else if (e.key === 'Escape') {
+          e.preventDefault();
           if (showNoteInput) { setShowNoteInput(false); }
           else { setIsModalOpen(false); setSelectedAyah(null); }
         } else if (e.key === 't' || e.key === 'T') {
@@ -916,8 +921,9 @@ export const QuranReader: React.FC = () => {
         }
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    // useCapture=true ensures our handler runs before page-level arrow key handlers
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
   }, [isModalOpen, showNoteInput, selectedAyah, ayahs, page, tafsirData, tafsirLoading, tafsirSource]);
 
   const [modalTouch, setModalTouch] = useState<{ x: number, y: number } | null>(null);
@@ -1745,6 +1751,7 @@ export const QuranReader: React.FC = () => {
 
                 <div className="flex-shrink-0 p-5 border-b border-navy-100 dark:border-navy-800 bg-gradient-to-b from-navy-50 to-white dark:from-navy-900 dark:to-navy-950 relative">
 
+                  {/* ── Close button: absolute left ── */}
                   <button
                     onClick={() => { setIsModalOpen(false); setSelectedAyah(null); }}
                     className="absolute top-4 left-4 p-2 bg-white dark:bg-navy-800 rounded-full text-navy-400 hover:text-red-500 shadow-sm hover:shadow-md transition-all z-10"
@@ -1752,30 +1759,33 @@ export const QuranReader: React.FC = () => {
                     <X size={20} />
                   </button>
 
-                  {/* Navigation prev/next buttons — RTL: right=prev, left=next */}
-                  <button
-                    onClick={() => navigateAyah('prev')}
-                    title="الآية السابقة (→)"
-                    className="absolute top-4 right-12 p-2 bg-white dark:bg-navy-800 rounded-full text-navy-400 hover:text-gold-600 dark:hover:text-gold-400 shadow-sm hover:shadow-md transition-all z-10 hidden sm:flex items-center justify-center"
-                  >
-                    <ChevronRight size={20} />
-                  </button>
+                  {/* ── RTL Navigation buttons (desktop/tablet) ──
+                      التالية (next) على اليسار  |  السابقة (prev) على اليمين */}
+                  {/* Next (تالية) — LEFT of X, arrow points LEFT ← */}
                   <button
                     onClick={() => navigateAyah('next')}
                     title="الآية التالية (←)"
-                    className="absolute top-4 right-4 p-2 bg-white dark:bg-navy-800 rounded-full text-navy-400 hover:text-gold-600 dark:hover:text-gold-400 shadow-sm hover:shadow-md transition-all z-10 hidden sm:flex items-center justify-center"
+                    className="absolute top-4 left-14 p-2 bg-white dark:bg-navy-800 rounded-full text-navy-400 hover:text-gold-600 dark:hover:text-gold-400 shadow-sm hover:shadow-md transition-all z-10 hidden sm:flex items-center justify-center"
                   >
                     <ChevronLeft size={20} />
                   </button>
 
-                  {/* Mobile: swipe hint strip */}
-                  <div className="sm:hidden flex justify-center gap-6 mt-2 mb-1">
-                    <button onClick={() => navigateAyah('prev')} className="flex items-center gap-1 text-[10px] font-bold text-navy-400 active:text-gold-600">
-                      <ChevronRight size={14} /> سابقة
+                  {/* Prev (سابقة) — RIGHT side, arrow points RIGHT → */}
+                  <button
+                    onClick={() => navigateAyah('prev')}
+                    title="الآية السابقة (→)"
+                    className="absolute top-4 right-4 p-2 bg-white dark:bg-navy-800 rounded-full text-navy-400 hover:text-gold-600 dark:hover:text-gold-400 shadow-sm hover:shadow-md transition-all z-10 hidden sm:flex items-center justify-center"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+
+                  {/* ── Mobile swipe hint strip (RTL order: سابقة right | تالية left) ── */}
+                  <div className="sm:hidden flex justify-between px-2 mt-2 mb-1">
+                    <button onClick={() => navigateAyah('next')} className="flex items-center gap-1 text-[10px] font-bold text-navy-400 active:text-gold-600 px-3 py-1 rounded-lg hover:bg-navy-50 dark:hover:bg-navy-800">
+                      <ChevronLeft size={14} /> تالية
                     </button>
-                    <span className="w-px h-4 bg-navy-200 dark:bg-navy-700 self-center" />
-                    <button onClick={() => navigateAyah('next')} className="flex items-center gap-1 text-[10px] font-bold text-navy-400 active:text-gold-600">
-                      تالية <ChevronLeft size={14} />
+                    <button onClick={() => navigateAyah('prev')} className="flex items-center gap-1 text-[10px] font-bold text-navy-400 active:text-gold-600 px-3 py-1 rounded-lg hover:bg-navy-50 dark:hover:bg-navy-800">
+                      سابقة <ChevronRight size={14} />
                     </button>
                   </div>
 
