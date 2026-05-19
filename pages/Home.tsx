@@ -1022,6 +1022,18 @@ export const Home: React.FC = () => {
                   <span>التفسير</span>
                   {showBenefitTafsir ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                 </button>
+
+                <button
+                  onClick={() => {
+                    const surahNumber = dailyBenefit.id.split(':')[0];
+                    navigate(`/reader?surah=${surahNumber}&ayah=${dailyBenefit.ayah.numberInSurah}&highlight=${dailyBenefit.id}`);
+                  }}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold transition-all duration-300 backdrop-blur-md border shadow-[0_4px_12px_rgba(0,0,0,0.05)] bg-white/60 dark:bg-navy-700/50 text-navy-600 dark:text-navy-300 border-white/50 dark:border-navy-600/50 hover:bg-navy-100 dark:hover:bg-navy-600 hover:text-navy-800 dark:hover:text-white hover:border-navy-300 dark:hover:border-navy-500/50 active:scale-95"
+                  title="الانتقال للآية في المصحف"
+                >
+                  <BookOpen size={14} />
+                  <span>عرض في المصحف</span>
+                </button>
               </div>
 
               {/* Collapsible Tafsir */}

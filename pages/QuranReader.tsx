@@ -22,6 +22,7 @@ import {
 } from '../services/storage';
 import { AnalyticsService } from '../services/analytics'; // Analytics
 import { TajweedText, cleanTajweedTags } from '../components/TajweedText';
+import { hapticTap } from '../services/haptics';
 import { useHifzOptional } from '../contexts/HifzContext';
 import { DailyQuizCard } from '../components/hifz/QuizComponents';
 import { generateDailyQuiz, generatePhase1Quiz, generatePhase2QuizChunked, generatePhase3Quiz, evaluateQuiz, QuizQuestion, AyahReorderQuestion, WordReorderQuestion, HifzTestResult, QuizDifficulty, AyahSlotError, AyahWordError } from '../services/hifzManager';
@@ -797,7 +798,23 @@ export const QuranReader: React.FC = () => {
     resetFooterTimer(); // Keep footer visible while navigating
   };
 
+  const pendingAyahSelectionRef = useRef<'first' | 'last' | null>(null);
+
+  useEffect(() => {
+    if (ayahs.length > 0 && pendingAyahSelectionRef.current) {
+      if (pendingAyahSelectionRef.current === 'first') {
+        onAyahClick(ayahs[0]);
+      } else if (pendingAyahSelectionRef.current === 'last') {
+        onAyahClick(ayahs[ayahs.length - 1]);
+      }
+      pendingAyahSelectionRef.current = null;
+    }
+  }, [ayahs]);
+
   const onAyahClick = (ayah: Ayah) => {
+    const wasTafsirOpen = !!tafsirData || tafsirLoading;
+    const currentTafsirSource = tafsirSource;
+
     setSelectedAyah(ayah);
     const sNum = (ayah as any).surah?.number;
     if (sNum) {
@@ -807,14 +824,103 @@ export const QuranReader: React.FC = () => {
     }
     setShowNoteInput(false);
     setIsModalOpen(true);
-    setTafsirData(null);
+    
     // Initialize range selectors with the clicked ayah
     const surahNum = (ayah as any).surah?.number;
     if (surahNum) {
       setRangeFromAyah(ayah.numberInSurah);
       setRangeToAyah(ayah.numberInSurah);
     }
+
+    if (wasTafsirOpen && isModalOpen) {
+      setTafsirLoading(true);
+      setTafsirData(null);
+      const editionId = TAFSIR_SOURCES[currentTafsirSource as keyof typeof TAFSIR_SOURCES].apiEdition;
+      loadSingleAyahTafsir(editionId, sNum, ayah.numberInSurah).then(text => {
+        if (text) {
+          setTafsirData({
+            text,
+            edition: { identifier: currentTafsirSource, language: 'ar', name: TAFSIR_SOURCES[currentTafsirSource as keyof typeof TAFSIR_SOURCES].name, englishName: currentTafsirSource },
+            surah: { number: sNum },
+            numberInSurah: ayah.numberInSurah
+          });
+        } else {
+          setTafsirData({
+            text: 'التفسير غير متاح لهذه الآية',
+            edition: { identifier: currentTafsirSource, language: 'ar', name: TAFSIR_SOURCES[currentTafsirSource as keyof typeof TAFSIR_SOURCES].name, englishName: currentTafsirSource },
+            surah: { number: sNum },
+            numberInSurah: ayah.numberInSurah
+          });
+        }
+        setTafsirLoading(false);
+        setTimeout(() => document.getElementById('tafsir-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+      });
+    } else {
+      setTafsirData(null);
+    }
   };
+
+  const navigateAyah = (direction: 'next' | 'prev') => {
+    if (!selectedAyah || ayahs.length === 0) return;
+    const currentIndex = ayahs.findIndex(a => a.number === selectedAyah.number);
+    if (currentIndex === -1) return;
+
+    if (direction === 'next') {
+      if (currentIndex < ayahs.length - 1) {
+        onAyahClick(ayahs[currentIndex + 1]);
+      } else if (page < 604) {
+        hapticTap();
+        pendingAyahSelectionRef.current = 'first';
+        setPage(page + 1);
+      } else {
+        hapticTap();
+      }
+    } else {
+      if (currentIndex > 0) {
+        onAyahClick(ayahs[currentIndex - 1]);
+      } else if (page > 1) {
+        hapticTap();
+        pendingAyahSelectionRef.current = 'last';
+        setPage(page - 1);
+      } else {
+        hapticTap();
+      }
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isModalOpen && selectedAyah) {
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+        if (showNoteInput && e.key !== 'Escape') return;
+
+        if (e.key === 'ArrowRight') {
+          navigateAyah('prev'); // RTL
+        } else if (e.key === 'ArrowLeft') {
+          navigateAyah('next'); // RTL
+        } else if (e.key === 'Escape') {
+          if (showNoteInput) { setShowNoteInput(false); }
+          else { setIsModalOpen(false); setSelectedAyah(null); }
+        } else if (e.key === 't' || e.key === 'T') {
+          // Toggle Tafsir
+          if (!tafsirData) {
+            setTafsirLoading(true);
+            setTimeout(() => document.getElementById('tafsir-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+            fetchTafsir((selectedAyah as any).surah.number, selectedAyah.numberInSurah).then(d => { setTafsirData(d); setTafsirLoading(false); });
+          } else {
+            setTafsirData(null);
+          }
+        } else if (e.key === 'c' || e.key === 'C') {
+          // Copy ayah text
+          navigator.clipboard.writeText(selectedAyah.aya_text || cleanTajweedTags(selectedAyah.text));
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen, showNoteInput, selectedAyah, ayahs, page, tafsirData, tafsirLoading, tafsirSource]);
+
+  const [modalTouch, setModalTouch] = useState<{ x: number, y: number } | null>(null);
 
   const playFromHere = (autoAdvance: boolean, repeatCount: number = 0, continuousRepeat: number = 0, surahRepeat: number = 0, pageRepeat: number = 0) => {
     if (selectedAyah) {
@@ -1615,7 +1721,20 @@ export const QuranReader: React.FC = () => {
         {/* 5. Ayah Actions Modal */}
         {
           isModalOpen && selectedAyah && (
-            <div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4 isolate">
+            <div 
+              className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4 isolate"
+              onTouchStart={(e) => setModalTouch({ x: e.touches[0].clientX, y: e.touches[0].clientY })}
+              onTouchEnd={(e) => {
+                if (!modalTouch) return;
+                const dx = modalTouch.x - e.changedTouches[0].clientX;
+                const dy = modalTouch.y - e.changedTouches[0].clientY;
+                if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+                  if (dx > 0) navigateAyah('next'); // Swipe left = Next
+                  else navigateAyah('prev'); // Swipe right = Prev
+                }
+                setModalTouch(null);
+              }}
+            >
 
               <div
                 className="absolute inset-0 bg-navy-900/80 backdrop-blur-sm transition-opacity duration-300"
@@ -1632,6 +1751,33 @@ export const QuranReader: React.FC = () => {
                   >
                     <X size={20} />
                   </button>
+
+                  {/* Navigation prev/next buttons — RTL: right=prev, left=next */}
+                  <button
+                    onClick={() => navigateAyah('prev')}
+                    title="الآية السابقة (→)"
+                    className="absolute top-4 right-12 p-2 bg-white dark:bg-navy-800 rounded-full text-navy-400 hover:text-gold-600 dark:hover:text-gold-400 shadow-sm hover:shadow-md transition-all z-10 hidden sm:flex items-center justify-center"
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                  <button
+                    onClick={() => navigateAyah('next')}
+                    title="الآية التالية (←)"
+                    className="absolute top-4 right-4 p-2 bg-white dark:bg-navy-800 rounded-full text-navy-400 hover:text-gold-600 dark:hover:text-gold-400 shadow-sm hover:shadow-md transition-all z-10 hidden sm:flex items-center justify-center"
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+
+                  {/* Mobile: swipe hint strip */}
+                  <div className="sm:hidden flex justify-center gap-6 mt-2 mb-1">
+                    <button onClick={() => navigateAyah('prev')} className="flex items-center gap-1 text-[10px] font-bold text-navy-400 active:text-gold-600">
+                      <ChevronRight size={14} /> سابقة
+                    </button>
+                    <span className="w-px h-4 bg-navy-200 dark:bg-navy-700 self-center" />
+                    <button onClick={() => navigateAyah('next')} className="flex items-center gap-1 text-[10px] font-bold text-navy-400 active:text-gold-600">
+                      تالية <ChevronLeft size={14} />
+                    </button>
+                  </div>
 
                   <div className="flex flex-col items-center justify-center gap-2 pt-2">
                     <div className="relative">
@@ -1658,7 +1804,7 @@ export const QuranReader: React.FC = () => {
                     <div className="grid grid-cols-4 gap-3">
                       {[
                         { icon: <Bookmark size={26} className={isAyahSaved ? "fill-current" : ""} />, label: isAyahSaved ? "محفوظة" : "حفظ", action: () => { toggleAyahBookmark({ surahName: (selectedAyah as any).surah.name, surahNumber: (selectedAyah as any).surah.number, ayahNumber: selectedAyah.numberInSurah, pageNumber: page, timestamp: Date.now() }); setIsAyahSaved(!isAyahSaved); }, color: isAyahSaved ? "from-red-600 to-red-700 shadow-red-500/20" : "from-navy-600 to-navy-700 shadow-navy-500/20" },
-                        { icon: <BookOpen size={26} />, label: "تفسير", action: () => { setShowNoteInput(false); !tafsirData ? (setTafsirLoading(true), fetchTafsir((selectedAyah as any).surah.number, selectedAyah.numberInSurah).then(d => { setTafsirData(d); setTafsirLoading(false); })) : setTafsirData(null); }, color: "from-emerald-600 to-emerald-700 shadow-emerald-500/20" },
+                        { icon: <BookOpen size={26} />, label: "تفسير", action: () => { setShowNoteInput(false); !tafsirData ? (setTafsirLoading(true), setTimeout(() => document.getElementById('tafsir-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50), fetchTafsir((selectedAyah as any).surah.number, selectedAyah.numberInSurah).then(d => { setTafsirData(d); setTafsirLoading(false); })) : setTafsirData(null); }, color: "from-emerald-600 to-emerald-700 shadow-emerald-500/20" },
                         { icon: <Repeat size={26} />, label: "إكمال التلاوة", action: () => playFromHere(true, 0, 0, 0), color: "from-purple-600 to-purple-700 shadow-purple-500/20" },
                         { icon: <PlayCircle size={26} />, label: "استماع", action: () => playFromHere(false, 0, 0, 0), color: "from-indigo-600 to-indigo-700 shadow-indigo-500/20" },
                       ].map((btn, i) => (
@@ -1930,7 +2076,7 @@ export const QuranReader: React.FC = () => {
 
                     <hr className="border-navy-100 dark:border-navy-800" />
 
-                    <div className="min-h-[150px] transition-all duration-300">
+                    <div id="tafsir-container" className="min-h-[150px] transition-all duration-300">
                       {tafsirLoading ? (
                         <div className="flex flex-col items-center justify-center py-8 gap-3">
                           <div className="animate-spin rounded-full h-8 w-8 border-4 border-navy-100 border-t-gold-500"></div>
@@ -1996,7 +2142,16 @@ export const QuranReader: React.FC = () => {
                                 <BookOpen size={16} />
                                 {TAFSIR_SOURCES[tafsirSource].name}
                               </h4>
-                              <button onClick={() => setTafsirData(null)} className="text-xs text-navy-400 hover:text-red-500 font-bold">إغلاق</button>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => { if (tafsirData?.text) navigator.clipboard.writeText(tafsirData.text); }}
+                                  title="نسخ التفسير"
+                                  className="p-1.5 rounded-lg text-navy-400 hover:text-gold-600 hover:bg-gold-50 dark:hover:bg-navy-800 transition-all"
+                                >
+                                  <Copy size={14} />
+                                </button>
+                                <button onClick={() => setTafsirData(null)} className="text-xs text-navy-400 hover:text-red-500 font-bold">إغلاق</button>
+                              </div>
                             </div>
                             <p className="text-base leading-loose text-navy-800 dark:text-gray-300 font-serif text-right">
                               {tafsirData.text}

@@ -800,6 +800,17 @@ article {
   animation: msg-slide-up 0.3s ease-out forwards;
 }
 
+/* Keyboard active ring — subtle gold pulse to draw attention */
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.5), 0 0 0 3px rgba(251, 191, 36, 0.15); }
+  50%       { box-shadow: 0 0 0 5px rgba(251, 191, 36, 0),  0 0 0 3px rgba(251, 191, 36, 0.25); }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 1.8s ease-in-out infinite;
+}
+
+
 /* ============================================================================
    QCF MUSHAF — PRINT-FAITHFUL RENDERING ENGINE
    Architecture: Inline flowing text (matching مكتبة الحكمة / quran_library)

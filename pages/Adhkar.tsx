@@ -440,6 +440,22 @@ const CategoryDetail: React.FC<{
   const [startedIds, setStartedIds] = useState<Set<number>>(new Set());
   const [showExitConfirm, setShowExitConfirm] = useState(false);
 
+  // Keyboard navigation: track which zekr is "focused" for Space/Arrow
+  const [activeZekrIndex, setActiveZekrIndex] = useState(0);
+  const [showKeyboardHint, setShowKeyboardHint] = useState(false);
+  const [showShortcutsPanel, setShowShortcutsPanel] = useState(false);
+  const spaceCountRef = useRef<((id: number) => void) | null>(null);
+  const resetCountRef = useRef<(() => void) | null>(null);
+
+  // Detect desktop for keyboard hint
+  useEffect(() => {
+    const isDesktop = window.matchMedia('(pointer: fine) and (min-width: 768px)').matches;
+    if (isDesktop) {
+      const usedBefore = localStorage.getItem('adhkar_kb_hint_seen');
+      setShowKeyboardHint(!usedBefore);
+    }
+  }, []);
+
   // Consider "started" if ANY zekr has been tapped at least once (even if not finished)
   // Or completed at least one.
   const hasStarted = startedIds.size > 0 || completedIds.size > 0;
@@ -507,6 +523,71 @@ const CategoryDetail: React.FC<{
     completedIdsRef.current = completedIds;
   }, [completedIds]);
 
+  // Sync activeZekrIndex to first uncompleted zekr
+  useEffect(() => {
+    if (completedIds.size > 0) {
+      const nextIdx = adhkarList.findIndex(z => !completedIds.has(z.id));
+      if (nextIdx !== -1) setActiveZekrIndex(nextIdx);
+    }
+  }, [completedIds, adhkarList]);
+
+  // Keyboard listener: Space/Enter = count, ArrowDown/Up = navigate, R = reset, Esc = back, ? = help
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't fire when typing in inputs/textareas
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      // Help panel toggle
+      if (e.key === '?') {
+        e.preventDefault();
+        setShowShortcutsPanel(prev => !prev);
+        return;
+      }
+
+      if (showExitConfirm) return;
+      if (showShortcutsPanel) {
+        if (e.key === 'Escape') setShowShortcutsPanel(false);
+        return;
+      }
+
+      if (e.code === 'Space' || e.code === 'Enter') {
+        e.preventDefault();
+        if (spaceCountRef.current && adhkarList[activeZekrIndex]) {
+          spaceCountRef.current(adhkarList[activeZekrIndex].id);
+          // Hide hint after first use
+          if (showKeyboardHint) {
+            localStorage.setItem('adhkar_kb_hint_seen', '1');
+            setShowKeyboardHint(false);
+          }
+        }
+      } else if (e.code === 'ArrowDown' || e.code === 'ArrowLeft') {
+        e.preventDefault();
+        setActiveZekrIndex(prev => {
+          const next = Math.min(prev + 1, adhkarList.length - 1);
+          const el = document.getElementById(`zekr-${adhkarList[next]?.id}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return next;
+        });
+      } else if (e.code === 'ArrowUp' || e.code === 'ArrowRight') {
+        e.preventDefault();
+        setActiveZekrIndex(prev => {
+          const next = Math.max(prev - 1, 0);
+          const el = document.getElementById(`zekr-${adhkarList[next]?.id}`);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return next;
+        });
+      } else if (e.key === 'r' || e.key === 'R') {
+        e.preventDefault();
+        if (resetCountRef.current) resetCountRef.current();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        handleBackClick();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeZekrIndex, adhkarList, showExitConfirm, showKeyboardHint, showShortcutsPanel]);
+
   useEffect(() => {
     // Reset Scroll on Mount/Category Change
     if (scrollRef.current) {
@@ -517,6 +598,7 @@ const CategoryDetail: React.FC<{
     // Reset tracking
     setCompletedIds(new Set());
     setStartedIds(new Set());
+    setActiveZekrIndex(0);
   }, [category]);
 
   // Handle Hardware Back Button - Must intercept to show confirmation
@@ -604,12 +686,29 @@ const CategoryDetail: React.FC<{
               </span>
             </div>
           </div>
-          {allCompleted && (
-            <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-500 px-4 py-2 rounded-xl text-white shadow-lg shadow-emerald-500/30">
-              <CheckCircle2 size={16} />
-              <span className="text-xs font-bold">أحسنت!</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {showKeyboardHint && !allCompleted && (
+              <div className="hidden md:flex items-center gap-1.5 bg-navy-50 dark:bg-navy-800 border border-navy-200 dark:border-navy-700 px-2.5 py-1.5 rounded-xl shadow-sm">
+                <kbd className="bg-white dark:bg-navy-900 text-navy-600 dark:text-navy-300 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-navy-200 dark:border-navy-600 shadow-sm">Space</kbd>
+                <span className="text-[10px] font-bold text-navy-400">للعد</span>
+                <span className="text-navy-200 dark:text-navy-600">|</span>
+                <kbd className="bg-white dark:bg-navy-900 text-navy-600 dark:text-navy-300 text-[10px] font-bold px-1.5 py-0.5 rounded-md border border-navy-200 dark:border-navy-600 shadow-sm">↑↓</kbd>
+                <span className="text-[10px] font-bold text-navy-400">للتنقل</span>
+              </div>
+            )}
+            {/* ? Help button — desktop only */}
+            <button
+              onClick={() => setShowShortcutsPanel(true)}
+              className="hidden md:flex w-7 h-7 items-center justify-center rounded-lg bg-navy-50 dark:bg-navy-800 border border-navy-200 dark:border-navy-700 text-navy-400 hover:text-gold-600 hover:border-gold-400 transition-all text-xs font-black shadow-sm"
+              title="اختصارات لوحة المفاتيح"
+            >؟</button>
+            {allCompleted && (
+              <div className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-500 px-4 py-2 rounded-xl text-white shadow-lg shadow-emerald-500/30">
+                <CheckCircle2 size={16} />
+                <span className="text-xs font-bold">أحسنت!</span>
+              </div>
+            )}
+          </div>
         </div>
         <div className="h-2 bg-gold-100 dark:bg-navy-800 rounded-full overflow-hidden shadow-inner">
           <div
@@ -620,7 +719,7 @@ const CategoryDetail: React.FC<{
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 md:space-y-6 pb-24 custom-scrollbar">
-        {adhkarList.map(zekr => (
+        {adhkarList.map((zekr, idx) => (
           <div key={zekr.id} id={`zekr-${zekr.id}`} className="rounded-3xl">
             <ZekrCard
               data={zekr}
@@ -630,12 +729,43 @@ const CategoryDetail: React.FC<{
               onProgress={handleTapProgress}
               onDelete={category === "أذكاري الخاصة" ? () => onDeleteCustom(zekr.id) : undefined}
               onEdit={category === "أذكاري الخاصة" ? () => onEditCustom(zekr) : undefined}
+              isKeyboardActive={idx === activeZekrIndex && showKeyboardHint}
+              onSpaceHandlerReady={(fn) => { if (idx === activeZekrIndex) spaceCountRef.current = fn; }}
+              onResetHandlerReady={(fn) => { if (idx === activeZekrIndex) resetCountRef.current = fn; }}
+              onCardClick={() => setActiveZekrIndex(idx)}
             />
           </div>
         ))}
 
         {allCompleted && (
           <CategoryCompletionCard onBack={onBack} />
+        )}
+
+        {/* Keyboard Shortcuts Panel */}
+        {showShortcutsPanel && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-navy-950/70 backdrop-blur-sm" onClick={() => setShowShortcutsPanel(false)}>
+            <div className="bg-white dark:bg-navy-900 rounded-3xl p-6 max-w-sm w-full shadow-2xl border border-gold-100/50 dark:border-navy-700 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-5">
+                <h3 className="font-bold text-lg text-navy-900 dark:text-white">⌨️ اختصارات لوحة المفاتيح</h3>
+                <button onClick={() => setShowShortcutsPanel(false)} className="p-2 text-navy-400 hover:text-red-500"><X size={18} /></button>
+              </div>
+              <div className="space-y-3">
+                {[
+                  { key: 'Space / Enter', desc: 'عد الذكر النشط' },
+                  { key: '↑ →', desc: 'الذكر السابق' },
+                  { key: '↓ ←', desc: 'الذكر التالي' },
+                  { key: 'R', desc: 'إعادة تعيين العداد' },
+                  { key: 'Esc', desc: 'العودة للتصنيفات' },
+                  { key: '?', desc: 'فتح/إغلاق هذه القائمة' },
+                ].map(({ key, desc }) => (
+                  <div key={key} className="flex items-center justify-between gap-4 py-2 border-b border-navy-100 dark:border-navy-800 last:border-0">
+                    <span className="text-sm text-navy-600 dark:text-navy-300">{desc}</span>
+                    <kbd className="bg-navy-50 dark:bg-navy-800 text-navy-700 dark:text-navy-200 text-xs font-bold px-2.5 py-1 rounded-lg border border-navy-200 dark:border-navy-700 shadow-sm whitespace-nowrap">{key}</kbd>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Helper Padding at bottom */}
@@ -748,7 +878,11 @@ const ZekrCard: React.FC<{
   onProgress?: (id: number) => void;
   onDelete?: () => void;
   onEdit?: () => void;
-}> = React.memo(({ data, isFav, onToggleFav, onComplete, onProgress, onDelete, onEdit }) => {
+  isKeyboardActive?: boolean;
+  onSpaceHandlerReady?: (fn: (id: number) => void) => void;
+  onResetHandlerReady?: (fn: () => void) => void;
+  onCardClick?: () => void;
+}> = React.memo(({ data, isFav, onToggleFav, onComplete, onProgress, onDelete, onEdit, isKeyboardActive, onSpaceHandlerReady, onResetHandlerReady, onCardClick }) => {
   const target = parseInt(data.count) || 1;
   const [count, setCount]         = useState(0);
   const [isPressed, setIsPressed] = useState(false);
@@ -812,12 +946,28 @@ const ZekrCard: React.FC<{
     });
   }, [completed, target, data.id, onComplete, onProgress]);
 
+  // Expose handleTap to parent for Space key support
+  useEffect(() => {
+    if (onSpaceHandlerReady) onSpaceHandlerReady(handleTap);
+  }, [isKeyboardActive, handleTap, onSpaceHandlerReady]);
+
+  // Expose reset handler for R key support
+  const handleReset = useCallback(() => {
+    setCount(0);
+    setCountKey(k => k + 1);
+    hapticTap();
+  }, []);
+
+  useEffect(() => {
+    if (onResetHandlerReady) onResetHandlerReady(handleReset);
+  }, [isKeyboardActive, handleReset, onResetHandlerReady]);
+
   // Cleanup timeout on unmount
   useEffect(() => () => { clearTimeout(pressRef.current); }, []);
 
   return (
     <div
-      onClick={handleTap}
+      onClick={(e) => { if (onCardClick) onCardClick(); handleTap(); }}
       className={[
         'relative rounded-3xl transition-all duration-300 cursor-pointer select-none overflow-hidden border-2',
         completed
@@ -825,6 +975,7 @@ const ZekrCard: React.FC<{
           : 'bg-white/95 dark:bg-navy-900/95 backdrop-blur-sm border-gold-100 dark:border-navy-700 shadow-lg shadow-navy-900/5 dark:shadow-navy-950/30 hover:shadow-xl hover:shadow-gold-500/10 hover:border-gold-300 dark:hover:border-gold-600/50 animate-card-breathe',
         isPressed ? 'scale-[0.984]' : 'scale-100',
         glowing   ? 'animate-completion-glow' : '',
+        isKeyboardActive && !completed ? 'ring-2 ring-gold-400 dark:ring-gold-500 ring-offset-2 dark:ring-offset-navy-950 animate-pulse-ring' : '',
       ].join(' ')}
     >
       {/* ── Completion confetti burst ── */}
@@ -972,7 +1123,7 @@ const ZekrCard: React.FC<{
           </span>
           {!completed ? (
             <span className="text-[11px] text-gold-600 dark:text-gold-400 animate-pulse font-bold bg-gold-50 dark:bg-gold-900/20 px-2.5 py-1 rounded-lg border border-gold-100 dark:border-gold-900/30 whitespace-nowrap">
-              اضغط للعد 👆
+              {isKeyboardActive ? '⌨️ Space للعد' : 'اضغط للعد 👆'}
             </span>
           ) : (
             <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/30 whitespace-nowrap">
