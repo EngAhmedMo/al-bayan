@@ -355,13 +355,15 @@ export const QuranReader: React.FC = () => {
 
   // Swipe Gesture Handlers
   const handleTouchStart = (e: React.TouchEvent) => {
+    // Do NOT track swipe when the ayah modal is open
+    if (isModalOpen) return;
     const touch = e.touches[0];
     touchStartRef.current = { x: touch.clientX, y: touch.clientY };
     isScrollingRef.current = false;
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!touchStartRef.current) return;
+    if (!touchStartRef.current || isModalOpen) return;
 
     const touch = e.touches[0];
     const deltaY = Math.abs(touch.clientY - touchStartRef.current.y);
@@ -374,6 +376,11 @@ export const QuranReader: React.FC = () => {
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
+    // Do NOT navigate pages when the ayah modal is open
+    if (isModalOpen) {
+      touchStartRef.current = null;
+      return;
+    }
     if (!touchStartRef.current || isScrollingRef.current) {
       touchStartRef.current = null;
       return;
@@ -1730,10 +1737,12 @@ export const QuranReader: React.FC = () => {
             <div 
               className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center p-0 sm:p-4 isolate"
               onTouchStart={(e) => {
-                // Only record touch that starts on the backdrop or non-scrollable areas
+                // Capture touch origin for swipe detection
+                e.stopPropagation(); // Prevent event from reaching page-level handlers
                 setModalTouch({ x: e.touches[0].clientX, y: e.touches[0].clientY });
               }}
               onTouchEnd={(e) => {
+                e.stopPropagation(); // Prevent event from reaching page-level handlers
                 if (!modalTouch) return;
                 const dx = modalTouch.x - e.changedTouches[0].clientX;
                 const dy = modalTouch.y - e.changedTouches[0].clientY;
