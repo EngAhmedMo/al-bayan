@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { App } from '@capacitor/app';
 import { hapticTap, hapticSuccess } from '../services/haptics';
 import { TopBar } from '../components/TopBar';
@@ -46,6 +46,7 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 export const Adhkar: React.FC = () => {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState<'all' | 'favorites'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [favIds, setFavIds] = useState<number[]>([]);
@@ -56,6 +57,73 @@ export const Adhkar: React.FC = () => {
 
   const [favoriteCompletedIds, setFavoriteCompletedIds] = useState<Set<number>>(new Set());
   const favoriteCompletedIdsRef = useRef<Set<number>>(favoriteCompletedIds);
+
+  // Touch Swipe State for tabs
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null || touchStartY.current === null) return;
+
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+
+    const deltaX = touchStartX.current - touchEndX;
+    const deltaY = touchStartY.current - touchEndY;
+
+    // Ignore if touch gesture originated or ended on interactive elements to prevent conflicts
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('textarea') ||
+      target.closest('a')
+    ) {
+      touchStartX.current = null;
+      touchStartY.current = null;
+      return;
+    }
+
+    // Check if it's a horizontal swipe (more horizontal than vertical, with a threshold of 50px)
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      if (deltaX > 0) {
+        // Swipe Left (finger drags left -> next tab/favorites in RTL)
+        setViewMode('favorites');
+      } else {
+        // Swipe Right (finger drags right -> prev tab/all in RTL)
+        setViewMode('all');
+      }
+    }
+
+    touchStartX.current = null;
+    touchStartY.current = null;
+  };
+
+  // Keyboard navigation for main tabs (Arrow keys)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if viewing subcategories or categories or modal is open
+      if (selectedGroupId !== null || selectedCategory !== null || isModalOpen) return;
+      // Ignore if typing in search or any input/textarea
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        setViewMode('favorites');
+      } else if (e.code === 'ArrowRight') {
+        e.preventDefault();
+        setViewMode('all');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedGroupId, selectedCategory, isModalOpen]);
 
   useEffect(() => {
     favoriteCompletedIdsRef.current = favoriteCompletedIds;
@@ -91,8 +159,7 @@ export const Adhkar: React.FC = () => {
   const location = useLocation();
 
   useEffect(() => {
-    // Check location.search first (Standard React Router)
-    let categoryParam = new URLSearchParams(location.search).get('category');
+    let categoryParam = searchParams.get('category');
 
     // Fallback: Check hash directly if search is empty (Legacy/Manual Hash updates)
     if (!categoryParam && window.location.hash.includes('?')) {
@@ -105,8 +172,21 @@ export const Adhkar: React.FC = () => {
       if (selectedCategory !== decodedCat) {
         handleCategorySelect(decodedCat);
       }
+
+      // Clear the category search parameter so it doesn't trigger again on subsequent renders/popstates
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        newParams.delete('category');
+        return newParams;
+      }, { replace: true });
+
+      // If we also had manual hash query params, clear them too
+      if (window.location.hash.includes('?')) {
+        const hashWithoutQuery = window.location.hash.split('?')[0];
+        window.history.replaceState(null, '', hashWithoutQuery);
+      }
     }
-  }, [location, selectedCategory]);
+  }, [searchParams, selectedCategory, setSearchParams]);
 
   const handleGroupSelect = (groupId: string) => {
     window.history.pushState({ group: groupId }, '');
@@ -270,7 +350,12 @@ export const Adhkar: React.FC = () => {
 
   // Main Grid View
   return (
-    <div className="flex flex-col h-full bg-gradient-to-b from-gold-50 via-white to-gold-50/50 dark:from-navy-950 dark:via-navy-900 dark:to-navy-950 font-sans">
+    <div 
+      className="flex flex-col h-full bg-gradient-to-b from-gold-50 via-white to-gold-50/50 dark:from-navy-950 dark:via-navy-900 dark:to-navy-950 font-sans"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      style={{ touchAction: 'pan-y' }}
+    >
       <TopBar title="حصن المسلم" />
 
       {/* Toggle Buttons */}
@@ -447,19 +532,31 @@ const CategoryDetail: React.FC<{
   const spaceCountRef = useRef<((id: number) => void) | null>(null);
   const resetCountRef = useRef<(() => void) | null>(null);
 
-  // Detect desktop for keyboard hint
+  // Detect desktop for keyboard UX and hint
+  const [isDesktopMode, setIsDesktopMode] = useState(false);
   useEffect(() => {
     const isDesktop = window.matchMedia('(pointer: fine) and (min-width: 768px)').matches;
+    setIsDesktopMode(isDesktop);
     if (isDesktop) {
       const usedBefore = localStorage.getItem('adhkar_kb_hint_seen');
       setShowKeyboardHint(!usedBefore);
     }
   }, []);
 
-  // Consider "started" if ANY zekr has been tapped at least once (even if not finished)
-  // Or completed at least one.
   const hasStarted = startedIds.size > 0 || completedIds.size > 0;
   const allCompleted = completedIds.size >= adhkarList.length;
+
+  const isExitingRef = useRef(false);
+  const hasStartedRef = useRef(false);
+  const allCompletedRef = useRef(false);
+
+  useEffect(() => {
+    hasStartedRef.current = hasStarted;
+  }, [hasStarted]);
+
+  useEffect(() => {
+    allCompletedRef.current = allCompleted;
+  }, [allCompleted]);
 
   const handleTapProgress = useCallback((id: number) => {
     setStartedIds(prev => new Set([...prev, id]));
@@ -507,14 +604,16 @@ const CategoryDetail: React.FC<{
 
   const handleBackClick = useCallback(() => {
     // Logic: If user has STARTED (interacted) but NOT completed ALL items -> Confirm
-    if (hasStarted && !allCompleted) {
+    if (hasStartedRef.current && !allCompletedRef.current) {
       setShowExitConfirm(true);
     } else {
+      isExitingRef.current = true;
       onBack();
     }
-  }, [hasStarted, allCompleted, onBack]);
+  }, [onBack]);
 
   const handleConfirmExit = useCallback(() => {
+    isExitingRef.current = true;
     setShowExitConfirm(false);
     onBack();
   }, [onBack]);
@@ -531,11 +630,32 @@ const CategoryDetail: React.FC<{
     }
   }, [completedIds, adhkarList]);
 
+  // Latest state ref for event listeners to avoid stale closures
+  const latestStateRef = useRef({
+    activeZekrIndex,
+    adhkarList,
+    showExitConfirm,
+    showShortcutsPanel,
+    showKeyboardHint
+  });
+
+  useEffect(() => {
+    latestStateRef.current = {
+      activeZekrIndex,
+      adhkarList,
+      showExitConfirm,
+      showShortcutsPanel,
+      showKeyboardHint
+    };
+  });
+
   // Keyboard listener: Space/Enter = count, ArrowDown/Up = navigate, R = reset, Esc = back, ? = help
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't fire when typing in inputs/textareas
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      const state = latestStateRef.current;
 
       // Help panel toggle
       if (e.key === '?') {
@@ -544,18 +664,29 @@ const CategoryDetail: React.FC<{
         return;
       }
 
-      if (showExitConfirm) return;
-      if (showShortcutsPanel) {
+      // If Exit Confirmation modal is open, handle its shortcuts
+      if (state.showExitConfirm) {
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          setShowExitConfirm(false);
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          handleConfirmExit();
+        }
+        return;
+      }
+
+      if (state.showShortcutsPanel) {
         if (e.key === 'Escape') setShowShortcutsPanel(false);
         return;
       }
 
       if (e.code === 'Space' || e.code === 'Enter') {
         e.preventDefault();
-        if (spaceCountRef.current && adhkarList[activeZekrIndex]) {
-          spaceCountRef.current(adhkarList[activeZekrIndex].id);
+        if (spaceCountRef.current && state.adhkarList[state.activeZekrIndex]) {
+          spaceCountRef.current(state.adhkarList[state.activeZekrIndex].id);
           // Hide hint after first use
-          if (showKeyboardHint) {
+          if (state.showKeyboardHint) {
             localStorage.setItem('adhkar_kb_hint_seen', '1');
             setShowKeyboardHint(false);
           }
@@ -563,8 +694,8 @@ const CategoryDetail: React.FC<{
       } else if (e.code === 'ArrowDown' || e.code === 'ArrowLeft') {
         e.preventDefault();
         setActiveZekrIndex(prev => {
-          const next = Math.min(prev + 1, adhkarList.length - 1);
-          const el = document.getElementById(`zekr-${adhkarList[next]?.id}`);
+          const next = Math.min(prev + 1, state.adhkarList.length - 1);
+          const el = document.getElementById(`zekr-${state.adhkarList[next]?.id}`);
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           return next;
         });
@@ -572,7 +703,7 @@ const CategoryDetail: React.FC<{
         e.preventDefault();
         setActiveZekrIndex(prev => {
           const next = Math.max(prev - 1, 0);
-          const el = document.getElementById(`zekr-${adhkarList[next]?.id}`);
+          const el = document.getElementById(`zekr-${state.adhkarList[next]?.id}`);
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
           return next;
         });
@@ -586,7 +717,7 @@ const CategoryDetail: React.FC<{
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeZekrIndex, adhkarList, showExitConfirm, showKeyboardHint, showShortcutsPanel]);
+  }, [handleBackClick, handleConfirmExit]);
 
   useEffect(() => {
     // Reset Scroll on Mount/Category Change
@@ -609,8 +740,13 @@ const CategoryDetail: React.FC<{
     window.history.pushState({ view: 'adhkar-detail', category }, '');
 
     const handlePopState = (e: PopStateEvent) => {
+      if (isExitingRef.current) {
+        onDismiss();
+        return;
+      }
+
       // User pressed back button
-      if (hasStarted && !allCompleted) {
+      if (hasStartedRef.current && !allCompletedRef.current) {
         // Prevent default back navigation by pushing state again
         window.history.pushState({ view: 'adhkar-detail', category }, '');
         setShowExitConfirm(true);
@@ -625,7 +761,7 @@ const CategoryDetail: React.FC<{
     return () => {
       window.removeEventListener('popstate', handlePopState);
     };
-  }, [category, hasStarted, allCompleted, onBack]);
+  }, [category, onDismiss]);
 
   // Handle Native Back Button (Capacitor/Android)
   useEffect(() => {
@@ -729,7 +865,7 @@ const CategoryDetail: React.FC<{
               onProgress={handleTapProgress}
               onDelete={category === "أذكاري الخاصة" ? () => onDeleteCustom(zekr.id) : undefined}
               onEdit={category === "أذكاري الخاصة" ? () => onEditCustom(zekr) : undefined}
-              isKeyboardActive={idx === activeZekrIndex && showKeyboardHint}
+              isKeyboardActive={idx === activeZekrIndex && isDesktopMode}
               onSpaceHandlerReady={(fn) => { if (idx === activeZekrIndex) spaceCountRef.current = fn; }}
               onResetHandlerReady={(fn) => { if (idx === activeZekrIndex) resetCountRef.current = fn; }}
               onCardClick={() => setActiveZekrIndex(idx)}
@@ -756,6 +892,7 @@ const CategoryDetail: React.FC<{
                   { key: '↓ ←', desc: 'الذكر التالي' },
                   { key: 'R', desc: 'إعادة تعيين العداد' },
                   { key: 'Esc', desc: 'العودة للتصنيفات' },
+                  { key: 'Esc / Enter', desc: 'إلغاء / تأكيد الخروج (عند التنبيه)' },
                   { key: '?', desc: 'فتح/إغلاق هذه القائمة' },
                 ].map(({ key, desc }) => (
                   <div key={key} className="flex items-center justify-between gap-4 py-2 border-b border-navy-100 dark:border-navy-800 last:border-0">
@@ -840,25 +977,24 @@ const ZekrBurst: React.FC = () => (
 // ────────────────────────────────────────────────────────────
 const restoreAllahDiacritics = (text: string): string => {
   return text
-    // ① Protect already-correct fully-diacriticized forms
-    .replace(/اللَّهُ/g, '\x00RAF\x00')
-    .replace(/اللَّهِ/g, '\x00JAR\x00')
-    .replace(/اللَّهَ/g, '\x00NAS\x00')
-    // ② Fix: shadda-only on second lam (اللّه) + i'rab on ha
-    .replace(/اللّهُ/g, '\x00RAF\x00')
-    .replace(/اللّهِ/g, '\x00JAR\x00')
-    .replace(/اللّهَ/g, '\x00NAS\x00')
-    // ③ Fix: no shadda on second lam (الله) + i'rab on ha
-    .replace(/اللهُ/g, '\x00RAF\x00')
-    .replace(/اللهِ/g, '\x00JAR\x00')
-    .replace(/اللهَ/g, '\x00NAS\x00')
-    // ④ Fix: bare forms with no i'rab at all → default to رفع (damma)
-    .replace(/اللّه(?![\u064B-\u065F])/g, '\x00RAF\x00')
-    .replace(/الله(?![\u064B-\u065F])/g, '\x00RAF\x00')
-    // ⑤ Restore with correct Unicode diacritical forms
-    .replace(/\x00RAF\x00/g, 'اللَّهُ')
-    .replace(/\x00JAR\x00/g, 'اللَّهِ')
-    .replace(/\x00NAS\x00/g, 'اللَّهَ');
+    // 1. First, protect/convert standard Allah (الله) forms
+    .replace(/الل[ََّٰ]*ه[ُ]/g, '\x00RAF\x00')
+    .replace(/الل[ََّٰ]*ه[ِ]/g, '\x00JAR\x00')
+    .replace(/الل[ََّٰ]*ه[َ]/g, '\x00NAS\x00')
+    .replace(/الل[ََّٰ]*ه(?![\u064B-\u065F])/g, '\x00RAF\x00') // default to damma
+    
+    // 2. Next, protect or convert لله (lillah) forms
+    .replace(/لِلَّهِ/g, '\x00LIL\x00')
+    .replace(/للّهِ/g, '\x00LIL\x00')
+    .replace(/للهِ/g, '\x00LIL\x00')
+    .replace(/لله/g, '\x00LIL\x00')
+    .replace(/للّه/g, '\x00LIL\x00')
+    
+    // 3. Restore the tokens to their perfect Unicode representations with shadda + dagger alif
+    .replace(/\x00RAF\x00/g, 'اللَّٰهُ')
+    .replace(/\x00JAR\x00/g, 'اللَّٰهِ')
+    .replace(/\x00NAS\x00/g, 'اللَّٰهَ')
+    .replace(/\x00LIL\x00/g, 'لِلَّٰهِ');
 };
 
 // ────────────────────────────────────────────────────────────
