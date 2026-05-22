@@ -4,7 +4,7 @@
 mod audio;
 mod scheduler;
 
-use tauri::{Manager};
+use tauri::{Manager, Emitter};
 use tauri_plugin_autostart::MacosLauncher;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{TrayIconBuilder, MouseButton, MouseButtonState, TrayIconEvent};
