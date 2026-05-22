@@ -20,11 +20,13 @@ import { MediaBridge } from '../services/mediaBridge';
 import { PermissionGate } from './PermissionGate';
 import { Sidebar } from './Sidebar';
 import { TestGateModal } from './hifz/TestGateModal';
+import { SadaqahBanner } from './SadaqahBanner';
 
 
 
 
 const isAndroid = Capacitor.getPlatform() === 'android';
+const isDesktop = typeof window !== 'undefined' && '__TAURI__' in window;
 
 // --- Contexts ---
 interface ThemeContextType {
@@ -713,8 +715,8 @@ export const Layout: React.FC = () => {
     }
 
     const checkPrayers = () => {
-      // On Android, we rely on Native AlarmManager/AzhanActivity
-      if (isAndroid) return;
+      // On Android and Desktop, we rely on Native backend (AlarmManager / scheduler.rs)
+      if (isAndroid || isDesktop) return;
 
       // Use LOCAL calculation - works offline forever!
       const todayPrayers = getTodayPrayerTimesLocal();
@@ -912,10 +914,10 @@ export const Layout: React.FC = () => {
 
   // AZHAN INTEGRATION: Handle Azhan started/finished events for state sync
   useEffect(() => {
-    if (!isAndroid) return;
+    if (!isAndroid && !isDesktop) return;
 
     // Listen for Azhan start - save current playback state and pause UI
-    const startListenerPromise = MediaBridge.addListener('azhanStarted', (data: { prayerName: string, isPreview?: boolean, isReal?: boolean }) => {
+    const startListenerPromise = MediaBridge.addListener('azhanStarted', (data: { prayerName: string, muazzinId?: string, isPreview?: boolean, isReal?: boolean, isPreAlert?: boolean }) => {
       // Skip if this is just a preview (user testing Azhan from settings)
       if (data.isPreview) return;
 
@@ -934,6 +936,47 @@ export const Layout: React.FC = () => {
 
       // Update UI state - Azhan is now playing, not Quran
       setIsPlaying(false);
+
+      if (isDesktop) {
+        if (azhanPreviewRef.current) azhanPreviewRef.current.pause();
+
+        if (data.prayerName === 'الصلاة على النبي') {
+            const audioUrl = `/audio/${data.muazzinId || 'salawat_one'}.mp3`;
+            azhanPreviewRef.current = new Audio(audioUrl);
+            azhanPreviewRef.current.volume = azhanVolume / 100;
+            
+            azhanPreviewRef.current.onended = () => {
+                const saved = savedTrackBeforeAzhanRef.current;
+                if (saved && saved.wasPlaying && saved.track && saved.track.globalAyahNumber) {
+                    playTrack(
+                        saved.track.url,
+                        saved.track.title,
+                        saved.track.subtitle,
+                        saved.track.globalAyahNumber,
+                        saved.autoAdvance,
+                        0,
+                        saved.reciterId
+                    );
+                } else if (saved && saved.wasPlaying) {
+                    setIsPlaying(true);
+                }
+                savedTrackBeforeAzhanRef.current = null;
+            };
+            azhanPreviewRef.current.play().catch(e => console.error("Desktop salawat playback failed:", e));
+        } else if (!data.isPreAlert) {
+            // It is an Azhan! Bring the window to the front!
+            import('@tauri-apps/api/window').then(({ getCurrentWindow }) => {
+              const win = getCurrentWindow();
+              win.show();
+              win.setFocus();
+            }).catch(e => console.error("Could not show window:", e));
+
+            // Set Azhan Modal Data. The modal will handle playing the audio itself.
+            const timeStr = new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', hour12: false });
+            setAzhanModalData({ name: `صلاة ${data.prayerName}`, time: timeStr });
+            lastAzhanTriggered.current = timeStr;
+        }
+      }
     });
 
     // Listen for Azhan end - optionally resume Quran playback
@@ -969,7 +1012,7 @@ export const Layout: React.FC = () => {
 
   // SALAWAT INTEGRATION: Handle Salawat started/finished events for Quran pause/resume
   useEffect(() => {
-    if (!isAndroid) return;
+    if (!isAndroid && !isDesktop) return;
 
     // Listen for Salawat start - save current playback state and pause UI
     const salawatStartPromise = MediaBridge.addListener('salawatStarted', () => {
@@ -1844,7 +1887,11 @@ export const Layout: React.FC = () => {
           <AudioContext.Provider value={{ currentTrack, isPlaying, autoAdvance, repeatCount, continuousRepeat, surahRepeat, pageRepeat, rangeStart, rangeEnd, rangeRepeat, playTrack, playNext: () => manualChangeTrack(1), playPrev: () => manualChangeTrack(-1), pauseTrack, closePlayer, togglePlay }}>
             <RadioContext.Provider value={radioContextValue}>
               <NavigationContext.Provider value={{ navigateToAyah: (s, a, p) => { navigate(`/reader?page=${p}&highlight=${s}:${a}`); setSidebarOpen(false); }, openSidebar: () => setSidebarOpen(true), isFullscreen, setIsFullscreen }}>
-                <div className="flex justify-center w-full min-h-[100dvh] bg-gold-50 dark:bg-navy-950">
+                <div className="flex justify-center w-full min-h-[100dvh] bg-gold-50 dark:bg-navy-950 relative">
+                  
+                  {/* Daily Frequency Capped Banner */}
+                  <SadaqahBanner />
+
                   <div 
                     className="flex h-[100dvh] overflow-hidden bg-gold-50 dark:bg-navy-950 transition-colors duration-500 ease-in-out w-full"
                     dir="rtl"

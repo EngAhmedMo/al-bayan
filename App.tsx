@@ -90,7 +90,10 @@ const RouteTracker = () => {
   return null;
 };
 
+import { SplashScreen } from './components/SplashScreen';
+
 const App: React.FC = () => {
+  const [showSplash, setShowSplash] = React.useState(true);
 
   useEffect(() => {
     // Initialize Firebase (Analytics, Crashlytics, Remote Config)
@@ -134,11 +137,13 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <HifzProvider>
-      <DownloadProvider>
-        <HashRouter>
-          <RouteTracker />
-          <Routes>
+    <>
+      {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+      <HifzProvider>
+        <DownloadProvider>
+          <HashRouter>
+            <RouteTracker />
+            <Routes>
             <Route path="/" element={<Layout />}>
               <Route index element={<Home />} />
               <Route path="reader" element={
@@ -244,6 +249,7 @@ const App: React.FC = () => {
         </HashRouter>
       </DownloadProvider>
     </HifzProvider>
+    </>
   );
 };
 

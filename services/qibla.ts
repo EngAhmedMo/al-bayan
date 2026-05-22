@@ -278,10 +278,11 @@ export const useCompass = (userLat?: number, userLng?: number) => {
             }
         };
 
-        if (window.DeviceOrientationEvent) {
+        const isDesktop = typeof window !== 'undefined' && '__TAURI__' in window;
+        if (window.DeviceOrientationEvent && !isDesktop) {
             window.addEventListener('deviceorientation', handleOrientation, true);
         } else {
-            setData((prev) => ({ ...prev, isAvailable: false, error: 'البوصلة غير مدعومة' }));
+            setData((prev) => ({ ...prev, isAvailable: false, error: 'البوصلة غير مدعومة على الكمبيوتر' }));
         }
 
         return () => {

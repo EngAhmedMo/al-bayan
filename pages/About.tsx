@@ -159,12 +159,12 @@ export const About: React.FC = () => {
 
                 <h3 className="font-bold text-xl sm:text-2xl mb-2 text-gold-400 drop-shadow-sm font-quran tracking-wide">صدقة جارية</h3>
                 <p className="text-gray-200 text-sm sm:text-base leading-relaxed max-w-sm mx-auto font-medium">
-                  هذا العمل وقف لله تعالى عن جميع أموات المسلمين
+                  صدقة جارية على روح والدي الحاج/ محمد صلاح عامر وجميع أموات المسلمين
                 </p>
 
                 {/* Prayer Request */}
                 <div className="mt-5 inline-flex items-center gap-2 bg-white/5 backdrop-blur-md py-3 px-5 rounded-2xl border border-gold-500/20 shadow-inner">
-                  <span className="text-xs sm:text-sm font-bold text-gold-300 opacity-95">🤲 نسألكم الدعاء بالمغفرة والرحمة لوالدي</span>
+                  <span className="text-xs sm:text-sm font-bold text-gold-300 opacity-95">🤲 نسألكم الدعاء لهما بالمغفرة والرحمة</span>
                 </div>
               </div>
             </section>
@@ -279,8 +279,8 @@ export const About: React.FC = () => {
                   <Code size={24} />
                 </div>
                 <div>
-                  <h3 className="font-bold text-navy-900 dark:text-white text-base sm:text-lg">تطوير وبرمجة</h3>
-                  <p className="text-gold-600 dark:text-gold-400 font-bold text-sm sm:text-base mt-0.5 font-quran tracking-wide">م. أحمد محمد</p>
+                  <h3 className="font-bold text-navy-900 dark:text-white text-base sm:text-lg">الدعم الفني والتواصل</h3>
+                  <p className="text-navy-500 dark:text-navy-400 text-xs sm:text-sm mt-0.5">للإبلاغ عن المشاكل والمقترحات</p>
                 </div>
               </div>
 

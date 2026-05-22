@@ -10,7 +10,10 @@
     "build:web": "tsc && vite build --base=/al-bayan/",
     "preview": "vite preview",
     "android": "npx cap open android",
-    "deploy": "npm run build:web && npx gh-pages -d dist"
+    "deploy": "npm run build:web && npx gh-pages -d dist",
+    "tauri": "tauri",
+    "dev:desktop": "tauri dev",
+    "build:desktop": "tauri build"
   },
   "dependencies": {
     "@capacitor-community/keep-awake": "^8.0.1",
@@ -29,6 +32,8 @@
     "@capacitor/push-notifications": "^6.0.0",
     "@capacitor/share": "^6.0.4",
     "@capacitor/status-bar": "^6.0.0",
+    "@tauri-apps/api": "^2.11.0",
+    "@tauri-apps/plugin-autostart": "^2.5.1",
     "@types/html2canvas": "^0.5.35",
     "adhan": "^4.4.3",
     "canvas-confetti": "^1.9.4",
@@ -44,6 +49,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^6.0.0",
+    "@tauri-apps/cli": "^2.11.2",
     "@types/canvas-confetti": "^1.9.0",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",

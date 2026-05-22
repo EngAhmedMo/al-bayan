@@ -7,7 +7,6 @@ export const RADIO_STATIONS: RadioStation[] = [
     id: 'cairo_radio',
     name: 'إذاعة القرآن الكريم من القاهرة',
     url: [
-      // PRIORITY: radiojar.com URLs work reliably with allowCrossProtocolRedirects
       'https://n06.radiojar.com/8s5u5tpdtwzuv',
       'https://stream.radiojar.com/8s5u5tpdtwzuv',
       'https://qurango.net/radio/cairo',
@@ -19,13 +18,13 @@ export const RADIO_STATIONS: RadioStation[] = [
     id: 'saudi_quran_radio',
     name: 'إذاعة القرآن الكريم (السعودية)',
     url: [
-      // PRIORITY: radiojar.com URL works reliably with allowCrossProtocolRedirects
       'https://stream.radiojar.com/4wqre23fytzuv',
       'https://qurango.net/radio/saudi',
       'https://backup.qurango.net/radio/saudi'
     ],
     category: 'other'
   },
+
 
   // --- القراء ---
 
@@ -263,6 +262,87 @@ export const RADIO_STATIONS: RadioStation[] = [
     name: 'محمود علي البنا',
     url: [
       'https://qurango.net/radio/mahmoud_ali__albanna'
+    ],
+    category: 'reciters'
+  },
+  {
+    id: 'mustafa_allahoni',
+    name: 'مصطفى اللاهوني',
+    url: [
+      'https://qurango.net/radio/mustafa_allahoni',
+      'https://backup.qurango.net/radio/mustafa_allahoni'
+    ],
+    category: 'reciters'
+  },
+  {
+    id: 'bandar_balilah',
+    name: 'بندر بليلة',
+    url: [
+      'https://qurango.net/radio/bandar_balilah',
+      'https://backup.qurango.net/radio/bandar_balilah'
+    ],
+    category: 'reciters'
+  },
+  {
+    id: 'ali_alhuthaifi',
+    name: 'علي الحذيفي',
+    url: [
+      'https://qurango.net/radio/ali_alhuthaifi',
+      'https://backup.qurango.net/radio/ali_alhuthaifi'
+    ],
+    category: 'reciters'
+  },
+  {
+    id: 'mohammed_jibreel',
+    name: 'محمد جبريل',
+    url: [
+      'https://qurango.net/radio/mohammed_jibreel',
+      'https://backup.qurango.net/radio/mohammed_jibreel'
+    ],
+    category: 'reciters'
+  },
+  {
+    id: 'ahmad_nauina',
+    name: 'أحمد نعينع',
+    url: [
+      'https://qurango.net/radio/ahmad_nauina',
+      'https://backup.qurango.net/radio/ahmad_nauina'
+    ],
+    category: 'reciters'
+  },
+  {
+    id: 'ali_jaber',
+    name: 'علي جابر',
+    url: [
+      'https://qurango.net/radio/ali_jaber',
+      'https://backup.qurango.net/radio/ali_jaber'
+    ],
+    category: 'reciters'
+  },
+  {
+    id: 'mohammed_ayyub',
+    name: 'محمد أيوب',
+    url: [
+      'https://qurango.net/radio/mohammed_ayyub',
+      'https://backup.qurango.net/radio/mohammed_ayyub'
+    ],
+    category: 'reciters'
+  },
+  {
+    id: 'ibrahim_alakdar',
+    name: 'إبراهيم الأخضر',
+    url: [
+      'https://qurango.net/radio/ibrahim_alakdar',
+      'https://backup.qurango.net/radio/ibrahim_alakdar'
+    ],
+    category: 'reciters'
+  },
+  {
+    id: 'khaled_alqahtani',
+    name: 'خالد القحطاني',
+    url: [
+      'https://qurango.net/radio/khaled_alqahtani',
+      'https://backup.qurango.net/radio/khaled_alqahtani'
     ],
     category: 'reciters'
   },

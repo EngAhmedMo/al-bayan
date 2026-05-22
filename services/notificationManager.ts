@@ -1,6 +1,11 @@
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Capacitor } from '@capacitor/core';
-import { MediaBridge } from './mediaBridge';
+import { MediaBridge as NativeMediaBridge } from './mediaBridge';
+import { DesktopBridge } from './desktopBridge';
+
+const isDesktop = typeof window !== 'undefined' && '__TAURI__' in window;
+const MediaBridge = isDesktop ? DesktopBridge : NativeMediaBridge;
+
 import { addNotification, addNotificationWithTimestamp, getStoredAzhan, getStoredAzhanForPrayer, getStoredVolumeForPrayer, getNotificationSettings, hasHifzPlan, getHifzStreak, getSavedLocation, isPerPrayerMuazzinEnabled, getDailyPrayersWithFallback } from './storage';
 import { SALAWAT_DEFAULTS } from '../constants/defaults';
 import { PrayerData } from '../types';
@@ -37,6 +42,8 @@ const BUNDLED_AZHANS = [
 
 export const requestNotificationPermission = async () => {
   try {
+    if (isDesktop) return; // Handled by Tauri naturally
+
     if (Capacitor.isNativePlatform()) {
       // 1. Basic Notification Permission (Android 13+)
       // First try standard Capacitor LocalNotifications (standard channel creation)
@@ -1027,8 +1034,12 @@ export const scheduleAllNotifications = async (
       // 2. Schedule Detailed Visual Notifications (Limited Scope)
       if (notificationsToSchedule.length > 0) {
         // With 3 days of details, we have ~45 notifications. This fits within the Android 50 limit.
-        await LocalNotifications.schedule({ notifications: notificationsToSchedule });
-        console.log(`✅ Scheduled ${notificationsToSchedule.length} detailed notifications (Limit 50)`);
+        if (!isDesktop) {
+          await LocalNotifications.schedule({ notifications: notificationsToSchedule });
+          console.log(`✅ Scheduled ${notificationsToSchedule.length} detailed notifications (Limit 50)`);
+        } else {
+          console.log(`[NotificationManager] Desktop: Ignored ${notificationsToSchedule.length} native generic alarms.`);
+        }
         storeScheduledNotifications(notificationsToSchedule);
       }
 

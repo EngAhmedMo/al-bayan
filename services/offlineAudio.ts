@@ -10,7 +10,8 @@ const AZHAN_CACHE_NAME = 'azhan-audio-v1';
 const NATIVE_DIR = Directory.Data; // /data/user/0/com.albayan.quran/files/
 
 // Helper to determine storage engine
-const isNative = Capacitor.isNativePlatform();
+const isDesktop = typeof window !== 'undefined' && '__TAURI__' in window;
+const isNative = Capacitor.isNativePlatform() && !isDesktop;
 
 // --- QURAN AUDIO FUNCTIONS ---
 
