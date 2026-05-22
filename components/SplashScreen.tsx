@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Sparkles, Heart } from 'lucide-react';
+import { Sparkles, Heart, Loader2 } from 'lucide-react';
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -50,7 +50,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
         </h1>
 
         {/* Subtitle */}
-        <div className="flex items-center justify-center gap-3 mb-12">
+        <div className="flex items-center justify-center gap-3 mb-6">
           <span className="h-[2px] w-12 sm:w-16 bg-gradient-to-r from-transparent to-gold-500 rounded-full" />
           <div className="flex items-center gap-1.5">
             <Sparkles size={14} className="text-gold-500" />
@@ -60,9 +60,15 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
           <span className="h-[2px] w-12 sm:w-16 bg-gradient-to-l from-transparent to-gold-500 rounded-full" />
         </div>
 
+        {/* Loading Indicator */}
+        <div className="flex items-center justify-center gap-2 mb-6 text-gold-600/80 dark:text-gold-400/80 animate-pulse">
+          <Loader2 className="animate-spin" size={18} />
+          <span className="text-sm font-bold tracking-wider">جاري التهيئة...</span>
+        </div>
+
         {/* Sadaqah Jariyah Text (Animated) */}
-        <div className="mt-8 sm:mt-12 w-full max-w-sm sm:max-w-md mx-auto animate-in slide-in-from-bottom-8 fade-in duration-1000 delay-300">
-          <div className="relative p-5 rounded-2xl bg-white/40 dark:bg-navy-900/40 backdrop-blur-md border border-gold-400/30 dark:border-gold-500/20 shadow-xl shadow-gold-500/5 dark:shadow-black/20 flex flex-col items-center justify-center text-center group">
+        <div className="mt-4 sm:mt-8 w-full max-w-sm sm:max-w-md mx-auto animate-in slide-in-from-bottom-8 fade-in duration-1000 delay-300">
+          <div className="relative p-5 rounded-2xl bg-white/85 dark:bg-navy-900/85 backdrop-blur-2xl border border-gold-400/50 dark:border-gold-500/40 shadow-2xl shadow-gold-500/10 dark:shadow-black/40 flex flex-col items-center justify-center text-center group">
             <div className="absolute inset-0 bg-gradient-to-br from-gold-400/10 to-transparent rounded-2xl pointer-events-none"></div>
             <Heart className="text-gold-500 fill-gold-500/30 mb-3 group-hover:scale-110 transition-transform duration-500" size={28} />
             <p className="relative z-10 text-navy-700 dark:text-navy-100 font-medium text-sm sm:text-base leading-relaxed">
