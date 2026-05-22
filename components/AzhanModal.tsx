@@ -459,7 +459,7 @@ export const AzhanModal: React.FC<AzhanModalProps> = ({
   const formattedTime = formatPrayerTime(prayerTime);
 
   return (
-    <div className={`fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-500 font-sans ${isDark
+    <div className={`fixed inset-0 z-[99999] flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-500 font-sans ${isDark
       ? 'bg-gradient-to-b from-black/95 via-[#0a1628]/98 to-black/95'
       : 'bg-gradient-to-b from-amber-50/95 via-white/98 to-gold-50/95'
       }`}>
