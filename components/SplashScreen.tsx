@@ -27,7 +27,7 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
   return (
     <div 
-      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-b from-stone-50 via-gold-50/20 to-white dark:from-navy-950 dark:via-navy-900 dark:to-navy-950 transition-opacity duration-500 ease-in-out ${isFadingOut ? 'opacity-0' : 'opacity-100'}`}
+      className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-b from-stone-50 via-gold-50 to-white dark:from-navy-950 dark:via-navy-900 dark:to-navy-950 transition-opacity duration-500 ease-in-out ${isFadingOut ? 'opacity-0' : 'opacity-100'}`}
       dir="rtl"
     >
       {/* Decorative Gradients */}
