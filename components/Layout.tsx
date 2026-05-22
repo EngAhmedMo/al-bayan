@@ -1841,6 +1841,45 @@ export const Layout: React.FC = () => {
     });
   };
 
+  // --- Tauri Desktop Tray Media Controls ---
+  useEffect(() => {
+    if (!isDesktop) return;
+    
+    let unlistenPlayPause: () => void;
+    let unlistenNext: () => void;
+    let unlistenPrev: () => void;
+    let unlistenStop: () => void;
+
+    import('@tauri-apps/api/event').then(({ listen }) => {
+      listen('tray-play-pause', () => {
+        if (trackRef.current) togglePlay();
+        else if (activeStationRef.current) toggleRadio();
+      }).then(f => unlistenPlayPause = f);
+      
+      listen('tray-next', () => {
+        if (trackRef.current) manualChangeTrack(1);
+        else if (activeStationRef.current) changeStation('next');
+      }).then(f => unlistenNext = f);
+      
+      listen('tray-prev', () => {
+        if (trackRef.current) manualChangeTrack(-1);
+        else if (activeStationRef.current) changeStation('prev');
+      }).then(f => unlistenPrev = f);
+      
+      listen('tray-stop', () => {
+        if (trackRef.current) closePlayer();
+        else if (activeStationRef.current) stopRadio();
+      }).then(f => unlistenStop = f);
+    });
+
+    return () => {
+      if (unlistenPlayPause) unlistenPlayPause();
+      if (unlistenNext) unlistenNext();
+      if (unlistenPrev) unlistenPrev();
+      if (unlistenStop) unlistenStop();
+    };
+  }, []);
+
   useEffect(() => {
     if ('mediaSession' in navigator) {
       if (currentTrack) {

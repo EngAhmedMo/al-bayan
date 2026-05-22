@@ -128,6 +128,15 @@ class DesktopBridgeImplementation implements MediaBridgePlugin {
         }
     }
 
+    async disableAutoStart(): Promise<void> {
+        const { disable } = await import('@tauri-apps/plugin-autostart');
+        await disable();
+    }
+
+    async isAutoStartEnabled(): Promise<boolean> {
+        return await isEnabled();
+    }
+
     async savePersistenceData(options: any): Promise<void> {
         localStorage.setItem('desktop_persistence', JSON.stringify(options));
     }

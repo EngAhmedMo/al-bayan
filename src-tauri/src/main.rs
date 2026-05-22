@@ -6,7 +6,7 @@ mod scheduler;
 
 use tauri::{Manager};
 use tauri_plugin_autostart::MacosLauncher;
-use tauri::menu::{Menu, MenuItem};
+use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{TrayIconBuilder, MouseButton, MouseButtonState, TrayIconEvent};
 
 fn main() {
@@ -23,10 +23,19 @@ fn main() {
             }
         }))
         .setup(|app| {
+            // Check if launched silently
+            let args: Vec<String> = std::env::args().collect();
+            let silent = args.iter().any(|arg| arg == "--silently");
+
             // Setup Tray Menu
-            let quit_i = MenuItem::with_id(app, "quit", "إغلاق البيان", true, None::<&str>)?;
+            let play_pause_i = MenuItem::with_id(app, "play_pause", "▶ تشغيل / ⏸ إيقاف", true, None::<&str>)?;
+            let next_i = MenuItem::with_id(app, "next", "⏭ التالي", true, None::<&str>)?;
+            let prev_i = MenuItem::with_id(app, "prev", "⏮ السابق", true, None::<&str>)?;
+            let stop_i = MenuItem::with_id(app, "stop", "⏹ إنهاء التلاوة / الإذاعة", true, None::<&str>)?;
+            let separator = PredefinedMenuItem::separator(app)?;
             let show_i = MenuItem::with_id(app, "show", "إظهار البرنامج", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
+            let quit_i = MenuItem::with_id(app, "quit", "إغلاق البيان", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&play_pause_i, &next_i, &prev_i, &stop_i, &separator, &show_i, &quit_i])?;
 
             let _tray = TrayIconBuilder::new()
                 .menu(&menu)
@@ -39,6 +48,18 @@ fn main() {
                             window.show().unwrap();
                             window.set_focus().unwrap();
                         }
+                    }
+                    "play_pause" => {
+                        let _ = app.emit("tray-play-pause", ());
+                    }
+                    "next" => {
+                        let _ = app.emit("tray-next", ());
+                    }
+                    "prev" => {
+                        let _ = app.emit("tray-prev", ());
+                    }
+                    "stop" => {
+                        let _ = app.emit("tray-stop", ());
                     }
                     _ => {}
                 })
@@ -56,6 +77,14 @@ fn main() {
                     }
                 })
                 .build(app)?;
+
+            // Show window if not started silently
+            if !silent {
+                if let Some(window) = app.get_webview_window("main") {
+                    window.show().unwrap();
+                    window.set_focus().unwrap();
+                }
+            }
 
             // Start the background scheduler for Azhan
             scheduler::start_scheduler_loop(app.handle().clone());

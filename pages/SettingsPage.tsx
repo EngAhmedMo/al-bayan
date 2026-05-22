@@ -26,6 +26,7 @@ export const SettingsPage: React.FC = () => {
 
   const isAndroid = Capacitor.isNativePlatform();
   const [gestureSettings, setGestureSettings] = React.useState({ masterEnabled: false, flipEnabled: true, volumeEnabled: true });
+  const [autoStartEnabled, setAutoStartEnabled] = React.useState(false);
 
   React.useEffect(() => {
     if (isAndroid) {
@@ -36,6 +37,22 @@ export const SettingsPage: React.FC = () => {
           volumeEnabled: methods.volumeEnabled ?? true
         });
       });
+    } else {
+      // Check Desktop Autostart Status
+      if (MediaBridge.isAutoStartEnabled) {
+        MediaBridge.isAutoStartEnabled().then(enabled => {
+          setAutoStartEnabled(enabled);
+          
+          // First time check for auto-enabling
+          const hasCheckedAutoStart = localStorage.getItem('has_checked_autostart_v1');
+          if (!hasCheckedAutoStart) {
+            localStorage.setItem('has_checked_autostart_v1', 'true');
+            if (!enabled) {
+              MediaBridge.openAutoStart().then(() => setAutoStartEnabled(true));
+            }
+          }
+        });
+      }
     }
   }, [isAndroid]);
 
@@ -214,6 +231,38 @@ export const SettingsPage: React.FC = () => {
               )}
           </div>
         </div>
+
+        {/* Desktop Specific Settings */}
+        {!isAndroid && (
+          <div className="bg-white dark:bg-navy-900 rounded-2xl p-5 border border-navy-100 dark:border-navy-800 shadow-sm">
+            <h3 className="text-sm font-bold text-navy-800 dark:text-white mb-4 border-b border-navy-100 dark:border-navy-800 pb-2">إعدادات سطح المكتب</h3>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-slate-100 dark:bg-navy-800 rounded-xl text-navy-600 dark:text-navy-300">
+                    <Play size={18} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-navy-800 dark:text-white">التشغيل التلقائي (في الخلفية)</h4>
+                    <p className="text-[10px] text-navy-500 max-w-[200px]">تشغيل التطبيق تلقائياً مع بدء الويندوز لحساب ومتابعة توقيتات الأذان</p>
+                  </div>
+                </div>
+                <ToggleSwitch 
+                  enabled={autoStartEnabled} 
+                  onChange={async (val) => {
+                    setAutoStartEnabled(val);
+                    if (val) {
+                      await MediaBridge.openAutoStart();
+                    } else if (MediaBridge.disableAutoStart) {
+                      await MediaBridge.disableAutoStart();
+                    }
+                  }} 
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Notifications & Advanced Tab Redirection */}
         <button

@@ -29,6 +29,8 @@ export interface MediaBridgePlugin {
     addListener(eventName: 'controlNotification' | 'onPlaybackStateChanged' | 'onIsPlayingChanged' | 'azhanDismissed' | 'azhanStarted' | 'azhanProgress' | 'azhanStateChanged' | 'mediaItemTransition' | 'salawatStarted' | 'salawatFinished' | 'sleepTimerFinished', listenerFunc: (data: any) => void): Promise<any>;
     // New Permission Methods
     openAutoStart(): Promise<void>;
+    disableAutoStart?(): Promise<void>;
+    isAutoStartEnabled?(): Promise<boolean>;
     requestOverlayPermission(): Promise<{ opened?: boolean; alreadyGranted?: boolean; notRequired?: boolean }>;
     checkOverlayPermission(): Promise<{ granted: boolean }>;
     openAppSettings(): Promise<void>;
