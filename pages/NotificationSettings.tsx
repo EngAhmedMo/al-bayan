@@ -344,7 +344,7 @@ export const NotificationSettingsPage: React.FC = () => {
                     <button
                         onClick={handleSaveAll}
                         disabled={isSaving}
-                        className={`flex items-center gap-1.5 px-5 py-2.5 rounded-full font-bold text-xs md:text-sm transition-all duration-200 shadow-sm ${saved
+                        className={`flex items-center gap-1.5 px-3 sm:px-5 py-1.5 sm:py-2.5 rounded-full font-bold text-xs md:text-sm transition-all duration-200 shadow-sm ${saved
                             ? 'bg-emerald-500 text-white shadow-emerald-500/30'
                             : isSaving
                                 ? 'bg-navy-300 dark:bg-navy-700 text-white cursor-wait'

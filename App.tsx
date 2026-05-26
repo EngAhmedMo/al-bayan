@@ -45,10 +45,29 @@ const RouteTracker = () => {
   const navigate = useNavigate();
   const lastBackPress = useRef<number>(0);
 
+  // Persist current route on change
   useEffect(() => {
     const pageName = location.pathname === '/' ? 'Home' : location.pathname.substring(1);
     FirebaseService.logScreen(pageName);
+
+    // Save full path (pathname + search) to restore on app restart
+    const fullPath = location.pathname + location.search;
+    localStorage.setItem('last_session_route', fullPath);
   }, [location]);
+
+  // Restore last route on cold boot/start
+  useEffect(() => {
+    const savedRoute = localStorage.getItem('last_session_route');
+    // Only restore if the app starts on root path and has no deep link/hash in the URL
+    const isRoot = window.location.hash === '' || window.location.hash === '#' || window.location.hash === '#/';
+
+    if (savedRoute && isRoot && savedRoute !== '/' && savedRoute !== '') {
+      console.log('[RouteTracker] Restoring last session route:', savedRoute);
+      setTimeout(() => {
+        navigate(savedRoute, { replace: true });
+      }, 50);
+    }
+  }, [navigate]);
 
   // Handle Android back button
   useEffect(() => {

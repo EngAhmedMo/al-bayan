@@ -75,3 +75,13 @@ export const cleanQuranText = (text: string): string => {
   // Remove extra spaces
   return cleaned.replace(/\s+/g, ' ').trim();
 };
+
+/**
+ * Cleans Quran text for display by stripping silent vowel marks (U+06DF, U+06E0)
+ * and placeholder dotted circles (U+25CC) that cause rendering glitches in browsers.
+ */
+export const cleanQuranTextForDisplay = (text: string): string => {
+  if (!text) return '';
+  return text.replace(/[\u06DF\u06E0\u25CC]/g, '');
+};
+

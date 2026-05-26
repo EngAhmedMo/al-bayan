@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Book, Bookmark, Filter, AlertCircle, ArrowRight, ChevronDown, X, Info, Loader2, Sparkles, FileText, Copy, Share2, Check, List, Clock } from 'lucide-react';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import { getBooks, fetchHadiths, getBookInfo, Hadith, SearchResult, normalizeArabic } from '../services/hadithApi';
-import { toArabicDigits } from '../services/normalization';
+import { toArabicDigits, cleanQuranTextForDisplay } from '../services/normalization';
 import { isHadithBookmarked, toggleHadithBookmark, getHadithBookmarks, saveHadithReadingPosition, getHadithReadingPosition, getSearchHistory, saveSearchQuery, removeSearchQuery, clearSearchHistory } from '../services/storage';
 import { HadithBookmark } from '../types';
 import { Share } from '@capacitor/share';
@@ -11,6 +11,30 @@ import { isStrictMatch } from '../services/api';
 
 const BOOKS = getBooks();
 const HADITHS_PER_PAGE = 50;
+// Helper to format Arabic commas in font-sans and clean silent vowel marks
+const formatCommas = (str: string): React.ReactNode => {
+  if (!str) return str;
+  const parts = str.split('،');
+  if (parts.length === 1) return str;
+  return (
+    <>
+      {parts.map((part, index) => (
+        <React.Fragment key={index}>
+          {part}
+          {index < parts.length - 1 && (
+            <span className="text-gold-600 dark:text-gold-400 mx-0.5" style={{ fontFamily: "'Amiri', 'Lateef', 'Times New Roman', serif", fontWeight: 'bold' }} dir="rtl">،</span>
+          )}
+        </React.Fragment>
+      ))}
+    </>
+  );
+};
+
+const renderFormattedHadithText = (text: string): React.ReactNode => {
+  if (!text) return '';
+  const cleaned = cleanQuranTextForDisplay(text);
+  return formatCommas(cleaned);
+};
 
 export const HadithPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -375,12 +399,13 @@ export const HadithPage: React.FC = () => {
 
   // Highlight matching text with colored markers - word-based accurate highlighting
   const highlightMatch = (text: string, query: string, createSnippet: boolean = true): React.ReactNode => {
-    if (!query.trim() || !text) return text;
+    if (!query.trim() || !text) return renderFormattedHadithText(text);
 
+    const cleanedText = cleanQuranTextForDisplay(text);
     const normalizedQuery = normalizeArabic(query.toLowerCase());
     const queryWords = normalizedQuery.split(/\s+/).filter(w => w.length > 0);
 
-    if (queryWords.length === 0) return text;
+    if (queryWords.length === 0) return renderFormattedHadithText(cleanedText);
 
     // Split text into words while preserving positions
     // FIX: Included Harakat (\u064B-\u065F), Tatweel (\u0640), Dagger Alef (\u0670), Alef Wasla (\u0671)
@@ -389,7 +414,7 @@ export const HadithPage: React.FC = () => {
     const words: { word: string; start: number; end: number }[] = [];
     let match;
 
-    while ((match = wordRegex.exec(text)) !== null) {
+    while ((match = wordRegex.exec(cleanedText)) !== null) {
       words.push({
         word: match[0],
         start: match.index,
@@ -401,7 +426,7 @@ export const HadithPage: React.FC = () => {
     const matchedIndices = new Set<number>();
 
     // Check for exact phrase match first
-    const normalizedText = normalizeArabic(text.toLowerCase());
+    const normalizedText = normalizeArabic(cleanedText.toLowerCase());
     if (normalizedText.includes(normalizedQuery)) {
       const phraseStart = normalizedText.indexOf(normalizedQuery);
       const phraseEnd = phraseStart + normalizedQuery.length;
@@ -445,14 +470,14 @@ export const HadithPage: React.FC = () => {
 
     // Create snippet around first match
     let snippetStart = 0;
-    let snippetEnd = createSnippet ? Math.min(300, text.length) : text.length;
+    let snippetEnd = createSnippet ? Math.min(300, cleanedText.length) : cleanedText.length;
 
     if (matchedIndices.size > 0 && createSnippet) {
       const firstMatchIdx = Math.min(...matchedIndices);
       const firstWord = words[firstMatchIdx];
       if (firstWord) {
         snippetStart = Math.max(0, firstWord.start - 60);
-        snippetEnd = Math.min(text.length, firstWord.start + 240);
+        snippetEnd = Math.min(cleanedText.length, firstWord.start + 240);
       }
     }
 
@@ -474,7 +499,7 @@ export const HadithPage: React.FC = () => {
 
       // Add text before this word
       if (wordInfo.start > currentPos) {
-        parts.push(<span key={`gap-${i}`}>{text.slice(currentPos, wordInfo.start)}</span>);
+        parts.push(<span key={`gap-${i}`}>{formatCommas(cleanedText.slice(currentPos, wordInfo.start))}</span>);
       }
 
       // Add the word (highlighted or not)
@@ -486,7 +511,7 @@ export const HadithPage: React.FC = () => {
           </mark>
         );
       } else {
-        parts.push(<span key={`word-${i}`}>{wordInfo.word}</span>);
+        parts.push(<span key={`word-${i}`}>{formatCommas(wordInfo.word)}</span>);
       }
 
       currentPos = wordInfo.end;
@@ -494,10 +519,10 @@ export const HadithPage: React.FC = () => {
 
     // Add remaining text
     if (currentPos < snippetEnd) {
-      parts.push(<span key="suffix-text">{text.slice(currentPos, snippetEnd)}</span>);
+      parts.push(<span key="suffix-text">{formatCommas(cleanedText.slice(currentPos, snippetEnd))}</span>);
     }
 
-    if (createSnippet && snippetEnd < text.length) {
+    if (createSnippet && snippetEnd < cleanedText.length) {
       parts.push(<span key="suffix">...</span>);
     }
 
@@ -525,7 +550,7 @@ export const HadithPage: React.FC = () => {
     <div className="flex flex-col min-h-full bg-gradient-to-b from-stone-50 via-gold-50/30 to-stone-100 dark:from-navy-950 dark:via-navy-900 dark:to-navy-950 transition-colors duration-500">
 
       {/* Header */}
-      <header className="flex items-center gap-4 p-4 border-b border-gold-100/50 dark:border-navy-700 bg-white/80 dark:bg-navy-900/80 backdrop-blur-md sticky top-0 z-10 h-[70px] shadow-sm">
+      <header className="hadith-header flex items-center gap-4 p-4 border-b border-gold-100/50 dark:border-navy-700 bg-white/80 dark:bg-navy-900/80 backdrop-blur-md sticky top-0 z-10 h-[70px] shadow-sm">
         {selectedBookId ? (
           <button onClick={handleBack} className="p-2.5 rounded-xl bg-white dark:bg-navy-800 border border-gold-200 dark:border-navy-700 hover:bg-gold-50 dark:hover:bg-navy-700 text-navy-600 dark:text-navy-300 transition-all shadow-sm">
             <ArrowRight size={20} />
@@ -684,7 +709,7 @@ export const HadithPage: React.FC = () => {
                               ? highlightMatch(h.arabic || h.text || '', highlightQuery, false) 
                               : inBookSearchQuery 
                                 ? highlightMatch(h.arabic || h.text || '', inBookSearchQuery, false)
-                                : (h.arabic || h.text)}
+                                : renderFormattedHadithText(h.arabic || h.text || '')}
                           </p>
 
                           {/* Chapter info */}

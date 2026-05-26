@@ -655,6 +655,9 @@ const CategoryDetail: React.FC<{
       // Don't fire when typing in inputs/textareas
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
 
+      // Prevent multiple increments on long-press (key repeat)
+      if (e.repeat) return;
+
       const state = latestStateRef.current;
 
       // Help panel toggle
@@ -681,7 +684,7 @@ const CategoryDetail: React.FC<{
         return;
       }
 
-      if (e.code === 'Space' || e.code === 'Enter') {
+      if (e.code === 'Space' || e.code === 'Enter' || e.code === 'NumpadEnter') {
         e.preventDefault();
         if (spaceCountRef.current && state.adhkarList[state.activeZekrIndex]) {
           spaceCountRef.current(state.adhkarList[state.activeZekrIndex].id);
@@ -887,7 +890,7 @@ const CategoryDetail: React.FC<{
               </div>
               <div className="space-y-3">
                 {[
-                  { key: 'Space / Enter', desc: 'عد الذكر النشط' },
+                  { key: 'Space / Enter / NumpadEnter', desc: 'عد الذكر النشط' },
                   { key: '↑ →', desc: 'الذكر السابق' },
                   { key: '↓ ←', desc: 'الذكر التالي' },
                   { key: 'R', desc: 'إعادة تعيين العداد' },
@@ -1029,9 +1032,10 @@ const ZekrCard: React.FC<{
   const { fontSize } = useSettings();
   const pressRef = useRef<ReturnType<typeof setTimeout>>();
 
-  // Smart text cleaner + Allah diacritics restoration
-  const cleanText = useCallback((text: string): string => {
+  // Smart text cleaner + Allah diacritics restoration + Comma formatting
+  const cleanText = useCallback((text: string): React.ReactNode => {
     let cleaned = text
+      .replace(/[\u06DF\u06E0\u25CC]/g, '')   // Quranic silent marks and dotted circles
       .replace(/[{}]/g,              '')   // curly brackets
       .replace(/[﴿﴾]/g,             '')   // Quran brackets
       .replace(/[\u0660-\u0669]/g,   '')   // Arabic-Indic digits
@@ -1041,14 +1045,30 @@ const ZekrCard: React.FC<{
       .replace(/\s*\*\s*/g,          ' ')  // asterisks
       .replace(/\s+/g,               ' ')  // collapse whitespace
       .trim();
-    return restoreAllahDiacritics(cleaned);
+    const withAllah = restoreAllahDiacritics(cleaned);
+    
+    const parts = withAllah.split('،');
+    if (parts.length === 1) return withAllah;
+
+    return (
+      <>
+        {parts.map((part, index) => (
+          <React.Fragment key={index}>
+            {part}
+            {index < parts.length - 1 && (
+              <span className="text-gold-600 dark:text-gold-400 mx-0.5" style={{ fontFamily: "'Amiri', 'Lateef', 'Times New Roman', serif", fontWeight: 'bold' }} dir="rtl">،</span>
+            )}
+          </React.Fragment>
+        ))}
+      </>
+    );
   }, []);
 
   const completionMsg = COMPLETION_MESSAGES[data.id % COMPLETION_MESSAGES.length];
   const progressPercent = Math.min(100, (count / target) * 100);
 
   // SVG circular progress ring dimensions
-  const RING_R = 20;
+  const RING_R = 24;
   const RING_C = 2 * Math.PI * RING_R;
   const ringOffset = RING_C * (1 - progressPercent / 100);
   const gradId = `zg-${data.id}`;
@@ -1169,32 +1189,35 @@ const ZekrCard: React.FC<{
         </div>
 
         {/* Right: Circular SVG Progress Ring + Count */}
-        <div className="relative w-[60px] h-[60px] flex items-center justify-center shrink-0">
+        <div className="relative w-[72px] h-[72px] flex items-center justify-center shrink-0 group/circle select-none">
+          {/* Glassmorphic background for the inner circle */}
+          <div className="absolute inset-[3px] rounded-full bg-gradient-to-br from-gold-50/50 via-white/80 to-amber-50/30 dark:from-navy-850 dark:via-navy-900 dark:to-navy-950/80 backdrop-blur-sm border border-gold-200/20 dark:border-navy-800/40 shadow-[inset_0_2px_4px_rgba(255,255,255,0.4),0_4px_12px_rgba(0,0,0,0.03)] dark:shadow-[inset_0_1px_1px_rgba(255,255,255,0.05),0_4px_12px_rgba(0,0,0,0.3)] transition-transform duration-300 group-hover/circle:scale-105" />
+
           <svg
-            className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none"
-            viewBox="0 0 50 50"
+            className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none transition-transform duration-300 group-hover/circle:scale-105"
+            viewBox="0 0 60 60"
           >
             {/* Track ring */}
             <circle
-              cx="25" cy="25" r={RING_R}
-              fill="none" stroke="currentColor" strokeWidth="3"
-              className="text-gold-100 dark:text-navy-700"
+              cx="30" cy="30" r={RING_R}
+              fill="none" stroke="currentColor" strokeWidth="3.5"
+              className="text-gold-100/50 dark:text-navy-800/70"
             />
             {/* Progress ring */}
             <circle
-              cx="25" cy="25" r={RING_R}
+              cx="30" cy="30" r={RING_R}
               fill="none"
               stroke={`url(#${gradId})`}
-              strokeWidth="3"
+              strokeWidth="4"
               strokeDasharray={RING_C}
               strokeDashoffset={ringOffset}
               strokeLinecap="round"
-              className="transition-all duration-400 ease-out drop-shadow-sm"
+              className="transition-all duration-500 ease-out drop-shadow-[0_2px_4px_rgba(245,158,11,0.15)] dark:drop-shadow-[0_3px_6px_rgba(0,0,0,0.4)]"
             />
             <defs>
               <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%"   stopColor={completed ? '#10b981' : '#f59e0b'} />
-                <stop offset="100%" stopColor={completed ? '#22c55e' : '#d97706'} />
+                <stop offset="0%"   stopColor={completed ? '#10b981' : '#F0CF85'} />
+                <stop offset="100%" stopColor={completed ? '#059669' : '#C6AD73'} />
               </linearGradient>
             </defs>
           </svg>
@@ -1202,24 +1225,25 @@ const ZekrCard: React.FC<{
           {/* Count display inside the ring */}
           <div
             key={countKey}
-            className={`relative z-10 flex flex-col items-center justify-center leading-none ${countKey > 0 ? 'animate-count-pop' : ''}`}
+            className={`relative z-10 flex flex-col items-center justify-center leading-none transition-transform duration-300 group-hover/circle:scale-110 ${countKey > 0 ? 'animate-count-pop' : ''}`}
           >
             {completed ? (
               <div className="animate-check-bounce">
-                <CheckCircle2 size={24} className="text-emerald-500" />
+                <CheckCircle2 size={28} className="text-emerald-500 dark:text-emerald-400" />
               </div>
             ) : (
-              <>
-                <span className="text-base font-black text-navy-800 dark:text-white tabular-nums">
-                  {toArabicDigits(count)}
-                </span>
-                <div className="w-5 h-px bg-gold-300 dark:bg-navy-600 my-0.5" />
-                <span className="text-[9px] font-bold text-navy-400 dark:text-navy-500 tabular-nums">
-                  {toArabicDigits(target)}
-                </span>
-              </>
+              <span className="text-xl font-extrabold text-navy-800 dark:text-white font-sans tracking-tight drop-shadow-sm tabular-nums">
+                {toArabicDigits(count)}
+              </span>
             )}
           </div>
+
+          {/* Floating Target Badge (Capsule) at the bottom */}
+          {!completed && (
+            <div className="absolute -bottom-1 bg-gradient-to-r from-gold-400 to-amber-500 dark:from-[#C6AD73] dark:to-[#E5C07B] text-white text-[9px] font-black px-2 py-0.5 rounded-full border-2 border-white dark:border-navy-900 shadow-md flex items-center justify-center min-w-[22px] h-[16px] leading-none select-none animate-in zoom-in-50 duration-300">
+              <span className="font-sans leading-none">{toArabicDigits(target)}</span>
+            </div>
+          )}
         </div>
       </div>
 

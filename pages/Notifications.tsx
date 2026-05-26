@@ -54,18 +54,18 @@ export const Notifications: React.FC = () => {
           <div className="flex items-center gap-2 md:gap-3">
             <button
               onClick={() => navigate('/notification-settings')}
-              className="flex items-center gap-1.5 px-4 py-2 md:py-2.5 bg-gradient-to-r from-gold-100 to-amber-100 dark:from-gold-900/30 dark:to-amber-900/20 text-gold-600 dark:text-gold-400 rounded-full hover:shadow-md transition-all duration-200 text-xs md:text-sm font-bold shadow-sm border border-gold-200/50 dark:border-gold-700/50"
+              className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 md:py-2.5 bg-gradient-to-r from-gold-100 to-amber-100 dark:from-gold-900/30 dark:to-amber-900/20 text-gold-600 dark:text-gold-400 rounded-full hover:shadow-md transition-all duration-200 text-xs md:text-sm font-bold shadow-sm border border-gold-200/50 dark:border-gold-700/50"
             >
               <Settings2 size={14} />
-              <span>الإعدادات</span>
+              <span className="hidden sm:inline">الإعدادات</span>
             </button>
             {list.length > 0 && (
               <button
                 onClick={handleClear}
-                className="flex items-center gap-1.5 px-4 py-2 md:py-2.5 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 hover:shadow-md transition-all duration-200 text-xs md:text-sm font-bold border border-red-200/50 dark:border-red-800/50"
+                className="flex items-center gap-1.5 px-2.5 sm:px-4 py-2 md:py-2.5 bg-red-50 dark:bg-red-900/20 text-red-500 rounded-full hover:bg-red-100 dark:hover:bg-red-900/30 hover:shadow-md transition-all duration-200 text-xs md:text-sm font-bold border border-red-200/50 dark:border-red-800/50"
               >
                 <Trash2 size={14} />
-                <span>مسح الكل</span>
+                <span className="hidden sm:inline">مسح الكل</span>
               </button>
             )}
           </div>

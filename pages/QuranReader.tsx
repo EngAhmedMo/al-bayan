@@ -696,6 +696,14 @@ export const QuranReader: React.FC = () => {
             console.error('Error highlighting ayah:', error);
           }
         }, 800); // Slightly increased delay to ensure render
+      } else if (currentTrack && currentTrack.globalAyahNumber && data.length > 0) {
+        // Scroll to the active audio track verse if it exists on the loaded page (e.g. on session restore)
+        setTimeout(() => {
+          const el = document.getElementById(`ayah-${currentTrack.globalAyahNumber}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 500);
       }
     };
 
@@ -1214,19 +1222,19 @@ export const QuranReader: React.FC = () => {
             <button
               onClick={(e) => { e.stopPropagation(); handleNext(); }}
               disabled={page >= 604}
-              className={`fixed left-4 top-1/2 -translate-y-1/2 z-[60] w-14 h-14 flex items-center justify-center rounded-full bg-navy-800/80 dark:bg-white/20 hover:bg-gold-500 dark:hover:bg-gold-500 text-white dark:text-white hover:text-white backdrop-blur-md shadow-xl border-2 border-white/30 dark:border-white/20 transition-all duration-500 active:scale-95 disabled:opacity-0 disabled:pointer-events-none ${showImmersiveControls ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10 pointer-events-none'}`}
+              className={`fixed left-1.5 sm:left-4 top-1/2 -translate-y-1/2 z-[60] w-9 h-9 sm:w-14 sm:h-14 flex items-center justify-center rounded-full bg-navy-800/80 dark:bg-white/20 hover:bg-gold-500 dark:hover:bg-gold-500 text-white dark:text-white hover:text-white backdrop-blur-md shadow-xl border border-white/30 dark:border-white/20 transition-all duration-500 active:scale-95 disabled:opacity-0 disabled:pointer-events-none ${showImmersiveControls ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-10 pointer-events-none'}`}
               title="الصفحة التالية"
             >
-              <ChevronLeft size={28} strokeWidth={2.5} />
+              <ChevronLeft className="w-5 h-5 sm:w-7 sm:h-7" strokeWidth={2.5} />
             </button>
 
             <button
               onClick={(e) => { e.stopPropagation(); handlePrev(); }}
               disabled={page <= 1}
-              className={`fixed right-4 top-1/2 -translate-y-1/2 z-[60] w-14 h-14 flex items-center justify-center rounded-full bg-navy-800/80 dark:bg-white/20 hover:bg-gold-500 dark:hover:bg-gold-500 text-white dark:text-white hover:text-white backdrop-blur-md shadow-xl border-2 border-white/30 dark:border-white/20 transition-all duration-500 active:scale-95 disabled:opacity-0 disabled:pointer-events-none ${showImmersiveControls ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10 pointer-events-none'}`}
+              className={`fixed right-1.5 sm:right-4 top-1/2 -translate-y-1/2 z-[60] w-9 h-9 sm:w-14 sm:h-14 flex items-center justify-center rounded-full bg-navy-800/80 dark:bg-white/20 hover:bg-gold-500 dark:hover:bg-gold-500 text-white dark:text-white hover:text-white backdrop-blur-md shadow-xl border border-white/30 dark:border-white/20 transition-all duration-500 active:scale-95 disabled:opacity-0 disabled:pointer-events-none ${showImmersiveControls ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10 pointer-events-none'}`}
               title="الصفحة السابقة"
             >
-              <ChevronRight size={28} strokeWidth={2.5} />
+              <ChevronRight className="w-5 h-5 sm:w-7 sm:h-7" strokeWidth={2.5} />
             </button>
           </>
         )}
@@ -1245,26 +1253,32 @@ export const QuranReader: React.FC = () => {
                 : 'max-w-4xl min-h-[90vh]'} 
             `}
           >
-            {/* Side Click Navigation Areas (Desktop) */}
+            {/* Side Click Navigation Areas (Desktop/Web/EXE) - Extending 32px inside the page frame */}
             <div 
-              className="hidden lg:flex absolute top-0 bottom-0 left-0 w-[12%] z-30 cursor-pointer group items-center justify-start"
+              className="hidden lg:flex absolute top-0 bottom-0 right-[calc(100%-32px)] w-32 xl:w-40 2xl:w-48 z-30 cursor-pointer group items-center justify-end pr-2 select-none"
               onClick={(e) => { e.stopPropagation(); handleNext(); }}
               title="الصفحة التالية"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-navy-900/5 to-transparent dark:from-white/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-l-2xl pointer-events-none"></div>
-              <div className="w-12 h-24 flex items-center justify-center -translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 pointer-events-none">
-                <ChevronLeft size={40} className="text-navy-400 dark:text-navy-300" strokeWidth={1.5} />
+              {/* Translucent Hover Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-navy-900/5 via-gold-500/5 to-transparent dark:from-white/5 dark:via-gold-500/2 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-r-3xl pointer-events-none"></div>
+              
+              {/* Floating Animated Chevron Icon */}
+              <div className="flex items-center justify-center w-14 h-24 opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 transition-all duration-300 ease-out pointer-events-none">
+                <ChevronLeft size={40} className="text-navy-500 dark:text-gold-400 transition-transform duration-300" strokeWidth={1.8} />
               </div>
             </div>
 
             <div 
-              className="hidden lg:flex absolute top-0 bottom-0 right-0 w-[12%] z-30 cursor-pointer group items-center justify-end"
+              className="hidden lg:flex absolute top-0 bottom-0 left-[calc(100%-32px)] w-32 xl:w-40 2xl:w-48 z-30 cursor-pointer group items-center justify-start pl-2 select-none"
               onClick={(e) => { e.stopPropagation(); handlePrev(); }}
               title="الصفحة السابقة"
             >
-              <div className="absolute inset-0 bg-gradient-to-l from-navy-900/5 to-transparent dark:from-white/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-r-2xl pointer-events-none"></div>
-              <div className="w-12 h-24 flex items-center justify-center translate-x-4 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 pointer-events-none">
-                <ChevronRight size={40} className="text-navy-400 dark:text-navy-300" strokeWidth={1.5} />
+              {/* Translucent Hover Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-l from-navy-900/5 via-gold-500/5 to-transparent dark:from-white/5 dark:via-gold-500/2 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-l-3xl pointer-events-none"></div>
+              
+              {/* Floating Animated Chevron Icon */}
+              <div className="flex items-center justify-center w-14 h-24 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300 ease-out pointer-events-none">
+                <ChevronRight size={40} className="text-navy-500 dark:text-gold-400 transition-transform duration-300" strokeWidth={1.8} />
               </div>
             </div>
 

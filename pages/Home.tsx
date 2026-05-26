@@ -1,14 +1,14 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState, useContext, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Menu, Bell, Sun, Moon, Search, BookOpen, Radio, Shield, Heart, BookHeart, Compass, WifiOff, Clock, MapPin, Settings, X, Info, Activity, Grid, Bookmark, Calendar, History, Library, ChevronLeft, RefreshCw, Sparkles, Quote, Undo2, RotateCcw, Sunrise, Sunset, MoonIcon, Check, Pause, Brain, Copy, Share2, ChevronDown, ChevronUp, ExternalLink, Award } from 'lucide-react';
+import { Menu, Bell, Sun, Moon, Search, BookOpen, Radio, Shield, Heart, BookHeart, Compass, WifiOff, Clock, MapPin, Settings, X, Info, Activity, Grid, Bookmark, Calendar, History, Library, ChevronLeft, RefreshCw, Sparkles, Quote, Undo2, RotateCcw, Sunrise, Sunset, MoonIcon, Check, Play, Pause, Brain, Copy, Share2, ChevronDown, ChevronUp, ExternalLink, Award } from 'lucide-react';
 import { HistoryModal } from '../components/HistoryModal';
 import { QiblaModal } from '../components/QiblaModal';
 import { BathroomModeModal } from '../components/BathroomModeModal';
-import { toArabicDigits } from '../services/normalization';
-import { useTheme, NavigationContext, useSettings } from '../components/Layout';
+import { toArabicDigits, cleanQuranTextForDisplay } from '../services/normalization';
+import { useTheme, NavigationContext, useSettings, useAudio } from '../components/Layout';
 import { getUnreadCount, getStoredBenefit, setStoredBenefit, saveLocation, getSavedLocation, getPrayerTracking, markPrayerCompleted, undoPrayerCompletion, resetDailyPrayers, PRAYER_MESSAGES, PrayerTracking } from '../services/storage';
 import { getHijriDate, MONTH_MAP } from '../services/eventsData';
-import { fetchRandomBenefit, DailyBenefit } from '../services/api';
+import { fetchRandomBenefit, DailyBenefit, getAudioUrl } from '../services/api';
 import { Hadith } from '../services/hadithApi';
 import { PrayerData } from '../types';
 import { Geolocation } from '@capacitor/geolocation';
@@ -16,6 +16,7 @@ import { scheduleAllNotifications } from '../services/notificationManager';
 import { FirebaseService } from '../services/firebase';
 // calculateQibla removed from here as it is not used in Home anymore
 import { calculateLocalPrayerTimes, getTodayPrayerTimesLocal, getWeekPrayerTimes } from '../services/prayerCalculator';
+import { getGlobalAyahNumber } from '../services/quranStaticData';
 import { MediaBridge } from '../services/mediaBridge';
 import { Capacitor } from '@capacitor/core';
 import { Share } from '@capacitor/share';
@@ -29,14 +30,33 @@ import { CitySearchModal } from '../components/CitySearchModal';
 import { useHijriDate } from '../hooks/useHijriDate';
 import { getHijriAdjustment, getFutureHijriDatesJSON } from '../services/islamicCalendar';
 
-// ... existing imports
+// Helper to clean Uthmanic silent vowels and format standard commas beautifully in font-sans
+const renderFormattedArabicText = (text: string) => {
+  if (!text) return '';
+  const cleaned = cleanQuranTextForDisplay(text);
+  const parts = cleaned.split('،');
+  if (parts.length === 1) return cleaned;
+  return (
+    <>
+      {parts.map((part, index) => (
+        <React.Fragment key={index}>
+          {part}
+          {index < parts.length - 1 && (
+            <span className="text-gold-600 dark:text-gold-400 mx-0.5" style={{ fontFamily: "'Amiri', 'Lateef', 'Times New Roman', serif", fontWeight: 'bold' }} dir="rtl">،</span>
+          )}
+        </React.Fragment>
+      ))}
+    </>
+  );
+};
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { isDark, toggleTheme } = useTheme();
   const { openSidebar } = useContext(NavigationContext);
-  const { openSettings } = useSettings();
+  const { openSettings, reciterId } = useSettings();
+  const { playTrack, currentTrack, isPlaying, togglePlay } = useAudio();
   const [lastRead, setLastRead] = useState<{ surah: string, page: number } | null>(() => {
     try {
       const saved = localStorage.getItem('lastRead');
@@ -125,7 +145,7 @@ export const Home: React.FC = () => {
 
   // Unified button style class
   /* Unified button style class - Premium Gold Update & Optimized */
-  const headerBtnClass = "w-10 h-10 shrink-0 flex items-center justify-center rounded-full bg-white/40 dark:bg-navy-800/40 backdrop-blur-md border border-gold-400/60 dark:border-gold-500/50 shadow-[0_0_8px_rgba(251,191,36,0.25)] text-navy-700 dark:text-gold-300 hover:bg-white/80 dark:hover:bg-navy-700/70 hover:border-gold-300 dark:hover:border-gold-400 hover:text-gold-600 dark:hover:text-gold-400 hover:shadow-[0_0_15px_rgba(251,191,36,0.5)] transition-all duration-300 active:scale-95 group relative overflow-hidden transform-gpu ring-1 ring-gold-400/30 dark:ring-gold-500/30";
+  const headerBtnClass = "w-8 h-8 sm:w-10 sm:h-10 shrink-0 flex items-center justify-center rounded-full bg-white/40 dark:bg-navy-800/40 backdrop-blur-md border border-gold-400/60 dark:border-gold-500/50 shadow-[0_0_8px_rgba(251,191,36,0.25)] text-navy-700 dark:text-gold-300 hover:bg-white/80 dark:hover:bg-navy-700/70 hover:border-gold-300 dark:hover:border-gold-400 hover:text-gold-600 dark:hover:text-gold-400 hover:shadow-[0_0_15px_rgba(251,191,36,0.5)] transition-all duration-300 active:scale-95 group relative overflow-hidden transform-gpu ring-1 ring-gold-400/30 dark:ring-gold-500/30 home-header-btn";
 
   useEffect(() => {
     setUnreadCount(getUnreadCount());
@@ -380,6 +400,32 @@ export const Home: React.FC = () => {
       console.error("Error loading daily hadith", error);
     }
     setLoadingHadith(false);
+  };
+
+  const benefitGlobalAyahNum = useMemo(() => {
+    if (!dailyBenefit) return 0;
+    const [s, a] = dailyBenefit.id.split(':').map(Number);
+    return getGlobalAyahNumber(s, a);
+  }, [dailyBenefit]);
+
+  const isPlayingBenefit = isPlaying && currentTrack?.globalAyahNumber === benefitGlobalAyahNum;
+
+  const handlePlayBenefitAyah = () => {
+    if (!dailyBenefit || !benefitGlobalAyahNum) return;
+    
+    if (isPlayingBenefit) {
+      togglePlay();
+    } else {
+      const [surahNum, ayahNum] = dailyBenefit.id.split(':').map(Number);
+      const audioUrl = getAudioUrl(reciterId, benefitGlobalAyahNum);
+      playTrack(
+        audioUrl,
+        dailyBenefit.surahName,
+        `الآية ${toArabicDigits(ayahNum)} — فائدة اليوم`,
+        benefitGlobalAyahNum,
+        false
+      );
+    }
   };
 
   // Handle back button for prayer times modal & Qibla modal
@@ -672,8 +718,8 @@ export const Home: React.FC = () => {
 
       <div className="w-full max-w-5xl mx-auto flex flex-col flex-1 relative z-10">
       {/* Top Bar Container */}
-      <div className="sticky top-0 z-50 px-4 sm:px-5 pt-4 pb-2 transform-gpu">
-        <div className="flex justify-between items-center bg-white/60 dark:bg-navy-900/60 backdrop-blur-md rounded-[2rem] px-3 sm:px-4 py-2.5 sm:py-3 shadow-[0_0_15px_rgba(251,191,36,0.2)] border border-gold-400/50 dark:border-gold-500/50 relative overflow-hidden ring-1 ring-gold-400/20 dark:ring-gold-500/20">
+      <div className="sticky top-0 z-50 px-2.5 sm:px-5 pt-2.5 sm:pt-4 pb-2 transform-gpu">
+        <div className="flex justify-between items-center bg-white/60 dark:bg-navy-900/60 backdrop-blur-md rounded-[2rem] px-2 sm:px-4 py-2 sm:py-3 shadow-[0_0_15px_rgba(251,191,36,0.2)] border border-gold-400/50 dark:border-gold-500/50 relative overflow-hidden ring-1 ring-gold-400/20 dark:ring-gold-500/20 home-header-card">
           <div className="absolute inset-0 border border-gold-300/30 dark:border-gold-400/30 rounded-[2rem] pointer-events-none"></div>
           <div className="flex items-center gap-1.5 sm:gap-3 flex-1 min-w-0 relative z-10">
             <button onClick={openSidebar} className={`${headerBtnClass}`} title="القائمة الجانبية">
@@ -682,17 +728,17 @@ export const Home: React.FC = () => {
             <div className="flex items-center gap-1.5 sm:gap-2.5 cursor-pointer group select-none relative flex-1 min-w-0 shrink-0" onClick={() => navigate('/about')} title="عن التطبيق">
               <div className="absolute inset-0 bg-gold-400/20 blur-md rounded-full scale-110 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               <div className="flex items-center gap-2 sm:gap-2.5 relative z-10 min-w-0 shrink-0">
-                <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 aspect-square bg-gradient-to-br from-[#DFCD92] via-[#C6AD73] to-[#9A7B3C] rounded-full flex items-center justify-center text-white shadow-md border border-gold-300/50 group-hover:rotate-12 transition-transform duration-300">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 aspect-square bg-gradient-to-br from-[#DFCD92] via-[#C6AD73] to-[#9A7B3C] rounded-full flex items-center justify-center text-white shadow-md border border-gold-300/50 group-hover:rotate-12 transition-transform duration-300 home-brand-logo">
                   <span className="font-quran text-[22px] sm:text-2xl font-bold mt-1.5 drop-shadow-sm">ب</span>
                 </div>
                 <div className="shrink min-w-0">
-                  <h1 className="text-lg sm:text-xl font-bold text-navy-900 dark:text-white font-quran leading-none drop-shadow-sm tracking-wide shrink min-w-0 truncate">البيان</h1>
-                  <p className="hidden xs:block text-[8px] sm:text-[9px] font-bold text-gold-600 dark:text-gold-400 tracking-wider shrink min-w-0 truncate">القرآن والسنة</p>
+                  <h1 className="text-lg sm:text-xl font-bold text-navy-900 dark:text-white font-quran leading-none drop-shadow-sm tracking-wide shrink min-w-0 truncate home-brand-title">البيان</h1>
+                  <p className="hidden xs:block text-[8px] sm:text-[9px] font-bold text-gold-600 dark:text-gold-400 tracking-wider shrink min-w-0 truncate home-brand-subtitle">القرآن والسنة</p>
                 </div>
               </div>
             </div>
           </div>
-          <div className="flex gap-1.5 sm:gap-2 shrink-0 relative z-10">
+          <div className="flex gap-1 sm:gap-2 shrink-0 relative z-10">
             <button className={`${headerBtnClass}`} onClick={() => setIsHistoryOpen(true)} title="الإنجازات">
               <Award size={18} className="group-hover:scale-110 transition-transform" />
             </button>
@@ -746,7 +792,7 @@ export const Home: React.FC = () => {
         {/* Subtle Ambient Glow behind the card */}
         <div className="absolute inset-0 bg-gold-400/20 dark:bg-gold-500/10 blur-[40px] rounded-full scale-90 -z-10"></div>
         
-        <div className="relative w-full bg-gradient-to-br from-[#0F2238]/95 via-[#132A42]/95 to-[#0A1929]/95 dark:from-[#081321]/95 dark:via-[#0A1828]/95 dark:to-[#050D17]/95 backdrop-blur-2xl rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.25)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden text-white p-5 sm:p-6 border border-white/10 dark:border-white/5">
+        <div className="relative w-full bg-gradient-to-br from-[#0F2238]/95 via-[#132A42]/95 to-[#0A1929]/95 dark:from-[#081321]/95 dark:via-[#0A1828]/95 dark:to-[#050D17]/95 backdrop-blur-2xl rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.25)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden text-white p-5 sm:p-6 border border-white/10 dark:border-white/5 home-date-card">
           {/* Islamic Pattern Overlay */}
           <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] mix-blend-overlay"></div>
 
@@ -757,12 +803,12 @@ export const Home: React.FC = () => {
           {/* Main Content Row: Day Box (Right) + Month/Year Block (Left) */}
           <div className="flex items-stretch justify-between gap-4 relative z-10 h-[90px] sm:h-[100px]">
             {/* Right Gold Square (Day) with glowing ring */}
-            <div className="relative w-[90px] h-[90px] sm:w-[100px] sm:h-[100px] flex-shrink-0 group cursor-default">
+            <div className="relative w-[90px] h-[90px] sm:w-[100px] sm:h-[100px] flex-shrink-0 group cursor-default home-date-daybox">
               {/* Outer Glow Ring */}
               <div className="absolute inset-0 bg-gold-400/30 rounded-2xl blur-md group-hover:blur-lg transition-all duration-500"></div>
               {/* Inner Card */}
               <div className="relative w-full h-full bg-gradient-to-br from-[#DFCD92] via-[#C6AD73] to-[#9A7B3C] rounded-2xl flex flex-col items-center justify-center shadow-inner border border-gold-300/40">
-                <span className="text-[3.2rem] sm:text-[3.5rem] font-black font-sans text-[#1A314D] drop-shadow-sm leading-none">
+                <span className="text-[3.2rem] sm:text-[3.5rem] font-black font-sans text-[#1A314D] drop-shadow-sm leading-none home-date-daytext">
                   {toArabicDigits(hijri.day)}
                 </span>
               </div>
@@ -773,14 +819,14 @@ export const Home: React.FC = () => {
               
               {/* Right Side: Month Name */}
               <div className="flex flex-col justify-center h-full pt-1">
-                <h2 className="text-[2.2rem] sm:text-[2.6rem] font-bold font-quran text-white leading-none drop-shadow-lg tracking-wide">
+                <h2 className="text-[2.2rem] sm:text-[2.6rem] font-bold font-quran text-white leading-none drop-shadow-lg tracking-wide home-date-monthtext">
                   {MONTH_MAP[hijri.month]}
                 </h2>
               </div>
 
               {/* Left Side: Year */}
               <div className="flex flex-col items-end justify-end h-full py-0.5">
-                <div className="text-lg text-[#C6AD73] font-bold flex items-center justify-end gap-1.5">
+                <div className="text-lg text-[#C6AD73] font-bold flex items-center justify-end gap-1.5 home-date-yeartext">
                   <span>{toArabicDigits(hijri.year)}</span>
                   <span className="text-sm opacity-70">هـ</span>
                 </div>
@@ -977,16 +1023,53 @@ export const Home: React.FC = () => {
           ) : dailyBenefit ? (
             <div className="relative z-10">
               {/* Ayah Text */}
-              <div className="relative mb-4">
-                <Quote size={24} className="text-gold-200 dark:text-navy-600 absolute -top-2 right-0 rotate-180" />
-                <p className="font-quran text-lg sm:text-xl leading-[2.4] text-center text-navy-900 dark:text-white px-4">{dailyBenefit.ayah.text}</p>
-                <p className="text-[10px] text-center text-navy-400 dark:text-navy-500 mt-3 font-bold tracking-wide">
+              <div className="relative mb-4 overflow-hidden rounded-2xl p-4 transition-all duration-700">
+                {/* Premium Glassmorphic Gold Pulse Backglow */}
+                {isPlayingBenefit && (
+                  <div className="absolute inset-0 bg-gradient-to-r from-gold-400/5 via-gold-400/10 to-gold-400/5 dark:from-gold-500/5 dark:via-gold-500/10 dark:to-gold-500/5 blur-xl rounded-2xl scale-95 animate-[pulse_3s_infinite] transition-opacity duration-700"></div>
+                )}
+                
+                <Quote size={24} className="text-gold-200 dark:text-navy-600 absolute top-2 right-2 rotate-180 opacity-40" />
+                <p className={`font-quran text-lg sm:text-xl leading-[2.4] text-center px-4 relative z-10 transition-all duration-500 ${
+                  isPlayingBenefit 
+                    ? 'text-gold-600 dark:text-gold-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.5)] scale-[1.01] font-bold'
+                    : 'text-navy-900 dark:text-white'
+                }`}>
+                  {renderFormattedArabicText(dailyBenefit.ayah.text)}
+                </p>
+                <p className="text-[10px] text-center text-navy-400 dark:text-navy-500 mt-3 font-bold tracking-wide relative z-10">
                   ﴿ {dailyBenefit.surahName} — الآية {toArabicDigits(dailyBenefit.ayah.numberInSurah)} ﴾
                 </p>
               </div>
 
               {/* Action Bar */}
               <div className="flex flex-wrap items-center justify-center gap-2.5 my-5">
+                <button
+                  onClick={handlePlayBenefitAyah}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold transition-all duration-300 backdrop-blur-md border shadow-[0_4px_12px_rgba(0,0,0,0.05)] active:scale-95 ${
+                    isPlayingBenefit
+                      ? 'bg-gradient-to-r from-gold-500 to-amber-500 text-white border-gold-400 shadow-gold-500/30 scale-95'
+                      : 'bg-white/60 dark:bg-navy-700/50 text-navy-600 dark:text-navy-300 border-white/50 dark:border-navy-600/50 hover:bg-gold-50 dark:hover:bg-navy-600 hover:text-gold-600 dark:hover:text-gold-400 hover:border-gold-300 dark:hover:border-gold-500/50'
+                  }`}
+                  title={isPlayingBenefit ? 'إيقاف الاستماع' : 'استماع للآية الكريمة'}
+                >
+                  {isPlayingBenefit ? (
+                    <>
+                      <span className="flex gap-0.5 items-end h-3">
+                        <span className="w-[2px] bg-white animate-[music-bar_0.6s_ease-in-out_infinite] h-2"></span>
+                        <span className="w-[2px] bg-white animate-[music-bar_0.8s_ease-in-out_infinite] h-3.5"></span>
+                        <span className="w-[2px] bg-white animate-[music-bar_1.0s_ease-in-out_infinite] h-2.5"></span>
+                      </span>
+                      <span>إيقاف</span>
+                    </>
+                  ) : (
+                    <>
+                      <Play size={14} className="fill-current" />
+                      <span>استماع</span>
+                    </>
+                  )}
+                </button>
+
                 <button
                   onClick={copyBenefit}
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[11px] font-bold transition-all duration-300 backdrop-blur-md border shadow-[0_4px_12px_rgba(0,0,0,0.05)] ${
@@ -1104,7 +1187,7 @@ export const Home: React.FC = () => {
                 <Quote size={24} className="text-sky-200 dark:text-navy-600 absolute -top-2 right-0 rotate-180" />
                 <div className="px-4">
                   <p className={`font-quran text-lg sm:text-xl leading-[2.4] text-center text-navy-900 dark:text-white drop-shadow-sm transition-all duration-500 ease-in-out ${isHadithExpanded ? '' : 'line-clamp-4'}`}>
-                    {dailyHadith.hadith.arabic || dailyHadith.hadith.text}
+                    {renderFormattedArabicText(dailyHadith.hadith.arabic || dailyHadith.hadith.text || '')}
                   </p>
                   {((dailyHadith.hadith.arabic || dailyHadith.hadith.text || '').length > 300) && (
                     <button

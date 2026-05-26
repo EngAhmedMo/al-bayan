@@ -104,13 +104,13 @@ body {
 
 @font-face {
   font-family: 'UthmanicHafs';
-  src: url('/fonts/UthmanicHafs_V20.ttf') format('truetype');
+  src: url('./public/fonts/UthmanicHafs_V20.ttf') format('truetype');
   font-display: swap;
 }
 
 @font-face {
   font-family: 'AyahNumber';
-  src: url('/fonts/Uthmanic_NeoCOLORD-Regular.ttf') format('truetype');
+  src: url('./public/fonts/Uthmanic_NeoCOLORD-Regular.ttf') format('truetype');
   font-display: swap;
 }
 
@@ -1278,4 +1278,258 @@ html:not(.dark) .sidebar-nav-btn:hover .sidebar-nav-circle {
   box-shadow: 0 0 14px 4px rgba(198, 173, 115, 0.3),
               0 0 0 2px rgba(198, 173, 115, 0.5);
 }
+
+/* ==========================================
+   MOBILE & VIEWPORT RESPONSIVE SCALE STANDARD
+   Optimizes headers, widgets, date cards, and buttons
+   on smaller smartphones (< 385px screen width).
+   ========================================== */
+@media (max-width: 385px) {
+  /* 1. Global Header & Toolbar Scaling */
+  header, 
+  .hadith-header {
+    height: 3.25rem !important; /* ~52px */
+    padding-left: 0.35rem !important;
+    padding-right: 0.35rem !important;
+  }
+  
+  header button,
+  header a,
+  .hadith-header button,
+  .home-header-btn {
+    width: 1.85rem !important; /* 30px */
+    height: 1.85rem !important; /* 30px */
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 0.5rem !important;
+  }
+  
+  header button svg,
+  header a svg,
+  .hadith-header button svg,
+  .home-header-btn svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+  
+  header .text-lg,
+  header .text-xl,
+  .hadith-header h1 {
+    font-size: 0.95rem !important; /* ~15px */
+  }
+
+  /* Title and subtext spacing */
+  .hadith-header p {
+    font-size: 8px !important;
+  }
+
+  header .flex,
+  .hadith-header .flex,
+  .home-header-card .flex {
+    gap: 0.2rem !important; /* Extremely tight spaces */
+  }
+  
+  /* Quran page number tag inside header */
+  header span.text-xs {
+    font-size: 9px !important;
+    padding: 0.05rem 0.25rem !important;
+  }
+  
+  /* Surah Name top bar size */
+  .surah-name-topbar {
+    font-size: 0.85rem !important;
+  }
+
+  /* Home page header card responsive padding */
+  .home-header-card {
+    padding: 0.45rem 0.5rem !important;
+    border-radius: 1.25rem !important;
+  }
+  .home-brand-logo {
+    width: 1.85rem !important; /* 30px */
+    height: 1.85rem !important;
+    border-radius: 9999px !important;
+  }
+  .home-brand-logo span {
+    font-size: 1.1rem !important;
+    margin-top: 0.2rem !important;
+  }
+  .home-brand-title {
+    font-size: 0.9rem !important;
+  }
+  .home-brand-subtitle {
+    display: none !important;
+  }
+
+  /* 2. Premium Date Card Reflow Stack */
+  .home-date-card {
+    padding: 1rem 0.85rem !important;
+    border-radius: 1.5rem !important;
+  }
+  
+  .home-date-daybox {
+    width: 4.25rem !important; /* 68px */
+    height: 4.25rem !important; /* 68px */
+    border-radius: 0.75rem !important;
+  }
+  
+  .home-date-daytext {
+    font-size: 2.1rem !important; /* 33px */
+  }
+
+  .home-date-monthtext {
+    font-size: 1.55rem !important; /* ~24px */
+  }
+  
+  .home-date-yeartext {
+    font-size: 0.85rem !important;
+  }
+  
+  /* Gregorian Date & Days Remaining - Reflow Stack */
+  .home-date-card .flex.justify-between.items-center.mt-5 {
+    margin-top: 0.75rem !important;
+    flex-direction: column !important; /* Vertical Stack! */
+    align-items: stretch !important;
+    gap: 0.35rem !important;
+  }
+  
+  .home-date-card .flex.justify-between.items-center.mt-5 > div {
+    text-align: center !important;
+    width: 100% !important;
+    justify-content: center !important;
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+  }
+  
+  /* Bottom Row (Location + Prayer button) - Reflow Stack */
+  .home-date-card .flex.justify-between.items-center.mt-3 {
+    margin-top: 0.65rem !important;
+    flex-direction: column !important; /* Vertical Stack! */
+    align-items: stretch !important;
+    gap: 0.45rem !important;
+  }
+  
+  .home-date-card .flex.justify-between.items-center.mt-3 > div,
+  .home-date-card .flex.justify-between.items-center.mt-3 > button {
+    width: 100% !important;
+    justify-content: center !important;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+  }
+
+  /* ── 3. TafsirReader Extra Buttons ──────────────────────────────── */
+  /* The extra buttons use p-2.5 inline, override them to fit header */
+  header .flex.gap-2 button {
+    padding: 0.35rem !important;
+    border-radius: 0.5rem !important;
+  }
+  header .flex.gap-2 button svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  /* ── 4. Notifications Page - Compact Header Buttons ─────────────── */
+  /* Settings + Clear All pill buttons in Notifications TopBar */
+  header .flex button[class*="rounded-full"],
+  header .flex a[class*="rounded-full"] {
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    padding-top: 0.3rem !important;
+    padding-bottom: 0.3rem !important;
+    font-size: 10px !important;
+    gap: 0.2rem !important;
+  }
+  header .flex button[class*="rounded-full"] svg {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  /* ── 5. NotificationSettings Save Button ─────────────────────────── */
+  /* The save button in NotificationSettings header */
+  header .flex button[class*="from-gold-500"] {
+    padding-left: 0.6rem !important;
+    padding-right: 0.6rem !important;
+    padding-top: 0.35rem !important;
+    padding-bottom: 0.35rem !important;
+    font-size: 10px !important;
+  }
+
+  /* ── 6. Segmented Tab Controls (Bookmarks / HajjUmrah) ──────────── */
+  /* Compact tabs for 4-tab Bookmarks page and 3-tab HajjUmrah */
+  .flex-1.py-3.text-xs {
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    font-size: 10px !important;
+    gap: 0.15rem !important;
+  }
+  /* Tab icons inside segmented controls */
+  .flex-1.py-3.text-xs svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  /* ── 7. Downloads Sticky Header Area ─────────────────────────────── */
+  /* Scrollable horizontal tabs in Downloads */
+  .no-scrollbar button[class*="rounded-full"] {
+    padding-left: 0.55rem !important;
+    padding-right: 0.55rem !important;
+    padding-top: 0.4rem !important;
+    padding-bottom: 0.4rem !important;
+    font-size: 10px !important;
+    gap: 0.2rem !important;
+  }
+  .no-scrollbar button[class*="rounded-full"] svg {
+    width: 11px !important;
+    height: 11px !important;
+  }
+
+  /* ── 8. Radio Timer Button ───────────────────────────────────────── */
+  /* Timer + countdown in Radio TopBar */
+  header button[class*="h-8"] {
+    height: 1.85rem !important;
+    padding-left: 0.4rem !important;
+    padding-right: 0.4rem !important;
+    font-size: 10px !important;
+  }
+
+  /* ── 9. SettingsPage Custom Header ───────────────────────────────── */
+  /* SettingsPage uses a custom div header, not TopBar component */
+  .bg-white\\/80.dark\\:bg-navy-900\\/80.backdrop-blur-xl.border-b {
+    padding: 0.5rem 0.6rem !important;
+  }
+  .bg-white\\/80.dark\\:bg-navy-900\\/80 h1 {
+    font-size: 1rem !important;
+  }
+
+  /* ── 10. Adhkar Progress Bar Sticky Header ───────────────────────── */
+  /* The progress bar below TopBar in Adhkar detail view */
+  .sticky.top-0.z-20 {
+    padding: 0.4rem 0.6rem !important;
+  }
+  .sticky.top-0.z-20 .w-10.h-10 {
+    width: 2rem !important;
+    height: 2rem !important;
+  }
+  .sticky.top-0.z-20 .w-10.h-10 svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
+  /* ── 11. Hifz Extra Import Button ────────────────────────────────── */
+  /* The import button in Hifz setup TopBar */
+  header .flex.gap-2 .w-10.h-10 {
+    width: 1.85rem !important;
+    height: 1.85rem !important;
+  }
+
+  /* ── 12. Global Title Truncation Safety ──────────────────────────── */
+  /* Ensure all header titles clip elegantly */
+  header .truncate,
+  header .min-w-0 {
+    max-width: calc(100vw - 180px) !important;
+  }
+}
+
 

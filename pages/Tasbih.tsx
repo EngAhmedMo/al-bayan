@@ -6,7 +6,7 @@ import { toArabicDigits } from '../services/normalization';
 import { getLastTasbihTarget, setLastTasbihTarget, getCustomTasbihs, addCustomTasbih, deleteCustomTasbih, getTasbihState, saveTasbihState, clearTasbihState, getLifetimeTasbihTotal, addLifetimeTasbihTotal } from '../services/storage';
 import { useSettings } from '../components/Layout';
 import { TasbihItem } from '../types';
-import { hapticTap, hapticMedium, hapticSuccess, hapticWarning } from '../services/haptics';
+import { hapticTap, hapticMedium, hapticSuccess, hapticWarning, hapticDhikrChange } from '../services/haptics';
 
 // Default built-in Adhkar (Updated and Verified)
 const BASE_ADHKAR_ITEMS: TasbihItem[] = [
@@ -129,6 +129,9 @@ export const Tasbih: React.FC = () => {
         return;
       }
       
+      // Prevent multiple increments on long-press (key repeat)
+      if (e.repeat) return;
+      
       // If any modal is open, let Escape close it
       if (isListOpen || isAddOpen || hadithModalItem || isResetOpen) {
         if (e.code === 'Escape') {
@@ -212,7 +215,7 @@ export const Tasbih: React.FC = () => {
       setTarget(allTasbihs[newIndex].target);
     }
 
-    hapticMedium();
+    hapticDhikrChange();
   };
 
   const selectTasbihFromList = (index: number) => {
@@ -222,6 +225,7 @@ export const Tasbih: React.FC = () => {
     setCount(0);
     setIsListOpen(false);
     isTransitioning.current = false;
+    hapticDhikrChange();
   };
 
   const handleAddCustom = (text: string, defaultTarget: number) => {
@@ -309,6 +313,8 @@ export const Tasbih: React.FC = () => {
 
         // Unlock for interaction
         isTransitioning.current = false;
+
+        hapticDhikrChange();
       }, 400); // 400ms transition delay
     } else {
       // --- NORMAL INCREMENT ---
@@ -375,7 +381,7 @@ export const Tasbih: React.FC = () => {
 
   // Consistent Button Style
   // Consistent Button Style - Premium Gold Update
-  const headerBtnClass = "w-10 h-10 flex items-center justify-center rounded-xl bg-white/80 dark:bg-navy-900/40 backdrop-blur-sm border border-navy-100 dark:border-[#C6AD73]/60 text-navy-600 dark:text-[#C6AD73] hover:border-gold-400 dark:hover:border-[#C6AD73] hover:text-gold-600 dark:hover:text-[#F0CF85] hover:bg-white dark:hover:bg-[#C6AD73]/10 shadow-sm hover:shadow-md transition-all duration-200 active:scale-95 relative overflow-hidden";
+  const headerBtnClass = "w-8 h-8 sm:w-10 sm:h-10 flex shrink-0 items-center justify-center rounded-xl bg-white/80 dark:bg-navy-900/40 backdrop-blur-sm border border-navy-100 dark:border-[#C6AD73]/60 text-navy-600 dark:text-[#C6AD73] hover:border-gold-400 dark:hover:border-[#C6AD73] hover:text-gold-600 dark:hover:text-[#F0CF85] hover:bg-white dark:hover:bg-[#C6AD73]/10 shadow-sm hover:shadow-md transition-all duration-200 active:scale-95 relative overflow-hidden";
 
   return (
     <div className="flex flex-col h-full bg-gold-50 dark:bg-navy-950 font-sans overflow-hidden">

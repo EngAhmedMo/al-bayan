@@ -456,7 +456,7 @@ export const TafsirReader: React.FC = () => {
 
                                         <div className="bg-gradient-to-br from-gold-50/80 to-amber-50/50 dark:from-navy-950/80 dark:to-navy-900/50 p-5 md:p-6 rounded-2xl border border-gold-100/50 dark:border-navy-700">
                                             <p
-                                                className="text-right leading-[2.2] text-navy-800 dark:text-gray-200 font-quran"
+                                                className="text-right leading-[2.2] text-navy-800 dark:text-gray-200 font-sans font-medium"
                                                 style={{ fontSize: `${fontSize}px` }}
                                             >
                                                 {ayah.text || 'لا يوجد تفسير متاح'}

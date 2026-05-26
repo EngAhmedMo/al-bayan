@@ -8,7 +8,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
 export interface NativeHapticsPlugin {
-  vibrate(options: { style: 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' }): Promise<void>;
+  vibrate(options: { style: 'light' | 'medium' | 'heavy' | 'success' | 'warning' | 'error' | 'dhikr_change' }): Promise<void>;
 }
 
 const NativeHaptics = registerPlugin<NativeHapticsPlugin>('NativeHaptics');
@@ -91,3 +91,17 @@ export async function hapticError() {
     navigator.vibrate([50, 100, 50]);
   }
 }
+
+/** Elegant transition double pulse — used when switching to a different dhikr */
+export async function hapticDhikrChange() {
+  if (isNative) {
+    try {
+      await NativeHaptics.vibrate({ style: 'dhikr_change' });
+    } catch {
+      Haptics.notification({ type: NotificationType.Warning }).catch(() => {});
+    }
+  } else if (navigator.vibrate) {
+    navigator.vibrate([60, 80, 60]);
+  }
+}
+

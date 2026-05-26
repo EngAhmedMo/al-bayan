@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom';
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { App } from '@capacitor/app';
-import { BookOpen, Search, Grid, Moon, Sun, Activity, BookHeart, Menu, X, Play, Pause, SkipForward, SkipBack, Home, Shield, Calendar, Bookmark, Bell, Info, Headphones, Mic, Repeat, Download, WifiOff, Wifi, Settings, Radio, Signal, Volume2, Check, CheckCircle, Trash2, Type, Square, Heart, RotateCcw, Landmark, Library, Plus, AlertCircle, ShieldCheck, Brain } from 'lucide-react';
+import { BookOpen, Search, Grid, Moon, Sun, Activity, BookHeart, Menu, X, Play, Pause, SkipForward, SkipBack, Home, Shield, Calendar, Bookmark, Bell, Info, Headphones, Mic, Repeat, Download, WifiOff, Wifi, Settings, Radio, Signal, Volume2, Check, CheckCircle, Trash2, Type, Square, Heart, RotateCcw, Landmark, Library, Plus, AlertCircle, ShieldCheck, Brain, ChevronDown } from 'lucide-react';
 
 import { fetchSurahs, RECITERS, getAudioUrl } from '../services/api';
 import { Surah, RadioStation } from '../types';
@@ -37,7 +37,7 @@ const ThemeContext = createContext<ThemeContextType>({ isDark: false, toggleThem
 export const useTheme = () => useContext(ThemeContext);
 
 interface AudioContextType {
-  currentTrack: { url: string; title: string; subtitle: string; globalAyahNumber?: number } | null;
+  currentTrack: { url: string; title: string; subtitle: string; globalAyahNumber?: number; reciterId?: string } | null;
   isPlaying: boolean;
   autoAdvance: boolean;
   repeatCount: number;
@@ -171,6 +171,9 @@ const AudioPlayerBar = () => {
 
   if (!currentTrack) return null;
 
+  const activeReciterId = currentTrack.reciterId || reciterId;
+  const currentReciter = RECITERS.find(r => r.id === activeReciterId) || RECITERS[0];
+
   const handleReciterChange = (newReciterId: string) => {
     setReciterId(newReciterId);
     setShowReciterMenu(false);
@@ -245,12 +248,12 @@ const AudioPlayerBar = () => {
       {/* Container is pointer-events-none, inner elements must be auto to avoid blocking touches on page content */}
       <div className="max-w-4xl mx-auto w-full relative pointer-events-auto">
       {showReciterMenu && (
-        <div className="absolute bottom-full left-0 md:left-6 md:right-auto md:w-[450px] lg:w-[500px] mb-2 bg-white/95 dark:bg-navy-950/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-navy-100 dark:border-navy-700 overflow-hidden animate-in zoom-in-95 duration-200 origin-bottom">
-          <div className="p-3 border-b border-navy-100 dark:border-navy-800 flex justify-between items-center bg-navy-50 dark:bg-navy-900/50">
+        <div className="absolute bottom-full left-0 md:left-6 md:right-auto md:w-[450px] lg:w-[500px] mb-2 bg-white/95 dark:bg-navy-950/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-navy-100 dark:border-navy-700 overflow-hidden animate-in zoom-in-95 duration-200 origin-bottom flex flex-col max-h-[calc(100vh-180px)] md:max-h-[450px]">
+          <div className="p-3 border-b border-navy-100 dark:border-navy-800 flex justify-between items-center bg-navy-50 dark:bg-navy-900/50 shrink-0">
             <h4 className="text-xs font-bold text-navy-600 dark:text-white">اختر القارئ</h4>
             <button onClick={() => setShowReciterMenu(false)}><X size={16} className="text-navy-400 hover:text-red-500 transition-colors" /></button>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-3 max-h-[50vh] md:max-h-[60vh] lg:max-h-[70vh] overflow-y-auto custom-scrollbar" ref={(el) => {
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-3 overflow-y-auto custom-scrollbar flex-1" ref={(el) => {
             if (el) {
               // Auto-scroll to selected reciter
               const selectedBtn = el.querySelector(`[data-selected="true"]`);
@@ -302,65 +305,72 @@ const AudioPlayerBar = () => {
 
           <div className="flex items-center gap-3 overflow-hidden flex-1 group cursor-pointer select-none relative z-10" onClick={() => setShowReciterMenu(!showReciterMenu)}>
             <button
-              className="relative w-10 h-10 md:w-12 md:h-12 flex-shrink-0 bg-gold-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-gold-500/30 transition-transform group-hover:scale-105"
+              className="relative w-9 h-9 md:w-11 md:h-11 flex-shrink-0 bg-gold-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-gold-500/30 transition-transform group-hover:scale-105"
             >
               {isPlaying ? (
-                <div className="flex gap-0.5 items-end h-4">
-                  <span className="w-1 bg-white animate-[music-bar_1s_ease-in-out_infinite] h-2"></span>
-                  <span className="w-1 bg-white animate-[music-bar_1.2s_ease-in-out_infinite] h-4"></span>
-                  <span className="w-1 bg-white animate-[music-bar_0.8s_ease-in-out_infinite] h-3"></span>
+                <div className="flex gap-0.5 items-end h-3">
+                  <span className="w-[3px] bg-white animate-[music-bar_1s_ease-in-out_infinite] h-2"></span>
+                  <span className="w-[3px] bg-white animate-[music-bar_1.2s_ease-in-out_infinite] h-3.5"></span>
+                  <span className="w-[3px] bg-white animate-[music-bar_0.8s_ease-in-out_infinite] h-2.5"></span>
                 </div>
               ) : (
-                <Headphones size={20} />
+                <Headphones size={16} />
               )}
               <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-navy-800 rounded-full flex items-center justify-center border border-white dark:border-navy-900">
                 <Grid size={8} />
               </div>
             </button>
             <div className="flex flex-col min-w-0">
-              <span className="audio-surah-name text-navy-900 dark:text-gold-300 truncate group-hover:text-gold-600 dark:group-hover:text-gold-400 transition-colors" dir="rtl">
-                {currentTrack.title}
-              </span>
-              <div className="flex items-center gap-1.5 md:gap-2 text-[10px] md:text-xs text-navy-500 dark:text-navy-300 min-w-0 w-full">
-                <span className="truncate shrink">{currentTrack.subtitle}</span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="audio-surah-name text-navy-900 dark:text-gold-300 font-bold truncate transition-colors text-[11px] sm:text-xs md:text-sm" dir="rtl">
+                  {currentTrack.title}
+                </span>
+                <span className="text-navy-300 dark:text-navy-700 text-[10px] sm:text-xs">•</span>
+                <span className="text-[10px] sm:text-xs text-navy-500 dark:text-navy-400 font-medium truncate">{currentTrack.subtitle}</span>
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                <span className="flex items-center gap-1 text-[9px] sm:text-[10px] bg-gradient-to-r from-gold-500/10 to-amber-500/10 text-gold-600 dark:text-gold-400 font-bold px-2 py-0.5 rounded-full border border-gold-200/40 dark:border-gold-500/20 shrink-0 hover:from-gold-500/20 hover:to-amber-500/20 transition-all duration-200">
+                  <Mic size={10} className="shrink-0 text-gold-500" />
+                  <span>القارئ: {currentReciter.name}</span>
+                  <ChevronDown size={10} className="shrink-0 text-gold-500 animate-pulse" />
+                </span>
                 {renderRepeatBadge()}
-                <span className="font-bold text-navy-400 group-hover:text-gold-500 transition-colors hidden sm:inline shrink-0">• تغيير القارئ</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-4 flex-shrink-0 relative z-10">
+          <div className="flex items-center gap-1.5 md:gap-3 flex-shrink-0 relative z-10">
             <button
               onClick={playPrev}
-              className="p-2 text-navy-400 hover:text-gold-600 dark:text-navy-400 dark:hover:text-gold-400 transition-colors rounded-full hover:bg-navy-50 dark:hover:bg-navy-800"
+              className="p-1.5 text-navy-400 hover:text-gold-600 dark:text-navy-400 dark:hover:text-gold-400 transition-colors rounded-full hover:bg-navy-50 dark:hover:bg-navy-800"
               title="الآية السابقة"
             >
-              <SkipForward size={20} className="fill-current" />
+              <SkipForward size={16} className="fill-current" />
             </button>
 
             <button
               onClick={togglePlay}
-              className="w-10 h-10 md:w-12 md:h-12 flex items-center justify-center rounded-full bg-navy-900 dark:bg-white text-white dark:text-navy-900 hover:bg-gold-600 dark:hover:bg-gold-400 transition-all shadow-md active:scale-95"
+              className="w-9 h-9 md:w-11 md:h-11 flex items-center justify-center rounded-full bg-navy-900 dark:bg-white text-white dark:text-navy-900 hover:bg-gold-600 dark:hover:bg-gold-400 transition-all shadow-md active:scale-95"
             >
-              {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-0.5" />}
+              {isPlaying ? <Pause size={15} fill="currentColor" /> : <Play size={15} fill="currentColor" className="ml-0.5" />}
             </button>
 
             <button
               onClick={playNext}
-              className="p-2 text-navy-400 hover:text-gold-600 dark:text-navy-400 dark:hover:text-gold-400 transition-colors rounded-full hover:bg-navy-50 dark:hover:bg-navy-800"
+              className="p-1.5 text-navy-400 hover:text-gold-600 dark:text-navy-400 dark:hover:text-gold-400 transition-colors rounded-full hover:bg-navy-50 dark:hover:bg-navy-800"
               title="الآية التالية"
             >
-              <SkipBack size={20} className="fill-current" />
+              <SkipBack size={16} className="fill-current" />
             </button>
 
-            <div className="w-px h-6 bg-navy-100 dark:bg-navy-700 mx-1"></div>
+            <div className="w-px h-5 bg-navy-100 dark:bg-navy-700 mx-0.5"></div>
 
             <button
               onClick={closePlayer}
-              className="p-2 text-red-400 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors rounded-full hover:bg-red-50 dark:hover:bg-red-900/20"
+              className="p-1.5 text-red-400 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors rounded-full hover:bg-red-50 dark:hover:bg-red-900/20"
               title="إغلاق المشغل"
             >
-              <X size={20} />
+              <X size={16} />
             </button>
           </div>
 
@@ -521,27 +531,54 @@ export const Layout: React.FC = () => {
     };
   }, []);
 
-  // Audio State
-  const [currentTrack, setCurrentTrack] = useState<{ url: string; title: string; subtitle: string; globalAyahNumber?: number } | null>(null);
+  // Audio State & Persistence Restoration
+  const savedState = useMemo(() => {
+    const saved = localStorage.getItem('saved_player_state');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return null;
+  }, []);
+
+  const [currentTrack, setCurrentTrack] = useState<{ url: string; title: string; subtitle: string; globalAyahNumber?: number; reciterId?: string } | null>(savedState?.currentTrack || null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [autoAdvance, setAutoAdvance] = useState(false);
-  const [repeatCount, setRepeatCount] = useState(0);
-  const [continuousRepeat, setContinuousRepeat] = useState(0);
-  const continuousRepeatRef = useRef(0);
-  const [surahRepeat, setSurahRepeat] = useState(0);
-  const surahRepeatRef = useRef(0);
-  const [pageRepeat, setPageRepeat] = useState(0);
-  const pageRepeatRef = useRef(0);
-  const [rangeStart, setRangeStart] = useState(0);
-  const rangeStartRef = useRef(0);
-  const [rangeEnd, setRangeEnd] = useState(0);
-  const rangeEndRef = useRef(0);
-  const [rangeRepeat, setRangeRepeat] = useState(0);
-  const rangeRepeatRef = useRef(0);
+  const [autoAdvance, setAutoAdvance] = useState(savedState?.autoAdvance ?? false);
+  const [repeatCount, setRepeatCount] = useState(savedState?.repeatCount ?? 0);
+  const [continuousRepeat, setContinuousRepeat] = useState(savedState?.continuousRepeat ?? 0);
+  const continuousRepeatRef = useRef(savedState?.continuousRepeat ?? 0);
+  const [surahRepeat, setSurahRepeat] = useState(savedState?.surahRepeat ?? 0);
+  const surahRepeatRef = useRef(savedState?.surahRepeat ?? 0);
+  const [pageRepeat, setPageRepeat] = useState(savedState?.pageRepeat ?? 0);
+  const pageRepeatRef = useRef(savedState?.pageRepeat ?? 0);
+  const [rangeStart, setRangeStart] = useState(savedState?.rangeStart ?? 0);
+  const rangeStartRef = useRef(savedState?.rangeStart ?? 0);
+  const [rangeEnd, setRangeEnd] = useState(savedState?.rangeEnd ?? 0);
+  const rangeEndRef = useRef(savedState?.rangeEnd ?? 0);
+  const [rangeRepeat, setRangeRepeat] = useState(savedState?.rangeRepeat ?? 0);
+  const rangeRepeatRef = useRef(savedState?.rangeRepeat ?? 0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const preloadAudioRef = useRef<HTMLAudioElement | null>(null);
   const playTrackId = useRef<number>(0);
   const consecutiveErrors = useRef(0);
+
+  // Persist Player State changes
+  useEffect(() => {
+    if (currentTrack) {
+      localStorage.setItem('saved_player_state', JSON.stringify({
+        currentTrack,
+        autoAdvance,
+        repeatCount,
+        continuousRepeat,
+        surahRepeat,
+        pageRepeat,
+        rangeStart,
+        rangeEnd,
+        rangeRepeat
+      }));
+    } else {
+      localStorage.removeItem('saved_player_state');
+    }
+  }, [currentTrack, autoAdvance, repeatCount, continuousRepeat, surahRepeat, pageRepeat, rangeStart, rangeEnd, rangeRepeat]);
 
   // Radio State
   const [radioStation, setRadioStation] = useState<RadioStation | null>(null);
@@ -1155,9 +1192,10 @@ export const Layout: React.FC = () => {
           url: newUrl,
           title: data.title,
           subtitle: data.subtitle,
-          globalAyahNumber: newGlobalAyah
+          globalAyahNumber: newGlobalAyah,
+          reciterId: currentReciterId
         });
-        trackRef.current = { url: newUrl, title: data.title, subtitle: data.subtitle, globalAyahNumber: newGlobalAyah }; // Sync ref
+        trackRef.current = { url: newUrl, title: data.title, subtitle: data.subtitle, globalAyahNumber: newGlobalAyah, reciterId: currentReciterId }; // Sync ref
 
         // Dispatch Events for UI Sync (Highlight & Page Turn)
         const nextPage = getApproxPageFromGlobalAyah(newGlobalAyah);
@@ -1535,7 +1573,7 @@ export const Layout: React.FC = () => {
       }
     } catch (e) { setIsPlaying(false); }
 
-    setCurrentTrack({ url, title, subtitle, globalAyahNumber });
+    setCurrentTrack({ url, title, subtitle, globalAyahNumber, reciterId: targetReciterId });
     setIsPlaying(true);
     setAutoAdvance(shouldAutoAdvance);
     setRepeatCount(repeat);
@@ -1573,15 +1611,33 @@ export const Layout: React.FC = () => {
     if (isPlaying) {
       pauseTrack();
     }
-    else if (currentTrack) { // Removed audioRef dependence
+    else if (currentTrack) {
       if (activeStationRef.current) stopRadio();
       if (isAndroid) {
-        // Native Toggle Logic (Strictly uses toggle() as requested)
-        MediaBridge.toggle();
+        // Safe playTrack invocation to guarantee the native player is correctly loaded, initialized, and playing
+        playTrack(
+          currentTrack.url,
+          currentTrack.title,
+          currentTrack.subtitle,
+          currentTrack.globalAyahNumber,
+          autoAdvance,
+          repeatCount,
+          currentTrack.reciterId || reciterId,
+          continuousRepeat,
+          surahRepeat,
+          pageRepeat,
+          rangeStart,
+          rangeEnd,
+          rangeRepeat
+        );
       } else if (audioRef.current) {
+        if (!audioRef.current.src || audioRef.current.src === '') {
+          audioRef.current.src = currentTrack.url;
+          audioRef.current.load();
+        }
         audioRef.current.play().catch(console.error);
+        setIsPlaying(true);
       }
-      setIsPlaying(true);
     }
   };
 
