@@ -248,59 +248,71 @@ const AudioPlayerBar = () => {
       {/* Container is pointer-events-none, inner elements must be auto to avoid blocking touches on page content */}
       <div className="max-w-4xl mx-auto w-full relative pointer-events-auto">
       {showReciterMenu && (
-        <div className="absolute bottom-full left-2 right-2 md:left-6 md:right-auto md:w-[450px] lg:w-[500px] mb-2 bg-white/95 dark:bg-navy-950/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-navy-100 dark:border-navy-700 overflow-hidden animate-in zoom-in-95 duration-200 origin-bottom flex flex-col max-h-[calc(100vh-180px)] md:max-h-[450px]">
-          <div className="p-4 border-b border-navy-100 dark:border-navy-800 flex justify-between items-center bg-navy-50 dark:bg-navy-900/50 shrink-0">
-            <h4 className="text-sm sm:text-base font-bold text-navy-800 dark:text-white">اختر القارئ</h4>
-            <button 
-              onClick={() => setShowReciterMenu(false)}
-              className="p-2 -mr-2 rounded-xl hover:bg-navy-100/50 dark:hover:bg-navy-800 text-navy-400 hover:text-red-500 transition-colors"
-              title="إغلاق"
-            >
-              <X size={20} />
-            </button>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-3 overflow-y-auto custom-scrollbar flex-1" ref={(el) => {
-            if (el) {
-              // Auto-scroll to selected reciter
-              const selectedBtn = el.querySelector(`[data-selected="true"]`);
-              if (selectedBtn) {
-                selectedBtn.scrollIntoView({ block: 'center', behavior: 'smooth' });
-              }
-            }
-          }}>
-            {RECITERS.map(r => (
-              <button
-                key={r.id}
-                data-selected={reciterId === r.id}
-                onClick={() => handleReciterChange(r.id)}
-                className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200 border min-h-[70px] justify-center relative ${reciterId === r.id
-                  ? 'bg-gold-50 border-gold-500 dark:bg-gold-900/40 scale-105 shadow-md shadow-gold-500/20'
-                  : 'bg-transparent dark:bg-transparent border-transparent hover:bg-navy-50 dark:hover:bg-navy-800 hover:scale-105'
-                  }`}
+        <>
+          {/* Backdrop for Mobile/Tablet */}
+          <div 
+            className="fixed inset-0 bg-navy-950/60 backdrop-blur-sm z-[99] md:hidden pointer-events-auto animate-in fade-in duration-200" 
+            onClick={() => setShowReciterMenu(false)}
+          />
+          
+          <div className="fixed md:absolute bottom-0 md:bottom-full left-0 right-0 md:left-6 md:right-auto w-full md:w-[450px] lg:w-[500px] mb-0 md:mb-2 bg-white dark:bg-navy-950 md:bg-white/95 md:dark:bg-navy-950/95 md:backdrop-blur-xl rounded-t-3xl md:rounded-2xl shadow-2xl border-t border-x md:border border-navy-100 dark:border-navy-800 md:border-navy-100 md:dark:border-navy-700 overflow-hidden animate-in slide-in-from-bottom-full md:slide-in-from-bottom-10 md:zoom-in-95 duration-300 md:duration-200 origin-bottom flex flex-col max-h-[80vh] md:max-h-[450px] z-[100] md:z-auto pointer-events-auto">
+            {/* Drag Handle for Mobile Bottom Sheet */}
+            <div className="flex justify-center py-2 md:hidden bg-navy-50 dark:bg-navy-900/50 shrink-0 border-b border-navy-100/40 dark:border-navy-800/40">
+              <div className="w-12 h-1 bg-navy-200 dark:bg-navy-700 rounded-full"></div>
+            </div>
+            <div className="p-4 border-b border-navy-100 dark:border-navy-800 flex justify-between items-center bg-navy-50 dark:bg-navy-900/50 shrink-0">
+              <h4 className="text-sm sm:text-base font-bold text-navy-800 dark:text-white">اختر القارئ</h4>
+              <button 
+                onClick={() => setShowReciterMenu(false)}
+                className="p-2 -mr-2 rounded-xl hover:bg-navy-100/50 dark:hover:bg-navy-800 text-navy-400 hover:text-red-500 transition-colors"
+                title="إغلاق"
               >
-                {downloadedReciters.includes(r.id) && (
-                  <div className="absolute top-1 right-1 bg-emerald-500 text-white rounded-full p-[1px] shadow-sm z-20" title="تم تحميله للعمل بدون إنترنت">
-                    <Check size={11} strokeWidth={4} />
-                  </div>
-                )}
-                <div className="w-8 h-8 rounded-full overflow-hidden border border-navy-100 dark:border-navy-700 shadow-sm relative shrink-0">
-                  <div className="absolute inset-0 flex items-center justify-center bg-navy-100 dark:bg-navy-800 text-navy-400">
-                    <Mic size={14} />
-                  </div>
-                  {r.image && (
-                    <img
-                      src={r.image}
-                      alt={r.name}
-                      className="relative z-10 w-full h-full object-cover transition-opacity duration-300"
-                      onError={(e) => { e.currentTarget.style.opacity = '0'; }}
-                    />
-                  )}
-                </div>
-                <span className="text-[10px] font-bold text-center text-navy-800 dark:text-navy-200 w-full leading-tight line-clamp-2">{r.name}</span>
+                <X size={20} />
               </button>
-            ))}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-3 overflow-y-auto custom-scrollbar flex-1" ref={(el) => {
+              if (el) {
+                // Auto-scroll to selected reciter
+                const selectedBtn = el.querySelector(`[data-selected="true"]`);
+                if (selectedBtn) {
+                  selectedBtn.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                }
+              }
+            }}>
+              {RECITERS.map(r => (
+                <button
+                  key={r.id}
+                  data-selected={reciterId === r.id}
+                  onClick={() => handleReciterChange(r.id)}
+                  className={`flex flex-col items-center gap-1 p-2 rounded-xl transition-all duration-200 border min-h-[70px] justify-center relative ${reciterId === r.id
+                    ? 'bg-gold-50 border-gold-500 dark:bg-gold-900/40 scale-105 shadow-md shadow-gold-500/20'
+                    : 'bg-transparent dark:bg-transparent border-transparent hover:bg-navy-50 dark:hover:bg-navy-800 hover:scale-105'
+                    }`}
+                >
+                  {downloadedReciters.includes(r.id) && (
+                    <div className="absolute top-1 right-1 bg-emerald-500 text-white rounded-full p-[1px] shadow-sm z-20" title="تم تحميله للعمل بدون إنترنت">
+                      <Check size={11} strokeWidth={4} />
+                    </div>
+                  )}
+                  <div className="w-8 h-8 rounded-full overflow-hidden border border-navy-100 dark:border-navy-700 shadow-sm relative shrink-0">
+                    <div className="absolute inset-0 flex items-center justify-center bg-navy-100 dark:bg-navy-800 text-navy-400">
+                      <Mic size={14} />
+                    </div>
+                    {r.image && (
+                      <img
+                        src={r.image}
+                        alt={r.name}
+                        className="relative z-10 w-full h-full object-cover transition-opacity duration-300"
+                        onError={(e) => { e.currentTarget.style.opacity = '0'; }}
+                      />
+                    )}
+                  </div>
+                  <span className="text-[10px] font-bold text-center text-navy-800 dark:text-navy-200 w-full leading-tight line-clamp-2">{r.name}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       <div className="mx-3 md:mx-0 mb-3 md:mb-0">
