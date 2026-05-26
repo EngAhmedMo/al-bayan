@@ -25,6 +25,9 @@ class RamadanAlertReceiver : BroadcastReceiver() {
         const val EXTRA_BODY = "BODY"
         const val EXTRA_SOUND = "SOUND"
         const val EXTRA_VOLUME = "VOLUME"
+
+        // Keep active players in memory to prevent Garbage Collection during playback
+        private val activePlayers = java.util.Collections.synchronizedList(mutableListOf<MediaPlayer>())
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -190,6 +193,7 @@ class RamadanAlertReceiver : BroadcastReceiver() {
                 onComplete()
                 return
             }
+            activePlayers.add(mediaPlayer)
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 mediaPlayer.setAudioAttributes(audioAttributes)
@@ -200,12 +204,14 @@ class RamadanAlertReceiver : BroadcastReceiver() {
             
             mediaPlayer.setOnCompletionListener { mp ->
                 mp.release()
+                activePlayers.remove(mp)
                 abandonFocus(audioManager, audioFocusRequest)
                 onComplete()
             }
             
             mediaPlayer.setOnErrorListener { mp, _, _ ->
                 mp.release()
+                activePlayers.remove(mp)
                 abandonFocus(audioManager, audioFocusRequest)
                 onComplete()
                 true

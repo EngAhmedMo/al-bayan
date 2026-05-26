@@ -26,6 +26,9 @@ class PrePrayerAlertReceiver : BroadcastReceiver() {
         const val EXTRA_ALERT_SOUND = "ALERT_SOUND" // alert_approaching or alert_prayer_reminder
         const val EXTRA_PRAYER_NAME = "PRAYER_NAME"
         const val EXTRA_VOLUME = "VOLUME"
+
+        // Keep active players in memory to prevent Garbage Collection during playback
+        private val activePlayers = java.util.Collections.synchronizedList(mutableListOf<MediaPlayer>())
     }
     
     override fun onReceive(context: Context, intent: Intent) {
@@ -159,7 +162,7 @@ class PrePrayerAlertReceiver : BroadcastReceiver() {
                 return
             }
             
-            val mediaPlayer = MediaPlayer.create(context, resId)
+             val mediaPlayer = MediaPlayer.create(context, resId)
             
             if (mediaPlayer == null) {
                 android.util.Log.e("PrePrayerAlert", "Failed to create MediaPlayer for $soundName")
@@ -167,6 +170,7 @@ class PrePrayerAlertReceiver : BroadcastReceiver() {
                 onComplete()
                 return
             }
+            activePlayers.add(mediaPlayer)
             
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 mediaPlayer.setAudioAttributes(audioAttributes)
@@ -179,6 +183,7 @@ class PrePrayerAlertReceiver : BroadcastReceiver() {
             mediaPlayer.setOnCompletionListener { mp ->
                 android.util.Log.d("PrePrayerAlert", "✅ Alert sound completed")
                 mp.release()
+                activePlayers.remove(mp)
                 // 2. Abandon Audio Focus so other apps resume
                 abandonFocus(audioManager, audioFocusRequest)
                 onComplete()
@@ -187,6 +192,7 @@ class PrePrayerAlertReceiver : BroadcastReceiver() {
             mediaPlayer.setOnErrorListener { mp, what, extra ->
                 android.util.Log.e("PrePrayerAlert", "MediaPlayer error: what=$what, extra=$extra")
                 mp.release()
+                activePlayers.remove(mp)
                 abandonFocus(audioManager, audioFocusRequest)
                 onComplete()
                 true

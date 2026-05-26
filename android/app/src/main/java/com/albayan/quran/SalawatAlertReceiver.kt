@@ -30,6 +30,9 @@ class SalawatAlertReceiver : BroadcastReceiver() {
         // Broadcast actions for JS Layer to pause/resume Quran
         const val ACTION_SALAWAT_STARTED = "com.albayan.quran.ACTION_SALAWAT_STARTED"
         const val ACTION_SALAWAT_FINISHED = "com.albayan.quran.ACTION_SALAWAT_FINISHED"
+
+        // Keep active players in memory to prevent Garbage Collection during playback
+        private val activePlayers = java.util.Collections.synchronizedList(mutableListOf<MediaPlayer>())
     }
     
     override fun onReceive(context: Context, intent: Intent) {
@@ -90,6 +93,7 @@ class SalawatAlertReceiver : BroadcastReceiver() {
                 pendingResult.finish()
                 return
             }
+            activePlayers.add(mediaPlayer)
 
             val volumeFloat = volume.coerceIn(0, 100) / 100f
             mediaPlayer.setVolume(volumeFloat, volumeFloat)
@@ -135,6 +139,7 @@ class SalawatAlertReceiver : BroadcastReceiver() {
                     
                     toast.cancel() // Cancel exactly when audio finishes
                     mp.release()
+                    activePlayers.remove(mp)
                     
                     // Notify JS Layer to Resume Quran
                     val finishIntent = Intent(ACTION_SALAWAT_FINISHED).apply {
@@ -143,6 +148,30 @@ class SalawatAlertReceiver : BroadcastReceiver() {
                     context.sendBroadcast(finishIntent)
                     
                     pendingResult.finish() // Let the system sleep
+                }
+
+                mediaPlayer.setOnErrorListener { mp, what, extra ->
+                    android.util.Log.e("SalawatAlert", "MediaPlayer error: what=$what, extra=$extra")
+                    // Release Audio Focus
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && focusRequest != null) {
+                        audioManager.abandonAudioFocusRequest(focusRequest)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        audioManager.abandonAudioFocus(null)
+                    }
+                    
+                    toast.cancel()
+                    mp.release()
+                    activePlayers.remove(mp)
+                    
+                    // Notify JS Layer to Resume Quran
+                    val finishIntent = Intent(ACTION_SALAWAT_FINISHED).apply {
+                        setPackage(context.packageName)
+                    }
+                    context.sendBroadcast(finishIntent)
+                    
+                    pendingResult.finish()
+                    true
                 }
             }
             

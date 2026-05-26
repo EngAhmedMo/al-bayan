@@ -215,7 +215,7 @@ export const Tasbih: React.FC = () => {
       setTarget(allTasbihs[newIndex].target);
     }
 
-    hapticDhikrChange();
+    hapticMedium();
   };
 
   const selectTasbihFromList = (index: number) => {
@@ -225,7 +225,7 @@ export const Tasbih: React.FC = () => {
     setCount(0);
     setIsListOpen(false);
     isTransitioning.current = false;
-    hapticDhikrChange();
+    hapticMedium();
   };
 
   const handleAddCustom = (text: string, defaultTarget: number) => {
