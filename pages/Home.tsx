@@ -790,15 +790,15 @@ export const Home: React.FC = () => {
       {/* --- PREMIUM DATE CARD --- */}
       <div className="px-4 sm:px-5 mt-4 relative z-10">
         {/* Subtle Ambient Glow behind the card */}
-        <div className="absolute inset-0 bg-gold-400/20 dark:bg-gold-500/10 blur-[40px] rounded-full scale-90 -z-10"></div>
+        <div className="absolute inset-0 bg-gold-400/20 dark:bg-gold-500/10 blur-[40px] rounded-full scale-90 -z-10 transform-gpu"></div>
         
-        <div className="relative w-full bg-gradient-to-br from-[#0F2238]/95 via-[#132A42]/95 to-[#0A1929]/95 dark:from-[#081321]/95 dark:via-[#0A1828]/95 dark:to-[#050D17]/95 backdrop-blur-2xl rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.25)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden text-white p-5 sm:p-6 border border-white/10 dark:border-white/5 home-date-card">
+        <div className="relative w-full bg-gradient-to-br from-[#0F2238]/95 via-[#132A42]/95 to-[#0A1929]/95 dark:from-[#081321]/95 dark:via-[#0A1828]/95 dark:to-[#050D17]/95 backdrop-blur-2xl rounded-[2rem] shadow-[0_8px_32px_rgba(0,0,0,0.25)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden text-white p-5 sm:p-6 border border-white/10 dark:border-white/5 transform-gpu home-date-card">
           {/* Islamic Pattern Overlay */}
-          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] mix-blend-overlay"></div>
+          <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] mix-blend-overlay transform-gpu"></div>
 
           {/* Decorative Glows inside */}
-          <div className="absolute top-0 right-0 w-48 h-48 bg-gold-400/15 rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none"></div>
-          <div className="absolute bottom-0 left-0 w-40 h-40 bg-gold-500/10 rounded-full -ml-12 -mb-12 blur-2xl pointer-events-none"></div>
+          <div className="absolute top-0 right-0 w-48 h-48 bg-gold-400/15 rounded-full -mr-16 -mt-16 blur-3xl pointer-events-none transform-gpu"></div>
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-gold-500/10 rounded-full -ml-12 -mb-12 blur-2xl pointer-events-none transform-gpu"></div>
 
           {/* Main Content Row: Day Box (Right) + Month/Year Block (Left) */}
           <div className="flex items-stretch justify-between gap-4 relative z-10 h-[90px] sm:h-[100px]">
@@ -959,9 +959,9 @@ export const Home: React.FC = () => {
 
       <div className="px-4 sm:px-5 mt-6 relative z-10 group cursor-pointer" onClick={() => navigate(lastRead ? `/reader?page=${lastRead.page}` : '/reader')}>
         {/* Ambient Glow */}
-        <div className="absolute inset-0 bg-gold-400/10 dark:bg-gold-500/5 blur-2xl rounded-2xl scale-95 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+        <div className="absolute inset-0 bg-gold-400/10 dark:bg-gold-500/5 blur-2xl rounded-2xl scale-95 opacity-0 group-hover:opacity-100 transition-opacity duration-500 transform-gpu"></div>
         
-        <div className="bg-white/60 dark:bg-navy-800/50 backdrop-blur-2xl rounded-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] border border-white/50 dark:border-navy-600/30 flex justify-between items-center group-hover:-translate-y-1 transition-all duration-300 relative overflow-hidden">
+        <div className="bg-white/60 dark:bg-navy-800/50 backdrop-blur-2xl rounded-2xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.05)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.2)] border border-white/50 dark:border-navy-600/30 flex justify-between items-center group-hover:-translate-y-1 transition-all duration-300 relative overflow-hidden transform-gpu">
           {/* Edge Glow effect */}
           <div className="absolute top-0 right-0 w-1.5 h-full bg-gradient-to-b from-gold-400 to-amber-500 shadow-[0_0_10px_rgba(251,191,36,0.5)]"></div>
 

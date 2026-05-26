@@ -248,10 +248,16 @@ const AudioPlayerBar = () => {
       {/* Container is pointer-events-none, inner elements must be auto to avoid blocking touches on page content */}
       <div className="max-w-4xl mx-auto w-full relative pointer-events-auto">
       {showReciterMenu && (
-        <div className="absolute bottom-full left-0 md:left-6 md:right-auto md:w-[450px] lg:w-[500px] mb-2 bg-white/95 dark:bg-navy-950/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-navy-100 dark:border-navy-700 overflow-hidden animate-in zoom-in-95 duration-200 origin-bottom flex flex-col max-h-[calc(100vh-180px)] md:max-h-[450px]">
-          <div className="p-3 border-b border-navy-100 dark:border-navy-800 flex justify-between items-center bg-navy-50 dark:bg-navy-900/50 shrink-0">
-            <h4 className="text-xs font-bold text-navy-600 dark:text-white">اختر القارئ</h4>
-            <button onClick={() => setShowReciterMenu(false)}><X size={16} className="text-navy-400 hover:text-red-500 transition-colors" /></button>
+        <div className="absolute bottom-full left-2 right-2 md:left-6 md:right-auto md:w-[450px] lg:w-[500px] mb-2 bg-white/95 dark:bg-navy-950/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-navy-100 dark:border-navy-700 overflow-hidden animate-in zoom-in-95 duration-200 origin-bottom flex flex-col max-h-[calc(100vh-180px)] md:max-h-[450px]">
+          <div className="p-4 border-b border-navy-100 dark:border-navy-800 flex justify-between items-center bg-navy-50 dark:bg-navy-900/50 shrink-0">
+            <h4 className="text-sm sm:text-base font-bold text-navy-800 dark:text-white">اختر القارئ</h4>
+            <button 
+              onClick={() => setShowReciterMenu(false)}
+              className="p-2 -mr-2 rounded-xl hover:bg-navy-100/50 dark:hover:bg-navy-800 text-navy-400 hover:text-red-500 transition-colors"
+              title="إغلاق"
+            >
+              <X size={20} />
+            </button>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 p-3 overflow-y-auto custom-scrollbar flex-1" ref={(el) => {
             if (el) {
