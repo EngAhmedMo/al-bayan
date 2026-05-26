@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { TopBar } from '../components/TopBar';
 import { RotateCcw, Infinity as InfinityIcon, ChevronLeft, ChevronRight, Activity, CheckCircle2, List, Plus, Trash2, X, Target, Info, AlertTriangle, Award } from 'lucide-react';
-import { toArabicDigits } from '../services/normalization';
+import { toArabicDigits, cleanDhikrText } from '../services/normalization';
 import { getLastTasbihTarget, setLastTasbihTarget, getCustomTasbihs, addCustomTasbih, deleteCustomTasbih, getTasbihState, saveTasbihState, clearTasbihState, getLifetimeTasbihTotal, addLifetimeTasbihTotal } from '../services/storage';
 import { useSettings } from '../components/Layout';
 import { TasbihItem } from '../types';
@@ -96,6 +96,26 @@ export const Tasbih: React.FC = () => {
 
   const displayLabel = getDynamicLabel(currentTasbih, count);
   const isEnding = target > 0 && count === target - 1;
+
+  // Smart text cleaner + Allah diacritics restoration + Comma formatting
+  const cleanText = useCallback((text: string): React.ReactNode => {
+    const cleaned = cleanDhikrText(text);
+    const parts = cleaned.split('،');
+    if (parts.length === 1) return cleaned;
+
+    return (
+      <>
+        {parts.map((part, index) => (
+          <React.Fragment key={index}>
+            {part}
+            {index < parts.length - 1 && (
+              <span className="text-gold-600 dark:text-gold-400 mx-0.5" style={{ fontFamily: "'Amiri', 'Lateef', 'Times New Roman', serif", fontWeight: 'bold' }} dir="rtl">،</span>
+            )}
+          </React.Fragment>
+        ))}
+      </>
+    );
+  }, []);
 
   // Initialize: Restore preferences & Load Custom
   useEffect(() => {
@@ -488,11 +508,11 @@ export const Tasbih: React.FC = () => {
                   className={`font-quran font-bold text-navy-900 dark:text-white leading-[1.8] text-center break-words w-full transition-all duration-300 ${isTransitioning.current ? 'opacity-80 scale-95' : 'opacity-100 scale-100'}`}
                   style={{ fontSize: `${Math.max(22, Math.min(fontSize * 1.2, 34))}px` }}
                 >
-                  {currentTasbih.sequenceMode ? currentTasbih.label : displayLabel}
+                  {cleanText(currentTasbih.sequenceMode ? currentTasbih.label : displayLabel)}
                 </h2>
                 {currentTasbih.sequenceMode && (
                   <div className={`mt-3 text-2xl font-bold text-gold-600 dark:text-gold-400 font-quran transition-all duration-300 animate-in fade-in slide-in-from-bottom-2 ${isTransitioning.current ? 'opacity-0' : 'opacity-100'}`}>
-                    {displayLabel}
+                    {cleanText(displayLabel)}
                   </div>
                 )}
                 {currentTasbih.virtue && (
@@ -666,7 +686,7 @@ export const Tasbih: React.FC = () => {
                     onClick={() => selectTasbihFromList(idx)}
                     className="flex-1 text-right"
                   >
-                    <p className={`font-bold font-quran text-sm ${idx === currentIndex ? 'text-navy-900 dark:text-white' : 'text-navy-600 dark:text-navy-300'}`}>{item.label}</p>
+                    <p className={`font-bold font-quran text-sm ${idx === currentIndex ? 'text-navy-900 dark:text-white' : 'text-navy-600 dark:text-navy-300'}`}>{cleanText(item.label)}</p>
                     <span className="text-[10px] text-navy-400">الهدف الافتراضي: {toArabicDigits(item.target)}</span>
                   </button>
                   {/* Only custom items (those not starting with 'std_') can be deleted */}
@@ -711,7 +731,7 @@ export const Tasbih: React.FC = () => {
               {/* Dhikr Preview */}
               <div className="bg-navy-50 dark:bg-navy-800 p-4 rounded-2xl mb-6 border border-navy-100 dark:border-navy-700">
                 <p className="font-quran text-lg text-navy-900 dark:text-white leading-relaxed">
-                  {deleteConfirmItem.label}
+                  {cleanText(deleteConfirmItem.label)}
                 </p>
                 <span className="text-[10px] text-navy-400 mt-2 block">
                   الهدف: {toArabicDigits(deleteConfirmItem.target)}
@@ -753,11 +773,11 @@ export const Tasbih: React.FC = () => {
               </button>
             </div>
             <div className="p-6">
-              <p className="font-quran text-xl leading-loose text-navy-900 dark:text-white text-center mb-6 bg-gold-50 dark:bg-navy-800 p-4 rounded-2xl border border-gold-100 dark:border-navy-700">
+              <div className="font-sans font-medium text-base md:text-lg leading-relaxed text-navy-900 dark:text-white text-right mb-6 bg-gold-50 dark:bg-navy-800 p-5 rounded-2xl border border-gold-100 dark:border-navy-700 max-h-[300px] overflow-y-auto custom-scrollbar">
                 {hadithModalItem.hadithSource?.split('\n').map((line, i) => (
-                  <span key={i} className="block mb-2 last:mb-0">{line}</span>
+                  <p key={i} className="mb-2 last:mb-0">{line}</p>
                 ))}
-              </p>
+              </div>
               <button
                 onClick={() => setHadithModalItem(null)}
                 className="w-full py-3 bg-navy-100 dark:bg-navy-800 hover:bg-navy-200 dark:hover:bg-navy-700 text-navy-900 dark:text-white font-bold rounded-xl transition-colors"

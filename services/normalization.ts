@@ -85,3 +85,51 @@ export const cleanQuranTextForDisplay = (text: string): string => {
   return text.replace(/[\u06DF\u06E0\u25CC]/g, '');
 };
 
+/**
+ * Restores diacritics for the word 'Allah' to ensure proper visual layout
+ * in specific fonts.
+ */
+export const restoreAllahDiacritics = (text: string): string => {
+  if (!text) return '';
+  return text
+    // 1. First, protect/convert standard Allah (الله) forms
+    .replace(/الل[ََّٰ]*ه[ُ]/g, '\x00RAF\x00')
+    .replace(/الل[ََّٰ]*ه[ِ]/g, '\x00JAR\x00')
+    .replace(/الل[ََّٰ]*ه[َ]/g, '\x00NAS\x00')
+    .replace(/الل[ََّٰ]*ه(?![\u064B-\u065F])/g, '\x00RAF\x00') // default to damma
+    
+    // 2. Next, protect or convert لله (lillah) forms
+    .replace(/لِلَّهِ/g, '\x00LIL\x00')
+    .replace(/للّهِ/g, '\x00LIL\x00')
+    .replace(/للهِ/g, '\x00LIL\x00')
+    .replace(/لله/g, '\x00LIL\x00')
+    .replace(/للّه/g, '\x00LIL\x00')
+    
+    // 3. Restore the tokens to their perfect Unicode representations with shadda + dagger alif
+    .replace(/\x00RAF\x00/g, 'اللَّٰهُ')
+    .replace(/\x00JAR\x00/g, 'اللَّٰهِ')
+    .replace(/\x00NAS\x00/g, 'اللَّٰهَ')
+    .replace(/\x00LIL\x00/g, 'لِلَّٰهِ');
+};
+
+/**
+ * Cleans Adhkar/Dhikr text from special/malformed unicode characters, dotted circles,
+ * brackets, and extraneous marks.
+ */
+export const cleanDhikrText = (text: string): string => {
+  if (!text) return '';
+  const cleaned = text
+    .replace(/[\u06DF\u06E0\u25CC]/g, '')   // Quranic silent marks and dotted circles
+    .replace(/[{}]/g,              '')   // curly brackets
+    .replace(/[﴿﴾]/g,             '')   // Quran brackets
+    .replace(/[\u0660-\u0669]/g,   '')   // Arabic-Indic digits
+    .replace(/[١٢٣٤٥٦٧٨٩٠]/g,    '')   // Eastern-Arabic numerals
+    .replace(/\[\d+\]/g,           '')   // [1] footnotes
+    .replace(/\(\d+\)/g,           '')   // (1) footnotes
+    .replace(/\s*\*\s*/g,          ' ')  // asterisks
+    .replace(/\s+/g,               ' ')  // collapse whitespace
+    .trim();
+  return restoreAllahDiacritics(cleaned);
+};
+
+

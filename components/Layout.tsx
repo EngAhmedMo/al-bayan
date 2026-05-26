@@ -598,14 +598,43 @@ export const Layout: React.FC = () => {
     }
   }, [currentTrack, autoAdvance, repeatCount, continuousRepeat, surahRepeat, pageRepeat, rangeStart, rangeEnd, rangeRepeat]);
 
-  // Radio State
-  const [radioStation, setRadioStation] = useState<RadioStation | null>(null);
+  // Radio State with LocalStorage Persistence
+  const [radioStation, setRadioStation] = useState<RadioStation | null>(() => {
+    const saved = localStorage.getItem('saved_radio_state');
+    if (saved) {
+      try { return JSON.parse(saved); } catch (e) {}
+    }
+    return null;
+  });
+
   const [isRadioPlaying, setIsRadioPlaying] = useState(false);
   const [radioLoading, setRadioLoading] = useState(false);
   const [radioError, setRadioError] = useState<string | null>(null);
   const [currentUrlIndex, setCurrentUrlIndex] = useState(0);
   const radioAudioRef = useRef<HTMLAudioElement | null>(null);
   const [sleepTimerEnd, setSleepTimerEnd] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (radioStation) {
+      localStorage.setItem('saved_radio_state', JSON.stringify(radioStation));
+    } else {
+      localStorage.removeItem('saved_radio_state');
+    }
+  }, [radioStation]);
+
+  // Centralized Audio/Radio Playback State Persistence for startup redirection
+  useEffect(() => {
+    if (isPlaying) {
+      localStorage.setItem('audio_was_playing', 'true');
+      localStorage.setItem('last_active_audio_type', 'quran');
+    } else if (isRadioPlaying) {
+      localStorage.setItem('audio_was_playing', 'true');
+      localStorage.setItem('last_active_audio_type', 'radio');
+    } else {
+      localStorage.setItem('audio_was_playing', 'false');
+      localStorage.setItem('last_active_audio_type', 'none');
+    }
+  }, [isPlaying, isRadioPlaying]);
 
   const handleSetSleepTimer = async (mins: number) => {
     if (mins > 0) {

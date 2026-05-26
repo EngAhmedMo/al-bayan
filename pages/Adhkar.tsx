@@ -11,7 +11,7 @@ import {
   Moon, Sun, Sunrise, Sunset, Edit2, Book, Coffee, Home, Plane, Info, AlertTriangle, Sparkles,
   Users, Map, Leaf, Stethoscope, BookOpen, Smile, Utensils, X, Search as SearchIcon
 } from 'lucide-react';
-import { toArabicDigits, normalizeArabic } from '../services/normalization';
+import { toArabicDigits, normalizeArabic, cleanDhikrText } from '../services/normalization';
 import { useSettings } from '../components/Layout';
 import {
   getFavoriteAdhkarIds,
@@ -975,32 +975,6 @@ const ZekrBurst: React.FC = () => (
 );
 
 // ────────────────────────────────────────────────────────────
-// Smart Allah Diacritics Restorer
-// Fixes لفظ الجلالة in text that lacks proper tashkeel
-// ────────────────────────────────────────────────────────────
-const restoreAllahDiacritics = (text: string): string => {
-  return text
-    // 1. First, protect/convert standard Allah (الله) forms
-    .replace(/الل[ََّٰ]*ه[ُ]/g, '\x00RAF\x00')
-    .replace(/الل[ََّٰ]*ه[ِ]/g, '\x00JAR\x00')
-    .replace(/الل[ََّٰ]*ه[َ]/g, '\x00NAS\x00')
-    .replace(/الل[ََّٰ]*ه(?![\u064B-\u065F])/g, '\x00RAF\x00') // default to damma
-    
-    // 2. Next, protect or convert لله (lillah) forms
-    .replace(/لِلَّهِ/g, '\x00LIL\x00')
-    .replace(/للّهِ/g, '\x00LIL\x00')
-    .replace(/للهِ/g, '\x00LIL\x00')
-    .replace(/لله/g, '\x00LIL\x00')
-    .replace(/للّه/g, '\x00LIL\x00')
-    
-    // 3. Restore the tokens to their perfect Unicode representations with shadda + dagger alif
-    .replace(/\x00RAF\x00/g, 'اللَّٰهُ')
-    .replace(/\x00JAR\x00/g, 'اللَّٰهِ')
-    .replace(/\x00NAS\x00/g, 'اللَّٰهَ')
-    .replace(/\x00LIL\x00/g, 'لِلَّٰهِ');
-};
-
-// ────────────────────────────────────────────────────────────
 // ZekrCard — Interactive Dhikr Card
 // ────────────────────────────────────────────────────────────
 const COMPLETION_MESSAGES = [
@@ -1034,21 +1008,9 @@ const ZekrCard: React.FC<{
 
   // Smart text cleaner + Allah diacritics restoration + Comma formatting
   const cleanText = useCallback((text: string): React.ReactNode => {
-    let cleaned = text
-      .replace(/[\u06DF\u06E0\u25CC]/g, '')   // Quranic silent marks and dotted circles
-      .replace(/[{}]/g,              '')   // curly brackets
-      .replace(/[﴿﴾]/g,             '')   // Quran brackets
-      .replace(/[\u0660-\u0669]/g,   '')   // Arabic-Indic digits
-      .replace(/[١٢٣٤٥٦٧٨٩٠]/g,    '')   // Eastern-Arabic numerals
-      .replace(/\[\d+\]/g,           '')   // [1] footnotes
-      .replace(/\(\d+\)/g,           '')   // (1) footnotes
-      .replace(/\s*\*\s*/g,          ' ')  // asterisks
-      .replace(/\s+/g,               ' ')  // collapse whitespace
-      .trim();
-    const withAllah = restoreAllahDiacritics(cleaned);
-    
-    const parts = withAllah.split('،');
-    if (parts.length === 1) return withAllah;
+    const cleaned = cleanDhikrText(text);
+    const parts = cleaned.split('،');
+    if (parts.length === 1) return cleaned;
 
     return (
       <>
