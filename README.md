@@ -17,8 +17,18 @@
       تحميل مباشر
     </a>
   </li>
-  <li>💻 تحميل نسخة الويندوز (EXE):
+  <li>💻 تحميل نسخة الويندوز (Setup EXE):
     <a href="https://github.com/EngAhmedMo/al-bayan/releases/download/v1.0.0/al-bayan_0.1.0_x64-setup.exe" target="_blank">
+      تحميل مباشر
+    </a>
+  </li>
+  <li>💻 تحميل نسخة الويندوز (MSI):
+    <a href="https://github.com/EngAhmedMo/al-bayan/releases/download/v1.0.0/al-bayan_0.1.0_x64_en-US.msi" target="_blank">
+      تحميل مباشر
+    </a>
+  </li>
+  <li>💻 تحميل نسخة الويندوز المحمولة (Portable):
+    <a href="https://github.com/EngAhmedMo/al-bayan/releases/download/v1.0.0/Al.Bayan.Portable.exe" target="_blank">
       تحميل مباشر
     </a>
   </li>
