@@ -45,47 +45,10 @@ const RouteTracker = () => {
   const navigate = useNavigate();
   const lastBackPress = useRef<number>(0);
 
-  // Persist current route on change
   useEffect(() => {
     const pageName = location.pathname === '/' ? 'Home' : location.pathname.substring(1);
     FirebaseService.logScreen(pageName);
-
-    // Save full path (pathname + search) to restore on app restart
-    const fullPath = location.pathname + location.search;
-    localStorage.setItem('last_session_route', fullPath);
   }, [location]);
-
-  // Restore last route on cold boot/start
-  useEffect(() => {
-    const savedRoute = localStorage.getItem('last_session_route');
-    const audioWasPlaying = localStorage.getItem('audio_was_playing') === 'true';
-    const lastAudioType = localStorage.getItem('last_active_audio_type');
-    
-    // Only restore if the app starts on root path and has no deep link/hash in the URL
-    const isRoot = window.location.hash === '' || window.location.hash === '#' || window.location.hash === '#/';
-
-    if (isRoot) {
-      if (audioWasPlaying && lastAudioType === 'quran') {
-        const targetRoute = (savedRoute && savedRoute.includes('/reader')) ? savedRoute : '/reader';
-        console.log('[RouteTracker] Redirecting to Quran Reader:', targetRoute);
-        setTimeout(() => {
-          navigate(targetRoute, { replace: true });
-        }, 50);
-      } else if (audioWasPlaying && lastAudioType === 'radio') {
-        const targetRoute = (savedRoute && savedRoute.includes('/radio')) ? savedRoute : '/radio';
-        console.log('[RouteTracker] Redirecting to Radio:', targetRoute);
-        setTimeout(() => {
-          navigate(targetRoute, { replace: true });
-        }, 50);
-      } else {
-        // By default, in all other cases, we always open the Home page
-        console.log('[RouteTracker] Loading Home page (no active playback to restore)');
-        setTimeout(() => {
-          navigate('/', { replace: true });
-        }, 50);
-      }
-    }
-  }, [navigate]);
 
   // Handle Android back button
   useEffect(() => {

@@ -622,20 +622,6 @@ export const Layout: React.FC = () => {
     }
   }, [radioStation]);
 
-  // Centralized Audio/Radio Playback State Persistence for startup redirection
-  useEffect(() => {
-    if (isPlaying) {
-      localStorage.setItem('audio_was_playing', 'true');
-      localStorage.setItem('last_active_audio_type', 'quran');
-    } else if (isRadioPlaying) {
-      localStorage.setItem('audio_was_playing', 'true');
-      localStorage.setItem('last_active_audio_type', 'radio');
-    } else {
-      localStorage.setItem('audio_was_playing', 'false');
-      localStorage.setItem('last_active_audio_type', 'none');
-    }
-  }, [isPlaying, isRadioPlaying]);
-
   const handleSetSleepTimer = async (mins: number) => {
     if (mins > 0) {
       if (isAndroid) {
