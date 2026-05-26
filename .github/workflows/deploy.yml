@@ -1,4 +1,5 @@
 name: Deploy static content to Pages
+# Trigger fresh GitHub Actions run after resolving local issues
 
 on:
   push:
