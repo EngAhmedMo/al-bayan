@@ -667,7 +667,7 @@ export const scheduleAllNotifications = async (
     // --- 3. Hifz Reminder (Smart, Prayer-Time Simulation, and Quiet Hours) ---
     const hifzState = HifzService.loadState();
 
-    if (hifzState.isSetup && hifzState.notificationEnabled && hifzState.notificationTime && hifzState.selectedDays?.includes(baseDate.getDay())) {
+    if (hifzState.isSetup && hifzState.notificationEnabled && hifzState.notificationTime && hifzState.selectedDays?.includes(baseDate.getDay()) && isDetailedDay) {
       const todayStr = HifzService.getTodayString();
       const isTodayCompleted = hifzState.lastCompletedDate === todayStr || hifzState.history.includes(todayStr);
 
