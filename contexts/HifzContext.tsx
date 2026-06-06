@@ -6,6 +6,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { HifzService, HifzState, DEFAULT_HIFZ_STATE } from '../services/HifzService';
+import { cancelTodayHifzReminders } from '../services/notificationManager';
 
 // --- Context Type ---
 interface HifzContextType {
@@ -79,6 +80,16 @@ export const HifzProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         setState(finalState);
         HifzService.saveState(finalState);
+
+        // Check if daily wird completed today
+        const todayStr = HifzService.getTodayString();
+        const completedTodayInNew = finalState.lastCompletedDate === todayStr || finalState.history.includes(todayStr);
+        const completedTodayInOld = oldState ? (oldState.lastCompletedDate === todayStr || oldState.history.includes(todayStr)) : false;
+
+        if (completedTodayInNew && !completedTodayInOld) {
+            console.log('[HifzContext] Daily wird completed today - cancelling today\'s reminders');
+            cancelTodayHifzReminders();
+        }
 
         // 3. SMART NOTIFICATION UPDATE
         // Only trigger full rescheduling if NOTIFICATION SETTINGS changed.

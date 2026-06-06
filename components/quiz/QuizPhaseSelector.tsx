@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { toArabicDigits } from '../../services/normalization';
 import { QuizDifficulty } from '../../services/hifzManager';
 
+
 interface QuizPhaseSelectorProps {
   rangeLabel: string;
   ayahCount: number;
@@ -13,6 +14,7 @@ interface QuizPhaseSelectorProps {
   onPhase2: () => void;
   onPhase3: () => void;
   onClose: () => void;
+  onCompleteWithoutQuiz?: () => void;
 }
 
 const DIFFICULTY_OPTIONS: { value: QuizDifficulty; label: string; icon: React.ReactNode; color: string }[] = [
@@ -51,6 +53,7 @@ export const QuizPhaseSelector: React.FC<QuizPhaseSelectorProps> = ({
   onPhase2,
   onPhase3,
   onClose,
+  onCompleteWithoutQuiz,
 }) => {
   const phases = [
     {
@@ -205,6 +208,18 @@ export const QuizPhaseSelector: React.FC<QuizPhaseSelectorProps> = ({
           );
         })}
       </div>
+
+      {/* Complete Without Quiz Option */}
+      {onCompleteWithoutQuiz && (
+        <div className="mt-2 text-center">
+          <button
+            onClick={onCompleteWithoutQuiz}
+            className="text-sm font-bold text-navy-400 hover:text-emerald-500 underline decoration-dotted transition-colors"
+          >
+            إتمام الحفظ دون اختبار
+          </button>
+        </div>
+      )}
     </div>
   );
 };

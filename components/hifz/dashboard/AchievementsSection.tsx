@@ -1,7 +1,7 @@
 import React from 'react';
 import { Trophy, Lock, Star, Target, Crown } from 'lucide-react';
 import { ACHIEVEMENTS } from '../../../services/gamification';
-import { motion } from 'framer-motion';
+
 
 interface AchievementsSectionProps {
     unlockedIds: string[];
@@ -57,10 +57,8 @@ export const AchievementsSection: React.FC<AchievementsSectionProps> = ({ unlock
                     <span className="text-amber-600 dark:text-amber-400">{unlockedCount} / {totalCount} وسام</span>
                 </div>
                 <div className="h-3 w-full bg-gray-100 dark:bg-navy-800 rounded-full overflow-hidden">
-                    <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${progress}%` }}
-                        transition={{ duration: 1, ease: "easeOut" }}
+                    <div
+                        style={{ width: `${progress}%`, transition: 'width 1s ease-out' }}
                         className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full shadow-[0_0_10px_rgba(245,158,11,0.5)]"
                     />
                 </div>
@@ -72,11 +70,8 @@ export const AchievementsSection: React.FC<AchievementsSectionProps> = ({ unlock
                     const isUnlocked = unlockedIds.includes(achievement.id);
 
                     return (
-                        <motion.div
+                        <div
                             key={achievement.id}
-                            initial={{ opacity: 0, scale: 0.8 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: idx * 0.05 }}
                             className="group/item relative flex flex-col items-center"
                         >
                             <div
@@ -101,7 +96,7 @@ export const AchievementsSection: React.FC<AchievementsSectionProps> = ({ unlock
                                 <div className="text-[10px] leading-relaxed text-gray-300">{achievement.description}</div>
                                 <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-navy-900 rotate-45"></div>
                             </div>
-                        </motion.div>
+                        </div>
                     );
                 })}
             </div>

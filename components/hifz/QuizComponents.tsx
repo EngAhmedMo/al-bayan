@@ -143,7 +143,7 @@ export const DailyQuizCard = ({ question, onAnswer }: { question: any, onAnswer:
     const words = cleanQuranText(question.ayah.aya_text || question.ayah.text).split(/\s+/).filter((w: string) => w.length > 0);
     const isRevealMode = question.type === 'recite_reveal' || question.type === 'complete_next';
     const isInteractiveReorder = question.type === 'reorder';
-    const MCQ_TYPES = ['identify_surah', 'missing_word', 'next_ayah_mcq', 'identify_juz'];
+    const MCQ_TYPES = ['identify_surah', 'missing_word', 'next_ayah_mcq', 'prev_ayah_mcq', 'identify_juz'];
     const isMCQ = MCQ_TYPES.includes(question.type) && Array.isArray(question.options);
 
     const handleMCQPick = (option: string) => {
@@ -173,8 +173,9 @@ export const DailyQuizCard = ({ question, onAnswer }: { question: any, onAnswer:
                                 question.type === 'identify_surah' ? 'تحديد السورة' :
                                     question.type === 'missing_word' ? 'الكلمة الناقصة' :
                                         question.type === 'next_ayah_mcq' ? 'الآية التالية' :
-                                            question.type === 'identify_juz' ? 'تحديد الجزء' :
-                                                'تسميع غيبي'}
+                                            question.type === 'prev_ayah_mcq' ? 'الآية السابقة' :
+                                                question.type === 'identify_juz' ? 'تحديد الجزء' :
+                                                    'تسميع غيبي'}
                 </span>
             </div>
 

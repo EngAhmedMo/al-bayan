@@ -188,7 +188,7 @@ export const HijriCalendarGrid: React.FC<HijriCalendarGridProps> = ({ events, on
                     <h2 className="text-xl font-bold text-navy-900 dark:text-white font-quran">
                         {currentMonthName}
                     </h2>
-                    <p className="text-xs font-bold text-gold-600 dark:text-gold-400">
+                    <p className="text-xs font-bold text-gold-600 dark:text-gold-400 font-sans mt-0.5">
                         {toArabicDigits(currentYear)} هـ
                     </p>
                 </div>

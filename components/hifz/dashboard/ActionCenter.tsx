@@ -18,13 +18,10 @@ interface ActionCenterProps {
     contextInfo?: { rub: string, juz: number } | null;
 
     onCompleteToday: () => void;
-    onUndoCompletion?: () => void; // New Prop
+    onUndoCompletion?: () => void;
     onGoToLocation: () => void;
     onStartDailyQuiz: () => void;
-    onStartSelfTest: () => void;
-    onStartFocusSession: () => void;
     onOpenBlankedMushaf: (startPage: number, pageCount: number) => void;
-    onOpenRevisionSetup: () => void;
 }
 
 export const ActionCenter: React.FC<ActionCenterProps> = ({
@@ -40,10 +37,7 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
     onUndoCompletion,
     onGoToLocation,
     onStartDailyQuiz,
-    onStartSelfTest,
-    onStartFocusSession,
-    onOpenBlankedMushaf,
-    onOpenRevisionSetup
+    onOpenBlankedMushaf
 }) => {
     const [showUndoConfirm, setShowUndoConfirm] = useState(false);
 
@@ -114,18 +108,6 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
                     )}
                 </div>
 
-                {/* Flashcard Tool Shortcut - HIDES when done */}
-                {!isTodayDone && (
-                    <div className="absolute top-6 left-6 animate-in fade-in duration-300">
-                        <button
-                            onClick={handleBlankedMushafClick}
-                            className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-navy-200 hover:text-emerald-400 transition-all border border-white/5 hover:border-emerald-500/30 shadow-sm"
-                            title="المصحف المخفي"
-                        >
-                            <BrainCircuit size={20} />
-                        </button>
-                    </div>
-                )}
             </div>
 
             {/* Action Grid */}
@@ -160,22 +142,11 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
                         </button>
 
                         <button
-
-                            // User request: "Button records completion... prevent it unless test passed".
-                            // So let's make the MAIN button the ONLY way, which starts quiz. But we need a fallback for manual read?
-                            // Let's keep a "Manual Complete" hidden or small? 
-                            // No, let's keep it simple. The Main Button STARTS QUIZ. Quiz Success -> Calls onCompleteToday.
-                            // But what if user just wants to mark done? 
-                            // Let's provide a small "Mark Done Manually" option? 
-                            // For now, let's assume 'onStartDailyQuiz' handles the flow (Quiz -> Success -> Mark Done).
-                            // But we need to use the space.
-
-                            // Let's use this slot for "Self Test" or "Listen".
-                            onClick={onStartSelfTest}
+                            onClick={handleBlankedMushafClick}
                             className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-100 hover:text-white font-bold py-3.5 rounded-xl backdrop-blur-sm border border-emerald-500/30 flex items-center justify-center gap-2.5 transition-all shadow-lg shadow-emerald-500/5 text-sm group/sub"
                         >
-                            <Sparkles size={18} className="text-emerald-400 group-hover/sub:animate-pulse" />
-                            <span>اختبار حر</span>
+                            <BrainCircuit size={18} className="text-emerald-400 group-hover/sub:animate-pulse" />
+                            <span>المصحف المخفي</span>
                         </button>
                     </div>
                 </div>
@@ -220,32 +191,6 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
                             </div>
                         </div>
                     )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <button
-                            onClick={onOpenRevisionSetup}
-                            className="w-full py-4 bg-white text-navy-900 font-bold rounded-xl shadow-lg hover:bg-gold-50 transition-all active:scale-95 flex items-center justify-center gap-2"
-                        >
-                            <RotateCcw size={20} className="text-purple-600" />
-                            مراجعة وتقوية
-                        </button>
-
-                        {/* Focus Session for Revision too */}
-                        {hasMistakes && (
-                            <button
-                                onClick={onStartFocusSession}
-                                disabled={isQuizLoading}
-                                className="w-full py-4 bg-red-500/20 hover:bg-red-500/30 text-red-100 hover:text-white font-bold rounded-xl hover:shadow-lg hover:shadow-red-900/20 backdrop-blur-sm border border-red-500/30 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {isQuizLoading ? (
-                                    <div className="w-5 h-5 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <Target size={20} className="text-red-400" />
-                                )}
-                                <span>علاج الأخطاء</span>
-                            </button>
-                        )}
-                    </div>
                 </div>
             )}
         </div>

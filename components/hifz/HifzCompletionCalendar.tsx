@@ -12,7 +12,8 @@ interface HifzCompletionCalendarProps {
 
 export const HifzCompletionCalendar: React.FC<HifzCompletionCalendarProps> = ({ isOpen, onClose, state }) => {
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchStartX, setTouchStartX] = useState<number | null>(null);
+    const [touchStartY, setTouchStartY] = useState<number | null>(null);
 
     // --- Back Button Handler ---
     useEffect(() => {
@@ -28,6 +29,42 @@ export const HifzCompletionCalendar: React.FC<HifzCompletionCalendarProps> = ({ 
             };
         }
     }, [isOpen, onClose]);
+
+    // --- Calendar Grid Logic ---
+    const getDaysInMonth = (date: Date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const days = new Date(year, month + 1, 0).getDate();
+        const firstDay = new Date(year, month, 1).getDay(); // 0 = Sunday
+        return { days, firstDay, year, month };
+    };
+
+    const { days, firstDay, year, month } = getDaysInMonth(currentMonth);
+    const startOffset = (firstDay + 1) % 7;
+    const monthName = currentMonth.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
+
+    const prevMonth = React.useCallback(() => setCurrentMonth(new Date(year, month - 1, 1)), [year, month]);
+    const nextMonth = React.useCallback(() => setCurrentMonth(new Date(year, month + 1, 1)), [year, month]);
+
+    // --- Keyboard Navigation (Desktop) ---
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'ArrowRight') {
+                prevMonth(); // In RTL/Arabic context, ArrowRight goes to previous month
+            } else if (e.key === 'ArrowLeft') {
+                nextMonth(); // ArrowLeft goes to next month
+            } else if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isOpen, prevMonth, nextMonth, onClose]);
 
     // --- Logic: Calculate Expected Completion Date ---
     const completionData = useMemo(() => {
@@ -62,44 +99,37 @@ export const HifzCompletionCalendar: React.FC<HifzCompletionCalendarProps> = ({ 
 
     if (!isOpen) return null;
 
-    // --- Swipe to Dismiss ---
+    // --- Swipe Navigation & Dismiss ---
     const handleTouchStart = (e: React.TouchEvent) => {
-        setTouchStart(e.targetTouches[0].clientY);
+        setTouchStartX(e.targetTouches[0].clientX);
+        setTouchStartY(e.targetTouches[0].clientY);
     };
 
     const handleTouchEnd = (e: React.TouchEvent) => {
-        if (!touchStart) return;
-        const touchEnd = e.changedTouches[0].clientY;
-        const diff = touchEnd - touchStart;
+        if (touchStartX === null || touchStartY === null) return;
+        const touchEndX = e.changedTouches[0].clientX;
+        const touchEndY = e.changedTouches[0].clientY;
 
-        // If swiped down by more than 100px, close
-        if (diff > 100) {
-            onClose();
+        const diffX = touchEndX - touchStartX;
+        const diffY = touchEndY - touchStartY;
+
+        // Detect horizontal swipe (for navigation) vs vertical swipe (to dismiss)
+        if (Math.abs(diffX) > Math.abs(diffY)) {
+            if (Math.abs(diffX) > 50) {
+                if (diffX > 0) {
+                    prevMonth();
+                } else {
+                    nextMonth();
+                }
+            }
+        } else {
+            if (diffY > 100) {
+                onClose();
+            }
         }
-        setTouchStart(null);
+        setTouchStartX(null);
+        setTouchStartY(null);
     };
-
-    // --- Calendar Grid Logic ---
-    const getDaysInMonth = (date: Date) => {
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const days = new Date(year, month + 1, 0).getDate();
-        const firstDay = new Date(year, month, 1).getDay(); // 0 = Sunday
-        return { days, firstDay, year, month };
-    };
-
-    const { days, firstDay, year, month } = getDaysInMonth(currentMonth);
-    // Adjust visual start to Saturday (Sat=0, Sun=1...) if desired or standard Sun=0
-    // Visual Grid Headers: Sat, Sun, Mon...
-    // If Headers start with Sat, and 1st is Sun(0), offset is 1.
-    // If 1st is Sat(6), offset is 0.
-    // Offset = (day + 1) % 7
-    const startOffset = (firstDay + 1) % 7;
-
-    const monthName = currentMonth.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' });
-
-    const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
-    const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
 
     const renderDay = (dayNum: number) => {
         const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`;
@@ -157,7 +187,7 @@ export const HifzCompletionCalendar: React.FC<HifzCompletionCalendarProps> = ({ 
                             <Trophy size={18} />
                             <span className="text-xs font-bold uppercase tracking-wider">تاريخ الختم المتوقع</span>
                         </div>
-                        <h2 className="text-3xl font-bold mb-2 font-quran text-left w-full">
+                        <h2 className="text-3xl font-bold mb-2 font-sans text-left w-full">
                             {completionData ? completionData.date.toLocaleDateString('ar-EG', { month: 'long', year: 'numeric' }) : '---'}
                         </h2>
 
@@ -175,7 +205,7 @@ export const HifzCompletionCalendar: React.FC<HifzCompletionCalendarProps> = ({ 
                     <button onClick={prevMonth} className="p-2 rounded-xl bg-white dark:bg-navy-800 shadow-sm hover:scale-105 transition-transform text-navy-600 dark:text-navy-300">
                         <ChevronRight size={20} />
                     </button>
-                    <span className="font-bold text-navy-800 dark:text-white font-quran text-lg">{monthName}</span>
+                    <span className="font-bold text-navy-800 dark:text-white font-sans text-lg">{monthName}</span>
                     <button onClick={nextMonth} className="p-2 rounded-xl bg-white dark:bg-navy-800 shadow-sm hover:scale-105 transition-transform text-navy-600 dark:text-navy-300">
                         <ChevronLeft size={20} />
                     </button>

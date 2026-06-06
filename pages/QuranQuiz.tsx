@@ -1,24 +1,29 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Shuffle, BookOpen, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { TopBar } from '../components/TopBar';
 import { fetchPageOffline } from '../services/quranOfflineCache';
 import {
+  getAyahsForDailyWird,
   generatePhase1Quiz,
   generatePhase2QuizChunked,
   generatePhase3Quiz,
   evaluateQuiz,
+  groupAyahsBySurah,
   QuizQuestion,
   AyahReorderQuestion,
   WordReorderQuestion,
   QuizDifficulty,
   AyahSlotError,
   AyahWordError,
+  HifzTestResult,
 } from '../services/hifzManager';
 import {
   getGlobalAyahNumber,
   SURAH_NAMES_ARABIC,
   SURAH_AYAH_COUNTS,
+  getMetadataFromGlobalAyah,
 } from '../services/quranStaticData';
 import { toArabicDigits } from '../services/normalization';
 import { Ayah } from '../types';
@@ -30,6 +35,9 @@ import { WordReorderQuiz } from '../components/quiz/WordReorderQuiz';
 import { QuizResultScreen, AyahMistakeSummary } from '../components/quiz/QuizResultScreen';
 import { cleanTajweedTags } from '../components/TajweedText';
 import { saveQuizResult } from '../services/quizHistory';
+import { useHifz } from '../contexts/HifzContext';
+import { HifzService } from '../services/HifzService';
+import { triggerHifzCompletion } from '../services/confetti';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 type PageState =
@@ -39,10 +47,17 @@ type PageState =
   | 'phase1'      // running phase 1 quiz
   | 'phase2'      // running phase 2 quiz
   | 'phase3'      // running phase 3 quiz
+  | 'surah_transition' // transition between Surahs
   | 'result';     // show results
 
 // ── Component ──────────────────────────────────────────────────────────────
 export const QuranQuiz: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const hifzContext = useHifz();
+  const startDailyQuiz = searchParams.get('startDailyQuiz') === 'true';
+  const [isDailyWirdMode, setIsDailyWirdMode] = useState(false);
+
   const [pageState, setPageState] = useState<PageState>('home');
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -52,6 +67,69 @@ export const QuranQuiz: React.FC = () => {
 
   // Difficulty
   const [difficulty, setDifficulty] = useState<QuizDifficulty>('medium');
+
+  // Surah grouping states for daily quiz flow
+  const [surahGroups, setSurahGroups] = useState<Ayah[][]>([]);
+  const [currentSurahIndex, setCurrentSurahIndex] = useState(0);
+
+  // Accumulated results across surahs
+  const [accumulatedP1Questions, setAccumulatedP1Questions] = useState<QuizQuestion[]>([]);
+  const [accumulatedP1Answers, setAccumulatedP1Answers] = useState<Record<string, boolean>>({});
+
+  // Load daily wird on mount if query param is set
+  const hasLoadedWirdRef = useRef(false);
+  useEffect(() => {
+    if (startDailyQuiz && hifzContext.state && !hasLoadedWirdRef.current) {
+      hasLoadedWirdRef.current = true;
+      setIsDailyWirdMode(true);
+      setLoadError(null);
+      setPageState('loading');
+      
+      const loadDailyWird = async () => {
+        try {
+          const { state } = hifzContext;
+          if (!state) return;
+          const startLoc = state.startPoint + state.currentProgress;
+          const loaded = await getAyahsForDailyWird(state.planType, startLoc, state.amountPerDay);
+          
+          if (loaded.length === 0) {
+            setLoadError('لم يتم العثور على آيات لوردك اليومي. تحقق من تحميل بيانات المصحف.');
+            setPageState('home');
+            return;
+          }
+          
+          setAyahs(loaded);
+        } catch (err: any) {
+          console.error("Failed to load daily wird ayahs", err);
+          setLoadError(err.message || 'حدث خطأ أثناء تحميل الآيات. حاول مرة أخرى.');
+          setPageState('home');
+        }
+      };
+      
+      loadDailyWird();
+    }
+  }, [startDailyQuiz, hifzContext.state]);
+
+  // Auto-start Phase 1 when ayahs are loaded in daily wird mode
+  useEffect(() => {
+    if (pageState === 'loading' && isDailyWirdMode && ayahs.length > 0) {
+      const groups = groupAyahsBySurah(ayahs);
+      setSurahGroups(groups);
+      setCurrentSurahIndex(0);
+      setAccumulatedP1Questions([]);
+      setAccumulatedP1Answers({});
+
+      // Start Phase 1 for the first Surah group
+      const firstSurahAyahs = groups[0];
+      const questions = generatePhase1Quiz(firstSurahAyahs, difficulty);
+      setQuizQuestions(questions);
+      setQuizIndex(0);
+      setQuizAnswers({});
+      setAyahMistakes([]);
+      startTimeRef.current = Date.now();
+      setPageState('phase1');
+    }
+  }, [pageState, isDailyWirdMode, ayahs, difficulty]);
 
   // Phase 1
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
@@ -158,6 +236,20 @@ export const QuranQuiz: React.FC = () => {
     setPageState('phase2');
   }, [ayahs, difficulty]);
 
+  const startPhase2ForCurrentSurah = useCallback((surahAyahs: Ayah[]) => {
+    const chunks = generatePhase2QuizChunked(surahAyahs, difficulty);
+    if (chunks.length > 0) {
+      setPhase2Chunks(chunks);
+      setPhase2ChunkIndex(0);
+      setPhase2AccErrors([]);
+      setPhase2AccCorrect(0);
+      setPhase2AccTotal(0);
+      setPageState('phase2');
+    } else {
+      startPhase3ForCurrentSurah(surahAyahs);
+    }
+  }, [difficulty]);
+
   // ── Start Phase 3 ──
   const startPhase3 = useCallback(() => {
     const q = generatePhase3Quiz(ayahs, difficulty);
@@ -166,6 +258,119 @@ export const QuranQuiz: React.FC = () => {
     startTimeRef.current = Date.now();
     setPageState('phase3');
   }, [ayahs, difficulty]);
+
+  const startPhase3ForCurrentSurah = useCallback((surahAyahs: Ayah[]) => {
+    const q = generatePhase3Quiz(surahAyahs, difficulty);
+    if (q.ayahs.length > 0) {
+      setPhase3Quiz(q);
+      setPageState('phase3');
+    } else {
+      completeCurrentSurahGroup();
+    }
+  }, [difficulty]);
+
+  // ── Complete daily wird progress and save results ──
+  const completeDailyWirdAndFinishOverall = useCallback((finalScore: number, finalP1Questions: QuizQuestion[], finalP1Answers: Record<string, boolean>) => {
+    if (!hifzContext.state) return;
+    
+    // Save progress to database
+    const newState = HifzService.completeDailyWird(hifzContext.state);
+    
+    // Process quiz result for SRS algorithm tracking (mistakes and intervals)
+    const testResult: HifzTestResult = {
+      date: HifzService.getTodayString(),
+      score: finalScore,
+      duration: (Date.now() - startTimeRef.current) / 1000,
+      totalItems: finalP1Questions.length,
+      correctItems: finalP1Questions.filter(q => finalP1Answers[q.id] === true).length,
+      mistakes: finalP1Questions.filter(q => finalP1Answers[q.id] === false).length,
+      type: 'daily'
+    };
+    
+    const { newState: srsState } = HifzService.processQuizResult(
+      newState,
+      testResult,
+      { questions: finalP1Questions, answers: finalP1Answers }
+    );
+    
+    hifzContext.updateState(srsState);
+
+    // Save quiz result
+    saveQuizResult({
+      rangeLabel: 'الورد اليومي',
+      phase: 3,
+      score: finalScore,
+      correct: finalP1Questions.filter(q => finalP1Answers[q.id] === true).length,
+      total: finalP1Questions.length,
+      timeTakenMs: Date.now() - startTimeRef.current,
+      difficulty,
+    });
+
+    // Trigger celebration
+    triggerHifzCompletion();
+
+    // Show custom results screen
+    setResult({
+      score: finalScore,
+      correct: finalP1Questions.filter(q => finalP1Answers[q.id] === true).length,
+      total: finalP1Questions.length,
+      timeTakenMs: Date.now() - startTimeRef.current,
+      mistakes: [],
+      phase: 3
+    });
+    setPageState('result');
+  }, [hifzContext, difficulty]);
+
+  // Legacy fallback (should not be triggered for new multi-surah)
+  const completeDailyWirdAndFinish = useCallback((finalScore: number) => {
+    completeDailyWirdAndFinishOverall(finalScore, quizQuestions, quizAnswers);
+  }, [completeDailyWirdAndFinishOverall, quizQuestions, quizAnswers]);
+
+  // ── Complete current Surah group in daily quiz ──
+  const completeCurrentSurahGroup = useCallback(() => {
+    if (currentSurahIndex < surahGroups.length - 1) {
+      setPageState('surah_transition');
+    } else {
+      const finalP1Questions = [...accumulatedP1Questions, ...quizQuestions];
+      const finalP1Answers = { ...accumulatedP1Answers, ...quizAnswers };
+      const correctCount = finalP1Questions.filter(q => finalP1Answers[q.id] === true).length;
+      const totalCount = finalP1Questions.length;
+      const finalScore = totalCount === 0 ? 100 : Math.round((correctCount / totalCount) * 100);
+      completeDailyWirdAndFinishOverall(finalScore, finalP1Questions, finalP1Answers);
+    }
+  }, [currentSurahIndex, surahGroups, quizQuestions, quizAnswers, accumulatedP1Questions, accumulatedP1Answers, completeDailyWirdAndFinishOverall]);
+
+  // Auto-redirect back to dashboard after 4 seconds when daily wird quiz is successfully completed
+  useEffect(() => {
+    if (pageState === 'result' && isDailyWirdMode && result && result.score >= 80) {
+      const timer = setTimeout(() => {
+        navigate('/hifz');
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [pageState, isDailyWirdMode, result, navigate]);
+
+  // ── Handle Exit Quiz ──
+  const handleExitQuiz = useCallback(() => {
+    if (isDailyWirdMode) {
+      if (window.confirm("هل أنت متأكد من إلغاء الاختبار؟ لن يتم تسجيل حفظ اليوم.")) {
+        navigate('/hifz');
+      }
+    } else {
+      resetToHome();
+    }
+  }, [isDailyWirdMode, navigate]);
+
+  // ── Handle Skip Daily Quiz ──
+  const handleSkipDailyQuiz = useCallback(() => {
+    if (isDailyWirdMode && hifzContext?.state) {
+      const newState = HifzService.completeDailyWird(hifzContext.state);
+      hifzContext.updateState(newState);
+      if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+      triggerHifzCompletion();
+      navigate('/hifz');
+    }
+  }, [isDailyWirdMode, hifzContext, navigate]);
 
   // ── Finish Phase 1 (called after last answer) ──
   const finishPhase1 = useCallback((finalAnswers: Record<string, boolean>) => {
@@ -176,19 +381,39 @@ export const QuranQuiz: React.FC = () => {
     const correct = quizQuestions.filter(q => finalAnswers[q.id] === true).length;
     const timeTakenMs = Date.now() - startTimeRef.current;
 
-    setResult({ score: evalResult.score, correct, total: quizQuestions.length, timeTakenMs, mistakes, phase: 1 });
-    setAyahMistakes([]);
-    saveQuizResult({
-      rangeLabel: currentRange?.label ?? '',
-      phase: 1,
-      score: evalResult.score,
-      correct,
-      total: quizQuestions.length,
-      timeTakenMs,
-      difficulty,
-    });
-    setPageState('result');
-  }, [quizQuestions, currentRange, difficulty]);
+    if (isDailyWirdMode) {
+      if (evalResult.score >= 80) {
+        setQuizAnswers(finalAnswers); // Save final answers for this Surah
+        startPhase2ForCurrentSurah(surahGroups[currentSurahIndex]);
+      } else {
+        setResult({ score: evalResult.score, correct, total: quizQuestions.length, timeTakenMs, mistakes, phase: 1 });
+        setAyahMistakes([]);
+        saveQuizResult({
+          rangeLabel: 'الورد اليومي - المرحلة الأولى',
+          phase: 1,
+          score: evalResult.score,
+          correct,
+          total: quizQuestions.length,
+          timeTakenMs,
+          difficulty,
+        });
+        setPageState('result');
+      }
+    } else {
+      setResult({ score: evalResult.score, correct, total: quizQuestions.length, timeTakenMs, mistakes, phase: 1 });
+      setAyahMistakes([]);
+      saveQuizResult({
+        rangeLabel: currentRange?.label ?? '',
+        phase: 1,
+        score: evalResult.score,
+        correct,
+        total: quizQuestions.length,
+        timeTakenMs,
+        difficulty,
+      });
+      setPageState('result');
+    }
+  }, [quizQuestions, currentRange, difficulty, isDailyWirdMode, startPhase2ForCurrentSurah, surahGroups, currentSurahIndex]);
 
   // ── Finish Phase 2 chunk ──
   const finishPhase2Chunk = useCallback((correct: number, total: number, _time: number, slotErrors: AyahSlotError[]) => {
@@ -209,12 +434,43 @@ export const QuranQuiz: React.FC = () => {
       const newAyahMistakes = newErrors
         .filter(e => e.mistakes > 0)
         .map(e => ({ preview: e.preview, errorCount: e.mistakes }));
-      setResult({ score, correct: newCorrect, total: newTotal, timeTakenMs, mistakes: [], phase: 2 });
-      setAyahMistakes(newAyahMistakes);
-      saveQuizResult({ rangeLabel: currentRange?.label ?? '', phase: 2, score, correct: newCorrect, total: newTotal, timeTakenMs, difficulty });
-      setPageState('result');
+
+      if (isDailyWirdMode) {
+        if (score >= 80) {
+          startPhase3ForCurrentSurah(surahGroups[currentSurahIndex]);
+        } else {
+          setResult({ score, correct: newCorrect, total: newTotal, timeTakenMs, mistakes: [], phase: 2 });
+          setAyahMistakes(newAyahMistakes);
+          saveQuizResult({
+            rangeLabel: 'الورد اليومي - المرحلة الثانية',
+            phase: 2,
+            score,
+            correct: newCorrect,
+            total: newTotal,
+            timeTakenMs,
+            difficulty
+          });
+          setPageState('result');
+        }
+      } else {
+        setResult({ score, correct: newCorrect, total: newTotal, timeTakenMs, mistakes: [], phase: 2 });
+        setAyahMistakes(newAyahMistakes);
+        saveQuizResult({
+          rangeLabel: currentRange?.label ?? '',
+          phase: 2,
+          score,
+          correct: newCorrect,
+          total: newTotal,
+          timeTakenMs,
+          difficulty
+        });
+        setPageState('result');
+      }
     }
-  }, [phase2AccCorrect, phase2AccTotal, phase2AccErrors, phase2ChunkIndex, phase2Chunks, currentRange, difficulty]);
+  }, [
+    phase2AccCorrect, phase2AccTotal, phase2AccErrors, phase2ChunkIndex, phase2Chunks,
+    currentRange, difficulty, isDailyWirdMode, startPhase3ForCurrentSurah, surahGroups, currentSurahIndex
+  ]);
 
   // ── Finish Phase 3 ──
   const finishPhase3 = useCallback((correct: number, total: number, timeTakenMs: number, wordErrors: AyahWordError[]) => {
@@ -222,11 +478,39 @@ export const QuranQuiz: React.FC = () => {
     const newAyahMistakes = wordErrors
       .filter(e => e.mistakes > 0)
       .map(e => ({ preview: e.preview, errorCount: e.mistakes }));
-    setResult({ score, correct, total, timeTakenMs, mistakes: [], phase: 3 });
-    setAyahMistakes(newAyahMistakes);
-    saveQuizResult({ rangeLabel: currentRange?.label ?? '', phase: 3, score, correct, total, timeTakenMs, difficulty });
-    setPageState('result');
-  }, [currentRange, difficulty]);
+
+    if (isDailyWirdMode) {
+      if (score >= 80) {
+        completeCurrentSurahGroup();
+      } else {
+        setResult({ score, correct, total, timeTakenMs, mistakes: [], phase: 3 });
+        setAyahMistakes(newAyahMistakes);
+        saveQuizResult({
+          rangeLabel: 'الورد اليومي - المرحلة الثالثة',
+          phase: 3,
+          score,
+          correct,
+          total,
+          timeTakenMs,
+          difficulty
+        });
+        setPageState('result');
+      }
+    } else {
+      setResult({ score, correct, total, timeTakenMs, mistakes: [], phase: 3 });
+      setAyahMistakes(newAyahMistakes);
+      saveQuizResult({
+        rangeLabel: currentRange?.label ?? '',
+        phase: 3,
+        score,
+        correct,
+        total,
+        timeTakenMs,
+        difficulty
+      });
+      setPageState('result');
+    }
+  }, [currentRange, difficulty, isDailyWirdMode, completeCurrentSurahGroup]);
 
   // ── Reset to home ──
   const resetToHome = () => {
@@ -245,6 +529,11 @@ export const QuranQuiz: React.FC = () => {
     setResult(null);
     setLoadError(null);
     setAyahMistakes([]);
+    setSurahGroups([]);
+    setCurrentSurahIndex(0);
+    setAccumulatedP1Questions([]);
+    setAccumulatedP1Answers({});
+    hasLoadedWirdRef.current = false;
   };
 
   // ── Retry same range ──
@@ -427,7 +716,8 @@ export const QuranQuiz: React.FC = () => {
                     onPhase1={startPhase1}
                     onPhase2={startPhase2}
                     onPhase3={startPhase3}
-                    onClose={resetToHome}
+                    onClose={handleExitQuiz}
+                    onCompleteWithoutQuiz={isDailyWirdMode ? handleSkipDailyQuiz : undefined}
                   />
                 </div>
               </motion.div>
@@ -449,11 +739,11 @@ export const QuranQuiz: React.FC = () => {
                     <h2 className="text-sm font-bold text-navy-900 dark:text-white">المرحلة الأولى — أسئلة ذكية</h2>
                     <p className="text-xs text-navy-400 dark:text-navy-500 mt-0.5">
                       {toArabicDigits(quizIndex + 1)} / {toArabicDigits(quizQuestions.length)}
-                      &nbsp;·&nbsp;{currentRange?.label}
+                      &nbsp;·&nbsp;{isDailyWirdMode ? 'الورد اليومي' : (currentRange?.label ?? '')}
                     </p>
                   </div>
                   <button
-                    onClick={resetToHome}
+                    onClick={handleExitQuiz}
                     className="text-xs font-bold text-navy-400 hover:text-red-500 transition-colors px-2 py-1 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/20"
                   >
                     إنهاء
@@ -502,7 +792,7 @@ export const QuranQuiz: React.FC = () => {
                   chunkIndex={phase2ChunkIndex}
                   totalChunks={phase2Chunks.length}
                   onFinish={finishPhase2Chunk}
-                  onClose={resetToHome}
+                  onClose={handleExitQuiz}
                 />
               </motion.div>
             )}
@@ -520,13 +810,88 @@ export const QuranQuiz: React.FC = () => {
                 <WordReorderQuiz
                   quiz={phase3Quiz}
                   onFinish={finishPhase3}
-                  onClose={resetToHome}
+                  onClose={handleExitQuiz}
                 />
               </motion.div>
             )}
 
-            {/* ═══ RESULT ═══ */}
-            {pageState === 'result' && result && (
+            {/* ═══ SURAH TRANSITION ═══ */}
+            {pageState === 'surah_transition' && (
+              <motion.div
+                key="surah_transition"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="bg-white dark:bg-navy-900 rounded-3xl border border-navy-100 dark:border-navy-800 p-6 shadow-xl text-center space-y-6"
+              >
+                <div className="w-20 h-20 mx-auto rounded-full bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-4xl shadow-inner animate-pulse">
+                  🏆
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-xl font-bold text-navy-900 dark:text-white">
+                    أتممت بنجاح: سورة {
+                      SURAH_NAMES_ARABIC[
+                        (surahGroups[currentSurahIndex]?.[0]?.surah?.number ?? 
+                         getMetadataFromGlobalAyah(surahGroups[currentSurahIndex]?.[0]?.number).surahNumber) - 1
+                      ]
+                    }
+                  </h2>
+                  <p className="text-sm text-navy-500 dark:text-navy-400 leading-relaxed px-4">
+                    الحمد لله، لقد اجتزت بنجاح جميع مراحل التثبيت لسورة {
+                      SURAH_NAMES_ARABIC[
+                        (surahGroups[currentSurahIndex]?.[0]?.surah?.number ?? 
+                         getMetadataFromGlobalAyah(surahGroups[currentSurahIndex]?.[0]?.number).surahNumber) - 1
+                      ]
+                    }.
+                  </p>
+                </div>
+
+                <div className="bg-gold-50/50 dark:bg-navy-800/50 rounded-2xl p-4 border border-gold-100/30 inline-block px-8">
+                  <p className="text-xs font-bold text-gold-600 dark:text-gold-400 mb-1">المحطة التالية</p>
+                  <p className="font-bold text-lg text-navy-900 dark:text-white">
+                    سورة {
+                      SURAH_NAMES_ARABIC[
+                        (surahGroups[currentSurahIndex + 1]?.[0]?.surah?.number ?? 
+                         getMetadataFromGlobalAyah(surahGroups[currentSurahIndex + 1]?.[0]?.number).surahNumber) - 1
+                      ]
+                    }
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    // Update accumulated list with the current Surah's Phase 1 questions/answers
+                    setAccumulatedP1Questions(prev => [...prev, ...quizQuestions]);
+                    setAccumulatedP1Answers(prev => ({ ...prev, ...quizAnswers }));
+
+                    // Advance to next Surah
+                    const nextIdx = currentSurahIndex + 1;
+                    setCurrentSurahIndex(nextIdx);
+
+                    // Initialize Phase 1 for the next Surah
+                    const nextSurahAyahs = surahGroups[nextIdx];
+                    const questions = generatePhase1Quiz(nextSurahAyahs, difficulty);
+                    setQuizQuestions(questions);
+                    setQuizIndex(0);
+                    setQuizAnswers({});
+                    setAyahMistakes([]);
+                    setPageState('phase1');
+                  }}
+                  className="w-full py-4 bg-gradient-to-br from-gold-400 to-amber-500 text-white font-bold rounded-2xl shadow-lg shadow-gold-500/20 hover:shadow-xl transition-all active:scale-95 text-base flex items-center justify-center gap-2"
+                >
+                  <span>ابدأ اختبار سورة {
+                    SURAH_NAMES_ARABIC[
+                      (surahGroups[currentSurahIndex + 1]?.[0]?.surah?.number ?? 
+                       getMetadataFromGlobalAyah(surahGroups[currentSurahIndex + 1]?.[0]?.number).surahNumber) - 1
+                    ]
+                  }</span>
+                  <ArrowRight size={18} className="rotate-180" />
+                </button>
+              </motion.div>
+            )}
+
+            {/* ═══ RESULT (مصحف حر / نطاق مخصص) ═══ */}
+            {pageState === 'result' && result && !isDailyWirdMode && (
               <motion.div
                 key="result"
                 initial={{ opacity: 0, y: 16 }}
@@ -545,7 +910,7 @@ export const QuranQuiz: React.FC = () => {
                     mistakes={result.mistakes}
                     ayahMistakes={ayahMistakes}
                     onRetry={handleRetry}
-                    onClose={resetToHome}
+                    onClose={handleExitQuiz}
                   />
                 </div>
 
@@ -591,12 +956,88 @@ export const QuranQuiz: React.FC = () => {
 
                 {/* New range */}
                 <button
-                  onClick={resetToHome}
+                  onClick={handleExitQuiz}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border border-navy-200 dark:border-navy-700 text-sm font-bold text-navy-600 dark:text-navy-300 hover:bg-navy-100 dark:hover:bg-navy-800 transition-colors"
                 >
                   <ArrowRight size={15} />
                   اختبار نطاق جديد
                 </button>
+              </motion.div>
+            )}
+
+            {/* ═══ RESULT SUCCESS (الورد اليومي - اجتياز) ═══ */}
+            {pageState === 'result' && result && isDailyWirdMode && result.score >= 80 && (
+              <motion.div
+                key="daily-result-success"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white dark:bg-navy-900 rounded-3xl border border-navy-100 dark:border-navy-800 p-6 shadow-xl text-center space-y-6"
+              >
+                <div className="w-24 h-24 mx-auto rounded-full bg-emerald-50 dark:bg-emerald-950/30 flex items-center justify-center text-5xl animate-bounce">
+                  ✨
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-black text-emerald-600 dark:text-emerald-400">مبارك إتمام الورد اليومي!</h2>
+                  <p className="text-sm text-navy-500 dark:text-navy-400 leading-relaxed">
+                    لقد اجتزت جميع مراحل التثبيت بنجاح (الأسئلة الذكية، ترتيب الآيات، وترتيب الكلمات) بنسبة نجاح تفوق الـ ٨٠٪. تم تسجيل إنجازك لهذا اليوم بحمد الله.
+                  </p>
+                </div>
+                <div className="bg-navy-50 dark:bg-navy-800/50 rounded-2xl p-4 grid grid-cols-2 gap-4">
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-navy-900 dark:text-white">{toArabicDigits(result.score)}%</p>
+                    <p className="text-[10px] font-bold text-navy-400 dark:text-navy-500">متوسط الأداء</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-navy-900 dark:text-white">
+                      {toArabicDigits(Math.round(result.timeTakenMs / 1000 / 60))} د
+                    </p>
+                    <p className="text-[10px] font-bold text-navy-400 dark:text-navy-500">الوقت المستغرق</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => navigate('/hifz')}
+                  className="w-full py-4 bg-gradient-to-br from-emerald-500 to-teal-600 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20 hover:shadow-xl transition-all active:scale-95 text-base"
+                >
+                  العودة للوحة الحفظ
+                </button>
+              </motion.div>
+            )}
+
+            {/* ═══ RESULT FAILURE (الورد اليومي - فشل) ═══ */}
+            {pageState === 'result' && result && isDailyWirdMode && result.score < 80 && (
+              <motion.div
+                key="daily-result-fail"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white dark:bg-navy-900 rounded-3xl border border-navy-100 dark:border-navy-800 p-6 shadow-xl text-center space-y-6"
+              >
+                <div className="w-24 h-24 mx-auto rounded-full bg-red-50 dark:bg-red-950/20 flex items-center justify-center text-5xl">
+                  ⚠️
+                </div>
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-black text-red-500 dark:text-red-400">تحتاج لمزيد من المراجعة</h2>
+                  <p className="text-sm text-navy-500 dark:text-navy-400 leading-relaxed">
+                    لقد حصلت على نسبة نجاح {toArabicDigits(result.score)}% في هذه المرحلة، وهي أقل من الحد الأدنى المطلوب (٨٠٪) لتسجيل الحفظ اليومي. يرجى إعادة قراءة الورد من المصحف ثم المحاولة مجدداً.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      // Restart the daily quiz from Phase 1
+                      setPageState('loading');
+                      startPhase1();
+                    }}
+                    className="flex-1 py-3.5 bg-navy-100 dark:bg-navy-800 text-navy-700 dark:text-navy-200 font-bold rounded-xl text-sm hover:bg-navy-200 dark:hover:bg-navy-700 transition-colors"
+                  >
+                    إعادة المحاولة
+                  </button>
+                  <button
+                    onClick={() => navigate('/hifz')}
+                    className="flex-1 py-3.5 bg-gradient-to-br from-gold-400 to-amber-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-gold-500/20 hover:shadow-xl transition-all"
+                  >
+                    لوحة الحفظ
+                  </button>
+                </div>
               </motion.div>
             )}
 

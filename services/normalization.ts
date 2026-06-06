@@ -62,6 +62,26 @@ export const toArabicDigits = (n: number | string): string => {
   return n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[parseInt(d)]);
 };
 
+export const cleanTajweedTags = (text: string): string => {
+  if (!text) return '';
+
+  // 1. Fix the "Extra Alif" data issue first
+  let clean = text.replace(/\u0672/g, '\u0670');
+
+  // 2. Remove all Tajweed tags [x[...]]
+  // Logic: The tags wrap content. We want to KEEP the content but REMOVE the wrapper.
+  let previous = '';
+  while (clean !== previous) {
+    previous = clean;
+    clean = clean.replace(/\[[a-z]+(?::\d+)?\[([^\]]*)\]/g, '$1');
+  }
+
+  // Final cleanup of formatting chars if any remain
+  clean = clean.replace(/[\[\]]/g, '');
+
+  return clean;
+};
+
 /**
  * Cleans Quran text from metadata codes (e.g., [h:24], [s]).
  * Used for displaying plain Arabic text in tests.
@@ -105,11 +125,11 @@ export const restoreAllahDiacritics = (text: string): string => {
     .replace(/لله/g, '\x00LIL\x00')
     .replace(/للّه/g, '\x00LIL\x00')
     
-    // 3. Restore the tokens to their perfect Unicode representations with shadda + dagger alif
-    .replace(/\x00RAF\x00/g, 'اللَّٰهُ')
-    .replace(/\x00JAR\x00/g, 'اللَّٰهِ')
-    .replace(/\x00NAS\x00/g, 'اللَّٰهَ')
-    .replace(/\x00LIL\x00/g, 'لِلَّٰهِ');
+    // 3. Restore the tokens to their perfect Unicode representations with shadda + dagger alif (no redundant fatha to prevent rendering glitches)
+    .replace(/\x00RAF\x00/g, 'اللّٰهُ')
+    .replace(/\x00JAR\x00/g, 'اللّٰهِ')
+    .replace(/\x00NAS\x00/g, 'اللّٰهَ')
+    .replace(/\x00LIL\x00/g, 'لِلّٰهِ');
 };
 
 /**

@@ -1,11 +1,11 @@
 
 import React, { useEffect, useState, useRef, useContext, useLayoutEffect } from 'react';
-import { useSearchParams, useLocation } from 'react-router-dom';
+import { useSearchParams, useLocation, useNavigate } from 'react-router-dom';
 import { Ayah, Surah, TafsirResponse } from '../types';
 import { fetchPage, fetchTafsir, fetchSurahs, RECITERS, getAudioUrl } from '../services/api';
 import { loadSingleAyahTafsir, TAFSIR_SOURCES } from '../services/tafsirService';
 import { toArabicDigits } from '../services/normalization';
-import { SURAH_START_PAGES, SURAH_AYAH_COUNTS, SURAH_NAMES_TASHKEEL, getGlobalAyahNumber, getApproxPageFromGlobalAyah, getAyahById } from '../services/quranStaticData';
+import { SURAH_START_PAGES, SURAH_AYAH_COUNTS, SURAH_NAMES_TASHKEEL, getGlobalAyahNumber, getApproxPageFromGlobalAyah, getAyahById, getMetadataFromGlobalAyah } from '../services/quranStaticData';
 import { TopBar } from '../components/TopBar';
 import { useAudio, useSettings, NavigationContext, useTheme } from '../components/Layout';
 import { ChevronLeft, ChevronRight, PlayCircle, BookOpen, X, Copy, Bookmark, BookmarkPlus, BookmarkCheck, Settings, Type, Mic, FileEdit, Save, Maximize2, Minimize2, Share2, Grid, Book, Hash, Repeat, Play, Infinity as InfinityIcon, LogOut, Plus, Minus, Sun, Moon, RotateCcw, ArrowDownUp } from 'lucide-react';
@@ -27,6 +27,8 @@ import { useHifzOptional } from '../contexts/HifzContext';
 import { DailyQuizCard } from '../components/hifz/QuizComponents';
 import { generateDailyQuiz, generatePhase1Quiz, generatePhase2QuizChunked, generatePhase3Quiz, evaluateQuiz, QuizQuestion, AyahReorderQuestion, WordReorderQuestion, HifzTestResult, QuizDifficulty, AyahSlotError, AyahWordError } from '../services/hifzManager';
 import { AlertTriangle, Trophy, Check } from 'lucide-react';
+import { HifzService } from '../services/HifzService';
+import { triggerHifzCompletion } from '../services/confetti';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QuizPhaseSelector } from '../components/quiz/QuizPhaseSelector';
 import { AyahReorderQuiz } from '../components/quiz/AyahReorderQuiz';
@@ -39,7 +41,7 @@ import { preloadQcfFontsAround } from '../services/qcfFontLoader';
 export const QuranReader: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
-  const { setIsFullscreen } = useContext(NavigationContext);
+  const { isFullscreen, setIsFullscreen } = useContext(NavigationContext);
   const { isDark, toggleTheme } = useTheme();
 
   // -- Smart Logic: Session Context --
@@ -205,6 +207,99 @@ export const QuranReader: React.FC = () => {
 
   const { playTrack, currentTrack, isPlaying } = useAudio();
   const hifzContext = useHifzOptional(); // للربط مع منظومة الحفظ
+
+  const navigate = useNavigate();
+  const hifzMode = searchParams.get('hifzMode') === 'true';
+
+  // Hybrid Data Fetching: URL Fallback + Context State
+  const urlStart = parseInt(searchParams.get('start') || '0');
+  const urlAmount = parseInt(searchParams.get('amount') || '0');
+  const urlPlanType = searchParams.get('planType') as 'pages' | 'ayahs' | null;
+
+  const hifzPlanType = hifzContext?.state?.planType || urlPlanType || 'pages';
+  const hifzAmount = hifzContext?.state?.amountPerDay || urlAmount || 1;
+  const hifzStart = hifzContext?.state 
+    ? (hifzContext.state.startPoint + hifzContext.state.currentProgress)
+    : (urlStart || 1);
+
+  const [isHifzBannerClosed, setIsHifzBannerClosed] = useState(false);
+  const [isHifzSubmitting, setIsHifzSubmitting] = useState(false);
+
+  const getTodayDateString = (): string => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const isTodayDone = hifzContext?.state?.lastCompletedDate === getTodayDateString();
+  const shouldShowHifzBanner = hifzMode && hifzContext?.state && !isTodayDone && !isHifzBannerClosed;
+
+  const bannerBottomClass = isFullscreen
+    ? "bottom-4 sm:bottom-6"
+    : "bottom-[84px] md:bottom-[96px]";
+
+  const pageControlsBottomClass = shouldShowHifzBanner
+    ? (currentTrack ? 'bottom-[224px] sm:bottom-[232px]' : 'bottom-[158px] sm:bottom-[166px]')
+    : (currentTrack ? 'bottom-[154px] sm:bottom-[162px]' : 'bottom-[88px] sm:bottom-[96px]');
+
+  const wirdStartPage = React.useMemo(() => {
+    if (hifzPlanType === 'pages') return hifzStart;
+    return getApproxPageFromGlobalAyah(hifzStart);
+  }, [hifzStart, hifzPlanType]);
+
+  const wirdEndPage = React.useMemo(() => {
+    if (hifzPlanType === 'pages') {
+      return hifzStart + hifzAmount - 1;
+    } else {
+      const lastAyahGlobal = hifzStart + hifzAmount - 1;
+      return getApproxPageFromGlobalAyah(lastAyahGlobal);
+    }
+  }, [hifzStart, hifzAmount, hifzPlanType]);
+
+  const getWirdLabel = () => {
+    if (hifzPlanType === 'pages') {
+      if (hifzAmount === 1) {
+        return `ورد اليوم: صفحة رقم ${toArabicDigits(hifzStart)}`;
+      } else if (hifzAmount === 2) {
+        return `ورد اليوم: صفحتان (${toArabicDigits(hifzStart)} - ${toArabicDigits(wirdEndPage)})`;
+      } else if (hifzAmount <= 10) {
+        return `ورد اليوم: ${toArabicDigits(hifzAmount)} صفحات من ${toArabicDigits(hifzStart)} إلى ${toArabicDigits(wirdEndPage)}`;
+      }
+      return `ورد اليوم: ${toArabicDigits(hifzAmount)} صفحة من ${toArabicDigits(hifzStart)} إلى ${toArabicDigits(wirdEndPage)}`;
+    } else {
+      const startMeta = getMetadataFromGlobalAyah(hifzStart);
+      const lastAyahGlobal = hifzStart + hifzAmount - 1;
+      const endMeta = getMetadataFromGlobalAyah(lastAyahGlobal);
+      
+      const countStr = hifzAmount === 1 ? 'آية واحدة' : hifzAmount === 2 ? 'آيتان' : hifzAmount <= 10 ? `${toArabicDigits(hifzAmount)} آيات` : `${toArabicDigits(hifzAmount)} آية`;
+      
+      if (startMeta.surahNumber === endMeta.surahNumber) {
+        return `ورد اليوم: ${countStr} من سورة ${startMeta.surahName} (الآيات ${toArabicDigits(startMeta.ayahInSurah)} - ${toArabicDigits(endMeta.ayahInSurah)})`;
+      }
+      return `ورد اليوم: ${countStr} (من ${startMeta.surahName}: ${toArabicDigits(startMeta.ayahInSurah)} إلى ${endMeta.surahName}: ${toArabicDigits(endMeta.ayahInSurah)})`;
+    }
+  };
+
+  const hasNextPageInWird = hifzMode && page < wirdEndPage;
+  const isBeforeWirdStart = hifzMode && page < wirdStartPage;
+
+  const handleCompleteWirdClick = async () => {
+    if (isHifzSubmitting || !hifzContext?.state) return;
+
+    if (isBeforeWirdStart) {
+      setPage(wirdStartPage);
+      resetFooterTimer();
+    } else if (hasNextPageInWird) {
+      setPage(p => p + 1);
+      resetFooterTimer();
+    } else {
+      // Navigate to the quiz page. The option to skip the quiz will be provided there.
+      navigate('/quiz?startDailyQuiz=true');
+    }
+  };
+
   const pageTopRef = useRef<HTMLDivElement>(null);
   const mushafContainerRef = useRef<HTMLDivElement>(null); // Inner scroll container
   const isAudioNavigatingRef = useRef(false); // Prevent useLayoutEffect interference during audio navigation
@@ -1476,7 +1571,7 @@ export const QuranReader: React.FC = () => {
         <div
           className={`fixed left-0 right-0 flex justify-center z-40 transition-all duration-500 ease-in-out pointer-events-none
           ${isImmersive || !showFooterBar ? 'translate-y-[150%] opacity-0' : 'translate-y-0 opacity-100'}
-          ${currentTrack ? 'bottom-[154px] sm:bottom-[162px]' : 'bottom-[88px] sm:bottom-[96px]'} 
+          ${pageControlsBottomClass} 
         `}
         >
           <div className="pointer-events-auto flex justify-between items-center px-2 py-1.5 bg-white/75 dark:bg-navy-900/75 backdrop-blur-xl rounded-[1.5rem] shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)] border border-white/40 dark:border-navy-700/50 gap-4 sm:gap-6">
@@ -2406,6 +2501,49 @@ export const QuranReader: React.FC = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Hifz Wird Bottom Floating Banner */}
+      {shouldShowHifzBanner && (
+        <div 
+          className={`fixed ${bannerBottomClass} left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-xl bg-white/80 dark:bg-navy-900/90 backdrop-blur-lg border border-navy-100 dark:border-gold-500/30 rounded-3xl p-4 shadow-2xl flex items-center justify-between gap-4 animate-in slide-in-from-bottom-5 duration-300`}
+          dir="rtl"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <BookOpen size={20} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] text-navy-400 dark:text-navy-500 font-bold uppercase tracking-wider">متابعة الحفظ</p>
+              <h4 className="text-sm font-bold text-navy-900 dark:text-white truncate">
+                {getWirdLabel()}
+              </h4>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={handleCompleteWirdClick}
+              disabled={isHifzSubmitting}
+              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-600/60 text-white text-sm font-bold rounded-xl shadow-lg shadow-emerald-500/20 active:scale-95 transition-all flex items-center gap-1.5"
+            >
+              {isHifzSubmitting && !hasNextPageInWird ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              ) : (
+                <Check size={16} />
+              )}
+              <span>{hasNextPageInWird ? "تم - الانتقال للصفحة التالية" : "إتمام الورد والانتقال للاختبار"}</span>
+            </button>
+            
+            <button
+              onClick={() => setIsHifzBannerClosed(true)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-navy-800 rounded-xl text-gray-400 hover:text-red-500 transition-colors"
+              title="إغلاق"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

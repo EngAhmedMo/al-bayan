@@ -9,7 +9,13 @@ import { useNavigate } from 'react-router-dom';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 
 export const Bookmarks: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'pages' | 'ayahs' | 'notes' | 'hadiths'>('pages');
+  const [activeTab, setActiveTab] = useState<'pages' | 'ayahs' | 'notes' | 'hadiths'>(() => {
+    const tabParam = new URLSearchParams(window.location.search).get('tab');
+    if (tabParam === 'notes' || tabParam === 'pages' || tabParam === 'ayahs' || tabParam === 'hadiths') {
+      return tabParam;
+    }
+    return 'pages';
+  });
   const [pages, setPages] = useState<PageBookmark[]>([]);
   const [ayahs, setAyahs] = useState<AyahBookmark[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);

@@ -16,6 +16,7 @@ export type QuizQuestionType =
   | 'identify_surah'   // MCQ: which surah is this ayah from?
   | 'missing_word'     // MCQ: fill in the missing word
   | 'next_ayah_mcq'   // MCQ: which ayah comes next?
+  | 'prev_ayah_mcq'   // MCQ: which ayah comes before?
   | 'identify_juz';    // MCQ: which juz is this ayah in?
 
 /** Error record for Phase 2 (Ayah Reorder) — per slot */
@@ -120,24 +121,8 @@ export const generateDailyQuiz = (ayahs: Ayah[], strictMode: boolean = false): Q
             }
         }
 
-        // Special Bridge Logic check
-        // If 'complete_next' is chosen, we check if we should do "Bridge" (Next Ayah) instead of "Cut" (Same Ayah)
-        // Bridge is preferred for very short ayahs OR randomly for flow
-        if (type === 'complete_next' && nextAyah && (isShort || Math.random() < 0.3)) {
-            // BRIDGE MODE: We test the NEXT ayah, using THIS ayah as cue.
-            // But wait: the loop covers all ayahs. If we test NEXT ayah now, we might duplicate test for i+1.
-            // Strategy: A Bridge Question is "conceptually" testing the connection.
-            // We will create a question where TARGET is 'nextAyah', and PROMPT is 'ayah'.
-            // Note: This effectively reveals 'ayah'. So 'ayah' is not tested for memory here, but for recognition.
-            // This is acceptable for flow.
-
-            questions.push(createQuestion(nextAyah, 'complete_next', i, ayah, undefined, true)); // true = isBridge
-
-            // Should we skip the next iteration? No, let the next iteration test nextAyah properly (e.g. mid-ayah cut)
-            // Double testing is fine for reinforcement.
-        } else {
-            questions.push(createQuestion(ayah, type, i, prevAyah, nextAyah));
-        }
+        // Every ayah is tested as an independent target, no Bridge logic.
+        questions.push(createQuestion(ayah, type, i, prevAyah, nextAyah));
     }
 
     return questions;
@@ -508,7 +493,11 @@ export const createIdentifySurahQuestion = (ayah: Ayah, index: number): QuizQues
 };
 
 /** 2.2 — Fill in the missing word (MCQ) */
-export const createMissingWordQuestion = (ayah: Ayah, index: number): QuizQuestion => {
+export const createMissingWordQuestion = (
+    ayah: Ayah,
+    index: number,
+    allAyahs?: Ayah[]
+): QuizQuestion => {
     const id = `q_${ayah.number}_${index}`;
     const displayText = ayah.aya_text || ayah.text;
     const words = displayText.trim().split(/\s+/);
@@ -530,18 +519,44 @@ export const createMissingWordQuestion = (ayah: Ayah, index: number): QuizQuesti
     // Build display with blank
     const displayedWithBlank = words.map((w, i) => i === hiddenIdx ? '___' : w).join(' ');
 
-    // Wrong options: other words from the same ayah
-    const candidates = words
-        .filter((_, i) => i !== hiddenIdx)
-        .map(w => normalizeArabic(w))
-        .filter(w => w !== normalizedCorrect && w.length > 1)
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 3);
+    // Candidates pool: other ayahs in the same surah
+    let candidates: string[] = [];
+    if (allAyahs && allAyahs.length > 0) {
+        const surahNum = ayah.surah?.number || getMetadataFromGlobalAyah(ayah.number)?.surahNumber || 1;
+        const otherAyahsInSurah = allAyahs.filter(a => {
+            const aSurah = a.surah?.number || getMetadataFromGlobalAyah(a.number)?.surahNumber || 1;
+            return aSurah === surahNum && a.number !== ayah.number;
+        });
 
-    // Pad if needed
+        // Extract words from other ayahs in the same surah
+        const surahWords = otherAyahsInSurah
+            .map(a => (a.aya_text || a.text).trim().split(/\s+/))
+            .flat()
+            .map(w => normalizeArabic(w))
+            .filter(w => w !== normalizedCorrect && w.length > 1);
+
+        candidates = shuffleArr(Array.from(new Set(surahWords))).slice(0, 3);
+    }
+
+    // If we don't have enough candidates from other ayahs, fall back to words in the same ayah
+    if (candidates.length < 3) {
+        const localCandidates = words
+            .filter((_, i) => i !== hiddenIdx)
+            .map(w => normalizeArabic(w))
+            .filter(w => w !== normalizedCorrect && w.length > 1 && !candidates.includes(w));
+        
+        candidates = [...candidates, ...shuffleArr(localCandidates)].slice(0, 3);
+    }
+
+    // Pad with standard Arabic grammatical words if still needed
     const fallbacks = ['وَ', 'إِنَّ', 'مِن', 'عَلَى', 'إِلَى'];
     let fi = 0;
-    while (candidates.length < 3) candidates.push(fallbacks[fi++ % fallbacks.length]);
+    while (candidates.length < 3) {
+        const fWord = fallbacks[fi++ % fallbacks.length];
+        if (!candidates.includes(fWord) && fWord !== normalizedCorrect) {
+            candidates.push(fWord);
+        }
+    }
 
     return {
         id,
@@ -552,6 +567,143 @@ export const createMissingWordQuestion = (ayah: Ayah, index: number): QuizQuesti
         options: shuffleArr([normalizedCorrect, ...candidates]),
         correctAnswer: normalizedCorrect,
     };
+};
+
+/** 2.7 — What comes before? (MCQ with 4 ayah previews) */
+export const createPrevAyahMCQQuestion = (
+    ayah: Ayah,
+    prevAyah: Ayah,
+    allAyahs: Ayah[],
+    index: number
+): QuizQuestion => {
+    const id = `q_${ayah.number}_${index}`;
+    const displayText = ayah.aya_text || ayah.text;
+    const correctPreview = getAyahPreviewWords(prevAyah.aya_text || prevAyah.text, 6);
+
+    // Filter candidates from the same Surah to avoid obvious distractors
+    const surahNum = ayah.surah?.number || getMetadataFromGlobalAyah(ayah.number)?.surahNumber || 1;
+    const sameSurahAyahs = allAyahs.filter(a => {
+        const aSurah = a.surah?.number || getMetadataFromGlobalAyah(a.number)?.surahNumber || 1;
+        return aSurah === surahNum;
+    });
+
+    const candidatePool = sameSurahAyahs.length >= 4 ? sameSurahAyahs : allAyahs;
+
+    const wrongCandidates = shuffleArr(
+        candidatePool.filter(a => a.number !== ayah.number && a.number !== prevAyah.number)
+    ).slice(0, 3).map(a => getAyahPreviewWords(a.aya_text || a.text, 6));
+
+    while (wrongCandidates.length < 3) wrongCandidates.push('...');
+
+    return {
+        id,
+        type: 'prev_ayah_mcq',
+        ayah,
+        questionText: 'ما الآية السابقة لقوله تعالى:',
+        contextText: getAyahPreviewWords(displayText, 8),
+        options: shuffleArr([correctPreview, ...wrongCandidates]),
+        correctAnswer: correctPreview,
+    };
+};
+
+/**
+ * Groups a list of Ayahs by their surah number.
+ * Assumes the input is sorted, but sorts just in case.
+ */
+export const groupAyahsBySurah = (ayahs: Ayah[]): Ayah[][] => {
+    if (!ayahs || ayahs.length === 0) return [];
+    
+    // Sort ayahs sequentially first
+    const sorted = [...ayahs].sort((a, b) => a.number - b.number);
+    
+    const groups: Ayah[][] = [];
+    let currentSurahNum = -1;
+    let currentGroup: Ayah[] = [];
+    
+    for (const ayah of sorted) {
+        const surahNum = ayah.surah?.number || getMetadataFromGlobalAyah(ayah.number)?.surahNumber || 1;
+        if (currentSurahNum === -1 || surahNum !== currentSurahNum) {
+            if (currentGroup.length > 0) {
+                groups.push(currentGroup);
+            }
+            currentGroup = [ayah];
+            currentSurahNum = surahNum;
+        } else {
+            currentGroup.push(ayah);
+        }
+    }
+    if (currentGroup.length > 0) {
+        groups.push(currentGroup);
+    }
+    
+    return groups;
+};
+
+/**
+ * Phase 1 Quiz: Multiple Choice Questions (MCQ) testing verse recognition and sequence.
+ * Takes ayahs of a SINGLE surah (as grouped by groupAyahsBySurah).
+ * Excludes 'identify_surah' and 'identify_juz' as requested by the user, and integrates 'prev_ayah_mcq'.
+ */
+export const generatePhase1Quiz = (
+    ayahs: Ayah[],
+    difficulty: QuizDifficulty = 'medium'
+): QuizQuestion[] => {
+    if (!ayahs || ayahs.length === 0) return [];
+
+    const sortedAyahs = [...ayahs].sort((a, b) => a.number - b.number);
+    const questions: QuizQuestion[] = [];
+
+    for (let i = 0; i < sortedAyahs.length; i++) {
+        const ayah = sortedAyahs[i];
+        const prevAyah = i > 0 ? sortedAyahs[i - 1] : undefined;
+        const nextAyah = i < sortedAyahs.length - 1 ? sortedAyahs[i + 1] : undefined;
+
+        const rand = Math.random();
+        let type: QuizQuestionType;
+
+        const wordCount = (ayah.aya_text || ayah.text).split(/\s+/).length;
+        const isShort = wordCount < 4;
+
+        if (difficulty === 'easy') {
+            if (isShort) {
+                type = rand < 0.5 && prevAyah ? 'prev_ayah_mcq' : 'next_ayah_mcq';
+            } else {
+                type = rand < 0.6 ? 'missing_word' : (prevAyah && rand < 0.8 ? 'prev_ayah_mcq' : 'next_ayah_mcq');
+            }
+        } else if (difficulty === 'hard') {
+            if (isShort) {
+                type = rand < 0.5 && prevAyah ? 'prev_ayah_mcq' : 'next_ayah_mcq';
+            } else {
+                if (rand < 0.35) type = 'missing_word';
+                else if (rand < 0.68 && prevAyah) type = 'prev_ayah_mcq';
+                else type = 'next_ayah_mcq';
+            }
+        } else {
+            if (isShort) {
+                type = rand < 0.5 && prevAyah ? 'prev_ayah_mcq' : 'next_ayah_mcq';
+            } else {
+                if (rand < 0.45) type = 'missing_word';
+                else if (rand < 0.72 && prevAyah) type = 'prev_ayah_mcq';
+                else type = 'next_ayah_mcq';
+            }
+        }
+
+        if (type === 'missing_word') {
+            questions.push(createMissingWordQuestion(ayah, i, sortedAyahs));
+        } else if (type === 'prev_ayah_mcq' && prevAyah) {
+            questions.push(createPrevAyahMCQQuestion(ayah, prevAyah, sortedAyahs, i));
+        } else {
+            if (nextAyah) {
+                questions.push(createNextAyahMCQQuestion(ayah, nextAyah, sortedAyahs, i));
+            } else if (prevAyah) {
+                questions.push(createPrevAyahMCQQuestion(ayah, prevAyah, sortedAyahs, i));
+            } else {
+                questions.push(createMissingWordQuestion(ayah, i, sortedAyahs));
+            }
+        }
+    }
+
+    return shuffleArr(questions);
 };
 
 /** 2.3 — What comes next? (MCQ with 4 ayah previews) */
@@ -605,97 +757,7 @@ export const createIdentifyJuzQuestion = (ayah: Ayah, index: number): QuizQuesti
     };
 };
 
-/**
- * Phase 1: Smart Quiz — covers ALL ayahs with difficulty-based question mix.
- * Easy:   more hints, first/last word, missing_word
- * Medium: balanced mix with some MCQ types
- * Hard:   more complete_next, MCQ types, less hints
- */
-export const generatePhase1Quiz = (ayahs: Ayah[], difficulty: QuizDifficulty = 'medium'): QuizQuestion[] => {
-    if (!ayahs || ayahs.length === 0) return [];
 
-    const sortedAyahs = [...ayahs].sort((a, b) => a.number - b.number);
-    const questions: QuizQuestion[] = [];
-
-    for (let i = 0; i < sortedAyahs.length; i++) {
-        const ayah = sortedAyahs[i];
-        const prevAyah = i > 0 ? sortedAyahs[i - 1] : undefined;
-        const nextAyah = i < sortedAyahs.length - 1 ? sortedAyahs[i + 1] : undefined;
-
-        const wordCount = (ayah.aya_text || ayah.text).split(/\s+/).length;
-        const isShort = wordCount < 4;
-        const rand = Math.random();
-
-        let type: QuizQuestionType;
-
-        if (difficulty === 'easy') {
-            // Easy: mostly reveal-based with helpful context, light MCQ
-            if (isShort) {
-                type = rand < 0.6 ? 'recite_reveal' : 'first_word';
-            } else {
-                if (rand < 0.30) type = 'first_word';
-                else if (rand < 0.55) type = 'last_word';
-                else if (rand < 0.75) type = 'missing_word';
-                else type = 'recite_reveal';
-            }
-        } else if (difficulty === 'hard') {
-            // Hard: heavy on MCQ + complete_next, minimal hints
-            if (isShort) {
-                type = rand < 0.5 ? 'recite_reveal' : 'next_ayah_mcq';
-            } else {
-                if (rand < 0.20) type = 'identify_surah';
-                else if (rand < 0.40) type = 'complete_next';
-                else if (rand < 0.58) type = 'missing_word';
-                else if (rand < 0.75) type = 'next_ayah_mcq';
-                else if (rand < 0.85) type = 'identify_juz';
-                else type = 'recite_reveal';
-            }
-        } else {
-            // Medium (default): balanced mix
-            if (isShort) {
-                type = rand < 0.5 ? 'recite_reveal' : 'complete_next';
-            } else {
-                if (rand < 0.20) type = 'first_word';
-                else if (rand < 0.36) type = 'last_word';
-                else if (rand < 0.54) type = 'complete_next';
-                else if (rand < 0.68) type = 'missing_word';
-                else if (rand < 0.82) type = 'identify_surah';
-                else type = 'recite_reveal';
-            }
-        }
-
-        // --- Route to correct creator ---
-        if (type === 'identify_surah') {
-            questions.push(createIdentifySurahQuestion(ayah, i));
-        } else if (type === 'missing_word') {
-            questions.push(createMissingWordQuestion(ayah, i));
-        } else if (type === 'next_ayah_mcq') {
-            if (nextAyah && sortedAyahs.length >= 4) {
-                questions.push(createNextAyahMCQQuestion(ayah, nextAyah, sortedAyahs, i));
-            } else {
-                questions.push(createQuestion(ayah, 'recite_reveal', i, prevAyah, nextAyah));
-            }
-        } else if (type === 'identify_juz') {
-            questions.push(createIdentifyJuzQuestion(ayah, i));
-        } else {
-            // classic types (first_word / last_word / complete_next / recite_reveal)
-            if (type === 'complete_next' && nextAyah && (isShort || Math.random() < 0.3)) {
-                questions.push(createQuestion(nextAyah, 'complete_next', i, ayah, undefined, true));
-            } else {
-                questions.push(createQuestion(ayah, type, i, prevAyah, nextAyah));
-            }
-        }
-    }
-
-    // Dynamic Difficulty Scaling:
-    // Easy: Sequential order (as generated)
-    // Medium / Hard: Randomize the order of questions to break sequential memory
-    if (difficulty === 'medium' || difficulty === 'hard') {
-        return shuffleArr(questions);
-    }
-
-    return questions;
-};
 
 /**
  * Phase 2: Generates a SINGLE Ayah reorder chunk.
@@ -765,9 +827,8 @@ export const generatePhase2Quiz = (ayahs: Ayah[]): AyahReorderQuestion => {
 export const generatePhase3Quiz = (ayahs: Ayah[], difficulty: QuizDifficulty = 'medium'): WordReorderQuestion => {
     let processAyahs = [...ayahs].sort((a, b) => a.number - b.number);
     
-    // Dynamic Difficulty Scaling
-    // Easy: Sequential order
-    // Medium / Hard: Randomize the order of ayahs presented to the user
+    // User requested: "يعني عدد الأسئلة يكون على عدد الآيات"
+    // So we process ALL ayahs in the page/surah without slicing.
     if (difficulty === 'medium' || difficulty === 'hard') {
         processAyahs = processAyahs.sort(() => 0.5 - Math.random());
     }

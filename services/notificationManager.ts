@@ -40,6 +40,23 @@ const BUNDLED_AZHANS = [
   'other_rabeh', 'egy_ibrahim_gabr', 'ksa_suraihi'
 ];
 
+/**
+ * Checks if a date falls within the quiet hours (10:30 PM to 7:00 AM).
+ */
+export const isInQuietHours = (date: Date): boolean => {
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const timeInMinutes = hours * 60 + minutes;
+  
+  const quietStart = 22 * 60 + 30; // 22:30
+  const quietEnd = 7 * 60; // 07:00
+  
+  return timeInMinutes >= quietStart || timeInMinutes < quietEnd;
+};
+
+const getRandomTemplate = <T>(templates: T[]): T => templates[Math.floor(Math.random() * templates.length)];
+const toArabicDigitsStr = (n: number) => n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[parseInt(d)]);
+
 export const requestNotificationPermission = async () => {
   try {
     if (isDesktop) return; // Handled by Tauri naturally
@@ -612,59 +629,6 @@ export const scheduleAllNotifications = async (
       }
     }
 
-    // --- 3. Hifz Reminder (Smart & Motivational) ---
-    const hifzState = HifzService.loadState();
-
-    // Helper for templates
-    const getRandomTemplate = <T>(templates: T[]): T => templates[Math.floor(Math.random() * templates.length)];
-    const toArabicDigitsStr = (n: number) => n.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[parseInt(d)]);
-
-    // 3.1 Memorization Reminders
-    if (hifzState.isSetup && hifzState.notificationEnabled && hifzState.notificationTime && hifzState.selectedDays?.includes(baseDate.getDay())) {
-      const hifzTime = parseTimeOnDate(hifzState.notificationTime, baseDate);
-
-      if (hifzTime > new Date()) {
-        const HIFZ_TEMPLATES = [
-          { title: '📖 ورد الحفظ اليومي', body: 'حان وقت وردك! {amount} {unit} في انتظارك ({location})' },
-          { title: '🌟 همتك عالية!', body: 'اليوم {amount} {unit} جديدة تنتظرك. ابدأ من {location}' },
-          { title: '💎 قرآنك ينتظرك', body: 'لديك {amount} {unit} للحفظ. استمر، أنت بطل!' },
-          { title: '🕌 بارك الله في جهدك', body: 'وردك اليومي: {amount} {unit} ({location}). توكل على الله' },
-          { title: '✨ وقت الحفظ', body: 'القرآن ربيع القلوب. لديك {amount} {unit} في {location}' },
-          { title: '🌙 لا تقطع السلسلة!', body: 'حافظ على استمراريتك: {amount} {unit} من {location}' },
-          { title: '📚 ورد اليوم', body: '{amount} {unit} فقط! ابدأ من {location} واجعلها عادة' },
-          { title: '🔥 سلسلتك مستمرة!', body: 'استمراريتك: {streak} يوم! لا تكسرها' },
-          { title: '🎯 اقتربت من الهدف', body: 'تقدمك رائع! {amount} {unit} جديدة تقربك من الختم' },
-        ];
-
-        const template = getRandomTemplate(HIFZ_TEMPLATES);
-        const unitLabel = hifzState.planType === 'pages' ? 'صفحات' : 'آيات';
-        const location = hifzState.startPoint + hifzState.currentProgress;
-        const streak = HifzService.calculateStreak(hifzState);
-
-        const msgTitle = template.title;
-        const msgBody = template.body
-          .replace('{amount}', toArabicDigitsStr(hifzState.amountPerDay))
-          .replace('{unit}', unitLabel)
-          .replace('{location}', `صفحة ${toArabicDigitsStr(location)}`)
-          .replace('{streak}', toArabicDigitsStr(streak));
-
-        // Use standard alert if today is done
-        const finalBody = hifzState.todayRevisionDone && hifzState.lastCompletedDate === HifzService.getTodayString()
-          ? 'أحسنت! أتممت وردك اليوم. حافظ على المراجعة.'
-          : msgBody;
-
-        notificationsToSchedule.push({
-          id: ID_HIFZ_REMINDER + dayIDOffset,
-          title: msgTitle,
-          body: finalBody,
-          schedule: { at: hifzTime },
-          channelId: 'bayan_alerts_v2',
-          smallIcon: 'ic_launcher',
-          extra: { type: 'hifz_reminder', deepLink: '/hifz' }
-        });
-      }
-    }
-
     // --- 2. Morning/Evening Adhkar (Only for Detailed Days) ---
     if (isDetailedDay) {
       if (settings.adhkar.morning.enabled) {
@@ -700,77 +664,96 @@ export const scheduleAllNotifications = async (
       }
     }
 
-    // --- 3. Hifz Reminder (Smart & Motivational) ---
-    // (Variables reused from above scope if available, or just use vars without redeclaring if same name)
-    // Actually, they are scoped to the 'for' loop? No, 'hifzState' is const outside the loop in original file?
-    // Wait, let's look at line 533. 
-    // Re-reading file structure. I inserted into the loop. 
-    // If I inserted at the end of the loop, I need to check if they were declared earlier in the loop.
-    // They were declared at line 533 (hifzState).
-    // So I should validly use the EXISTING hifzState.
+    // --- 3. Hifz Reminder (Smart, Prayer-Time Simulation, and Quiet Hours) ---
+    const hifzState = HifzService.loadState();
 
-    // 3. HIFZ REMINDERS & REVISION
-    // Separated logic to respect 'revisionNotificationEnabled'
-
-    // 3.1 Memorization Reminders (Primary)
-    // ID Range: 50010 + dayOffset
     if (hifzState.isSetup && hifzState.notificationEnabled && hifzState.notificationTime && hifzState.selectedDays?.includes(baseDate.getDay())) {
-      const hifzTime = parseTimeOnDate(hifzState.notificationTime, baseDate);
+      const todayStr = HifzService.getTodayString();
+      const isTodayCompleted = hifzState.lastCompletedDate === todayStr || hifzState.history.includes(todayStr);
 
-      // Only schedule if time is in future
-      if (hifzTime > new Date()) {
-        const HIFZ_TEMPLATES = [
-          { title: '📖 ورد الحفظ اليومي', body: 'حان وقت وردك! {amount} {unit} في انتظارك ({location})' },
-          { title: '🌟 همتك عالية!', body: 'اليوم {amount} {unit} جديدة تنتظرك. ابدأ من {location}' },
-          { title: '💎 قرآنك ينتظرك', body: 'لديك {amount} {unit} للحفظ. استمر، أنت بطل!' },
-          { title: '✨ وقت الحفظ', body: 'القرآن ربيع القلوب. لديك {amount} {unit} في {location}' },
-          { title: '🌙 لا تقطع السلسلة!', body: 'حافظ على استمراريتك: {amount} {unit} من {location}' },
-          { title: '📚 ورد اليوم', body: '{amount} {unit} فقط! ابدأ من {location} واجعلها عادة' }
-        ];
+      // Early completion path: skip scheduling any reminders for today if it is already completed
+      if (dayIndex === 0 && isTodayCompleted) {
+        // Already completed today, do not schedule any reminder
+      } else {
+        const primaryTime = parseTimeOnDate(hifzState.notificationTime, baseDate);
 
-        const template = getRandomTemplate(HIFZ_TEMPLATES);
-        const unitLabel = hifzState.planType === 'pages' ? 'صفحات' : 'آيات';
-        const location = hifzState.startPoint + hifzState.currentProgress;
-        const streak = HifzService.calculateStreak(hifzState);
+        // 3.1 Primary Reminder (Motivation Templates)
+        if (primaryTime > new Date() && !isInQuietHours(primaryTime)) {
+          const HIFZ_TEMPLATES = [
+            { title: '📖 ورد الحفظ اليومي', body: 'حان وقت وردك! {amount} {unit} في انتظارك ({location})' },
+            { title: '🌟 همتك عالية!', body: 'اليوم {amount} {unit} جديدة تنتظرك. ابدأ من {location}' },
+            { title: '💎 قرآنك ينتظرك', body: 'لديك {amount} {unit} للحفظ. استمر، أنت بطل!' },
+            { title: '🕌 بارك الله في جهدك', body: 'وردك اليومي: {amount} {unit} ({location}). توكل على الله' },
+            { title: '✨ وقت الحفظ', body: 'القرآن ربيع القلوب. لديك {amount} {unit} في {location}' },
+            { title: '🌙 لا تقطع السلسلة!', body: 'حافظ على استمراريتك: {amount} {unit} من {location}' },
+            { title: '📚 ورد اليوم', body: '{amount} {unit} فقط! ابدأ من {location} واجعلها عادة' },
+            { title: '🔥 سلسلتك مستمرة!', body: 'استمراريتك: {streak} يوم! لا تكسرها' },
+            { title: '🎯 اقتربت من الهدف', body: 'تقدمك رائع! {amount} {unit} جديدة تقربك من الختم' },
+          ];
 
-        const msgTitle = template.title;
-        const msgBody = template.body
-          .replace('{amount}', toArabicDigitsStr(hifzState.amountPerDay))
-          .replace('{unit}', unitLabel)
-          .replace('{location}', `صفحة ${toArabicDigitsStr(location)}`)
-          .replace('{streak}', toArabicDigitsStr(streak));
+          const template = getRandomTemplate(HIFZ_TEMPLATES);
+          const unitLabel = hifzState.planType === 'pages' ? 'صفحات' : 'آيات';
+          const location = hifzState.startPoint + hifzState.currentProgress;
+          const streak = HifzService.calculateStreak(hifzState);
 
-        // Logic for "Already Done" message vs "Reminder"
-        let finalBody = msgBody;
-        if (hifzState.todayRevisionDone && hifzState.lastCompletedDate === HifzService.getTodayString()) {
-          // If user disabled revision notifications, just say "Well done" without nagging about revision
-          if (hifzState["revisionNotificationEnabled"]) {
-            finalBody = 'أحسنت! أتممت وردك اليوم. حافظ على المراجعة.';
-          } else {
-            finalBody = 'أحسنت! أتممت وردك اليوم. تقبل الله منك.';
-          }
+          const msgTitle = template.title;
+          const msgBody = template.body
+            .replace('{amount}', toArabicDigitsStr(hifzState.amountPerDay))
+            .replace('{unit}', unitLabel)
+            .replace('{location}', `صفحة ${toArabicDigitsStr(location)}`)
+            .replace('{streak}', toArabicDigitsStr(streak));
+
+          notificationsToSchedule.push({
+            id: ID_HIFZ_REMINDER + dayIDOffset,
+            title: msgTitle,
+            body: msgBody,
+            schedule: { at: primaryTime },
+            channelId: 'bayan_alerts_v2',
+            smallIcon: 'ic_launcher',
+            extra: { type: 'hifz_reminder', deepLink: '/hifz' }
+          });
         }
 
-        notificationsToSchedule.push({
-          id: ID_HIFZ_REMINDER + dayIDOffset,
-          title: msgTitle,
-          body: finalBody,
-          schedule: { at: hifzTime },
-          channelId: 'bayan_alerts_v2',
-          smallIcon: 'ic_launcher',
-          extra: { type: 'hifz_reminder', deepLink: '/hifz' }
+        // 3.2 4 Follow-up Reminders (simulating prayer intervals: Dhuhr, Asr, Maghrib, Isha)
+        const followUps = [
+          {
+            offsetHours: 3.5,
+            title: '💡 تذكير خفيف بوردك',
+            body: 'مر بعض الوقت ولم يتم إنجاز الورد اليومي بعد. دقائق بسيطة تصنع فارقاً!'
+          },
+          {
+            offsetHours: 7,
+            title: '🌟 همة عالية للقرآن',
+            body: 'استعن بالله وأتم وردك الآن لتشعر بالإنجاز والراحة اليوم.'
+          },
+          {
+            offsetHours: 10.5,
+            title: '🕌 اقترب اليوم من نهايته',
+            body: 'لا تجعل يومك يمر دون بركة قراءة وحفظ وردك اليومي.'
+          },
+          {
+            offsetHours: 14,
+            title: '✨ ختام اليوم مسك',
+            body: 'دقائق قبل النوم لتثبيت حفظك وإتمام وردك اليومي.'
+          }
+        ];
+
+        followUps.forEach((followUp, index) => {
+          const followUpTime = new Date(primaryTime.getTime() + followUp.offsetHours * 60 * 60 * 1000);
+
+          if (followUpTime > new Date() && !isInQuietHours(followUpTime)) {
+            notificationsToSchedule.push({
+              id: ID_HIFZ_REMINDER + dayIDOffset + index + 1,
+              title: followUp.title,
+              body: followUp.body,
+              schedule: { at: followUpTime },
+              channelId: 'bayan_alerts_v2',
+              smallIcon: 'ic_launcher',
+              extra: { type: 'hifz_reminder', deepLink: '/hifz' }
+            });
+          }
         });
       }
-    }
-
-    // 3.2 Revision Notifications (Separate ID Range)
-    // ID Range: 50050 + dayOffset (Reserved for future strict revision reminders)
-    if (hifzState.isSetup && hifzState["revisionNotificationEnabled"] && hifzState.notificationTime && hifzState.selectedDays?.includes(baseDate.getDay())) {
-      // Logic to schedule specific Revision reminders can benefit added here.
-      // Currently, the "Memorization" reminder covers general daily Hifz work.
-      // We ensure the "Memorization" reminder doesn't mention revision if this is off.
-      // If we want a SECOND notification just for revision, we would add it here.
-      // For now, we leave this empty to respect the "Disable" wish, but the structure is ready.
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -1156,6 +1139,30 @@ export const cancelMissedPrayerReminder = async (prayerKey: string) => {
     console.log(`✅ Cancelled missed prayer reminder for ${prayerKey} (ID: ${notifId})`);
   } catch (e) {
     console.warn("Failed to cancel reminder", e);
+  }
+};
+
+/**
+ * Cancels today's Hifz reminders (primary and follow-ups).
+ * Called when user marks daily wird as completed.
+ */
+export const cancelTodayHifzReminders = async () => {
+  if (!Capacitor.isNativePlatform()) return;
+
+  const idsToCancel = [
+    ID_HIFZ_REMINDER,
+    ID_HIFZ_REMINDER + 1,
+    ID_HIFZ_REMINDER + 2,
+    ID_HIFZ_REMINDER + 3,
+    ID_HIFZ_REMINDER + 4
+  ];
+
+  try {
+    // @ts-ignore
+    await LocalNotifications.cancel({ notifications: idsToCancel.map(id => ({ id })) });
+    console.log(`✅ Cancelled today's Hifz reminders (IDs: ${idsToCancel.join(', ')})`);
+  } catch (e) {
+    console.warn("Failed to cancel today's Hifz reminders", e);
   }
 };
 

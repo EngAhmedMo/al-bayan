@@ -17,14 +17,8 @@ import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 // Components
 import { TopBar } from '../../TopBar';
-import { RevisionSessionModal, RevisionTasks } from '../RevisionSessionModal';
-import { RevisionSetupModal } from '../RevisionSetupModal';
-import { DailyQuizCard } from '../QuizComponents';
-// Charts moved to lazy loaded component
-// import { ReviewForecast, MistakeHistoryChart, AccuracyTrendChart, ConsistencyHeatmap, SRSStrengthChart } from '../HifzAnalytics';
 import { ProgressShareCard } from '../ProgressShareCard';
 import { AchievementsSection } from './AchievementsSection';
-import { SelfTestModal } from '../SelfTestModal';
 import { BlankedMushafOverlay } from './BlankedMushafOverlay';
 import { ProgressCard } from './ProgressCard';
 import { StreakCard } from './StreakCard';
@@ -33,13 +27,10 @@ import { ActionCenter } from './ActionCenter';
 import { HifzService } from '../../../services/HifzService';
 import { useQuizFeedback } from '../../../hooks/useQuizFeedback';
 
-// Lazy Load Charts for Fluidity
-const HifzChartsSection = React.lazy(() => import('./HifzChartsSection').then(m => ({ default: m.HifzChartsSection })));
 
 // Services
 import { cleanQuranText, toArabicDigits } from '../../../services/normalization';
-import { generateDailyQuiz, evaluateQuiz, getAyahsForDailyWird, generateRevisionQuiz, HifzTestResult, QuizQuestion, fetchAyahsByGlobalIds } from '../../../services/hifzManager';
-import { calculateNextReview, createNewSrsItem, SrsItem, SrsGrade, getDueItems } from '../../../services/srsAlgorithm';
+import { getAyahsForDailyWird, HifzTestResult } from '../../../services/hifzManager';
 import {
     getMetadataFromGlobalAyah,
     getApproxGlobalAyahFromPage,
@@ -64,19 +55,9 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
     const { playSound } = useQuizFeedback(); // Restored Audio Hook
 
     // Local UI State
-    const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
-    const [dailyQuizQuestions, setDailyQuizQuestions] = useState<QuizQuestion[]>([]);
-    const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
-    const [quizAnswers, setQuizAnswers] = useState<Record<string, boolean>>({});
-    const [isQuizFinished, setIsQuizFinished] = useState(false);
-    const [showMistakesReview, setShowMistakesReview] = useState(false); // New State
     const [selectedDayDetails, setSelectedDayDetails] = useState<{ date: string, isDone: boolean, testResult?: HifzTestResult } | null>(null); // Heatmap Interaction
-    const [consecutiveFails, setConsecutiveFails] = useState(0);
     const [achievementToast, setAchievementToast] = useState<import('../../../services/gamification').Achievement[] | null>(null); // For Toast Notification
     const fileInputRef = React.useRef<HTMLInputElement>(null);
-    const [testStartTime, setTestStartTime] = useState<number>(0);
-    const [activeQuizType, setActiveQuizType] = useState<'daily' | 'revision'>('daily');
-    const [isQuizLoading, setIsQuizLoading] = useState(false);
 
     // Blanked Mushaf State
     const [isBlankedMushafOpen, setIsBlankedMushafOpen] = useState(false);
@@ -84,17 +65,6 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
     const [currentBlankedPageIndex, setCurrentBlankedPageIndex] = useState(0);
     const [revealedAyahs, setRevealedAyahs] = useState<Set<number>>(new Set());
 
-    // Revision Session State - NOW USING CONTEXT
-    const {
-        activeSession, setActiveSession,
-        revisionTasks: ctxRevisionTasks, setRevisionTasks: setCtxRevisionTasks
-    } = useHifz();
-
-    // Local fallback for setup modal visibility (Setup is transient)
-    const [isSetupModalOpen, setIsSetupModalOpen] = useState(false);
-
-    // Sync local derived state
-    const showRevisionSession = activeSession === 'revision';
 
     // Context Data State
     const [contextInfo, setContextInfo] = useState<{ rub: string, juz: number } | null>(null);
@@ -119,14 +89,6 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
         });
     }, [state?.currentProgress, state?.startPoint, state?.planType]);
 
-    // Delayed loading for heavy charts to allow smooth navigation animation first
-    const [showCharts, setShowCharts] = useState(false);
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setShowCharts(true);
-        }, 800); // Wait for page transition to finish
-        return () => clearTimeout(timer);
-    }, []);
 
     const shareCardRef = useRef<HTMLDivElement>(null);
     const [isGeneratingShare, setIsGeneratingShare] = useState(false);
@@ -211,14 +173,6 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
         }
     }, [isGeneratingShare, state?.currentProgress, state?.planType]);
 
-    // Self Test State
-    const [showSelfTest, setShowSelfTest] = useState(false);
-    const [adaptiveAlert, setAdaptiveAlert] = useState<string | null>(null);
-    const [testAyahs, setTestAyahs] = useState<Array<{ text: string; surah: string; ayahNum: number; surahNum: number; srsId?: string }>>([]);
-    const [currentTestIndex, setCurrentTestIndex] = useState(0);
-    const [showAnswer, setShowAnswer] = useState(false);
-    const [testScore, setTestScore] = useState({ correct: 0, total: 0 });
-    const [sessionGrades, setSessionGrades] = useState<{ index: number; grade: number }[]>([]);
 
 
     // --- Helpers provided by Hifz.tsx originally, now derived from context ---
@@ -262,163 +216,35 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
     const handleGoToLocation = () => {
         if (!state) return;
         const targetLocation = state.startPoint + state.currentProgress;
+        const amount = state.amountPerDay;
+        const planType = state.planType;
 
         if (state.planType === 'pages') {
             const page = Math.min(Math.max(targetLocation, 1), 604);
-            navigate(`/reader?page=${page}`);
+            navigate(`/reader?page=${page}&hifzMode=true&start=${targetLocation}&amount=${amount}&planType=${planType}`);
         } else {
             const globalAyah = Math.min(Math.max(targetLocation, 1), 6236);
             const meta = getMetadataFromGlobalAyah(globalAyah);
             const pageOfAyah = getApproxPageFromGlobalAyah(globalAyah);
-            navigate(`/reader?surah=${meta.surahNumber}&ayah=${meta.ayahInSurah}&page=${pageOfAyah}&highlight=${meta.surahNumber}:${meta.ayahInSurah}`);
+            navigate(`/reader?surah=${meta.surahNumber}&ayah=${meta.ayahInSurah}&page=${pageOfAyah}&highlight=${meta.surahNumber}:${meta.ayahInSurah}&hifzMode=true&start=${targetLocation}&amount=${amount}&planType=${planType}`);
         }
     };
 
-    const handleCompleteToday = (skipQuiz = false) => {
+    const handleCompleteToday = () => {
         if (!state) return;
 
-        if (!skipQuiz && !isTodayDone) {
-            setTestStartTime(Date.now());
-            setActiveQuizType('daily');
-            handleStartDailyQuiz();
-            return;
-        }
-
-        const newState = HifzService.completeDailyWird(state);
-        updateState(newState);
-
-        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-    };
-
-
-
-    const handleStartFocusSession = async () => {
-        if (!state) return;
-        const mistakeIds = HifzService.getTopMistakes(state, 20);
-        if (mistakeIds.length === 0) return;
-
-        setIsQuizLoading(true);
-        try {
-            const ayahs = await fetchAyahsByGlobalIds(mistakeIds);
-            const questions = generateDailyQuiz(ayahs, true); // Strict Mode logic
-            setDailyQuizQuestions(questions);
-            setCurrentQuizIndex(0);
-            setQuizAnswers({});
-            setIsQuizFinished(false);
-            setActiveQuizType('revision'); // Reuse revision type
-            setIsQuizModalOpen(true);
-            setTestStartTime(Date.now());
-        } catch (e) {
-            console.error("Focus session gen failed", e);
-        } finally {
-            setIsQuizLoading(false);
-        }
-    };
-
-    const handleStartDailyQuiz = async () => {
-        if (!state) return;
-        const startLoc = state.startPoint + state.currentProgress;
-
-        setIsQuizLoading(true);
-        try {
-            const ayahs = await getAyahsForDailyWird(state.planType, startLoc, state.amountPerDay);
-            if (ayahs.length === 0) {
-                handleCompleteToday(true);
-                return;
-            }
-            const questions = generateDailyQuiz(ayahs, true);
-            setDailyQuizQuestions(questions);
-            setCurrentQuizIndex(0);
-            setQuizAnswers({});
-            setIsQuizFinished(false);
-            setTestStartTime(Date.now()); // Start timer
-            setIsQuizModalOpen(true);
-        } catch (e) {
-            console.error("Quiz gen failed", e);
-            handleCompleteToday(true);
-        } finally {
-            setIsQuizLoading(false);
-        }
-    };
-
-    const handleQuizAnswer = (correct: boolean) => {
-        const q = dailyQuizQuestions[currentQuizIndex];
-        setQuizAnswers(prev => ({ ...prev, [q.id]: correct }));
-
-        if (!correct) {
-            playSound('wrong'); // Audio Feedback
-            const newFails = consecutiveFails + 1;
-            setConsecutiveFails(newFails);
-
-            if (newFails >= 3) {
-                const newQs = [...dailyQuizQuestions];
-            }
+        if (!isTodayDone) {
+            // New Flow: Navigate to QuranQuiz, where they can choose to skip
+            navigate('/quiz?startDailyQuiz=true');
         } else {
-            setConsecutiveFails(0);
-        }
-
-        if (currentQuizIndex < dailyQuizQuestions.length - 1) {
-            setCurrentQuizIndex(prev => prev + 1);
-        } else {
-            finishQuiz();
-        }
-    };
-
-    const finishQuiz = () => {
-        setIsQuizFinished(true);
-        if (!state) return;
-
-        const result = evaluateQuiz(dailyQuizQuestions, quizAnswers);
-        const testResult: HifzTestResult = {
-            date: HifzService.getTodayString(),
-            score: result.score,
-            duration: (Date.now() - testStartTime) / 1000,
-            totalItems: dailyQuizQuestions.length,
-            correctItems: Object.values(quizAnswers).filter(Boolean).length,
-            mistakes: dailyQuizQuestions.length - Object.values(quizAnswers).filter(Boolean).length,
-            type: activeQuizType
-        };
-
-        const { newState, alerts } = HifzService.processQuizResult(
-            state,
-            testResult,
-            { questions: dailyQuizQuestions, answers: quizAnswers }
-        );
-
-        if (alerts.includes('adaptive_reorder')) {
-            setAdaptiveAlert('يبدو أنك تواجه بعض الصعوبات في الاختبارات الأخيرة. هل تود أن نقترح عليك تخفيف الكمية اليومية أو تغيير نمط الاختبار؟');
-        }
-
-        if (result.passed) {
-            playSound('complete'); // Audio Feedback
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-
-            // Commit State
-            updateState(newState);
-
-            // Check Achievements
-            const { newState: achievementsState, newAchievements } = HifzService.checkAndUnlockAchievements(newState);
-            if (newAchievements.length > 0) {
-                updateState(achievementsState);
-                // Toast handled via event listener
-            }
-
-            if (activeQuizType === 'daily') {
-                handleCompleteToday(true);
-            }
-        } else {
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-            updateState(newState);
+            // If already done, maybe do nothing or show a message. It shouldn't be called if done.
         }
     };
 
     // --- Helper for Blanked Mushaf ---
     const handleOpenBlankedMushaf = async (startPage: number, pageCount: number) => {
-        // FIX: Load data FIRST, then open overlay (prevents white screen race condition)
         try {
             const pagesToLoad = Array.from({ length: pageCount }, (_, i) => startPage + i);
-            console.log(`[HifzDashboard] Loading ${pagesToLoad.length} pages for Blanked Mushaf...`);
-
             const loaded = await Promise.all(
                 pagesToLoad.map(async p => {
                     const ayahs = await getStaticPage(p);
@@ -426,181 +252,67 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
                 })
             );
 
-            // Filter out any pages with no ayahs
             const validPages = loaded.filter(p => p.ayahs && p.ayahs.length > 0);
 
-            // Only open if we have valid data
             if (validPages.length > 0) {
                 setMushafPages(validPages as any);
-                setIsBlankedMushafOpen(true);  // Open AFTER data is ready
-                console.log(`[HifzDashboard] Loaded ${validPages.length} pages successfully`);
+                setIsBlankedMushafOpen(true);
             } else {
-                console.error('[HifzDashboard] No valid pages found');
                 alert('عذراً، لا يمكن تحميل الصفحة المطلوبة');
             }
         } catch (error) {
-            console.error('[HifzDashboard] Failed to load Blanked Mushaf pages:', error);
             alert('حدث خطأ أثناء تحميل الصفحة');
         }
     };
 
-    const startSelfTest = () => {
-        setShowSelfTest(true);
-    };
-
-    const handleStartRevision = (settings: { start: number; end: number; includeRisks: boolean }) => {
-        if (!state) return;
-
-        // Get due risks
-        const dueRisks = getDueItems(state.srsItems || [], 20);
-
-        const tasks = {
-            start: settings.start,
-            end: settings.end,
-            riskItems: dueRisks
-        };
-
-        // Save to Context
-        setCtxRevisionTasks(tasks);
-        setActiveSession('revision');
-        setIsSetupModalOpen(false);
-    };
-
-    const handleCloseRevision = () => {
-        if (confirm('هل أنت متأكد من إلغاء جلسة المراجعة؟ سيتم فقدان التقدم الحالي.')) {
-            setActiveSession(null);
-            setCtxRevisionTasks(null);
-        }
-    };
-
-    const handleCompleteRevision = (results: { updatedSrsItems: any[] }) => {
-        // Update SRS Items in global state
-        if (state) {
-            const newSrsItems = HifzService.mergeSrsItems(state.srsItems || [], results.updatedSrsItems);
-            updateState({
-                ...state,
-                srsItems: newSrsItems
-            });
-        }
-
-        // Reset Session
-        setActiveSession(null);
-        setCtxRevisionTasks(null);
-
-        // Feedback
-        if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
-        playSound('complete');
-    };
-
-    const handleDayClick = (date: string, isDone: boolean) => {
-        // Find test result for this date
-        const testResult = state?.testHistory?.find(h => h.date === date);
-        setSelectedDayDetails({ date, isDone, testResult });
-    };
-
-    // --- Backup & Restore Logic ---
+    // --- Backup Functions ---
     const handleExportBackup = async () => {
         if (!state) return;
-
         try {
-            const json = HifzService.createBackup(state);
-            const fileName = `albayan_backup_${new Date().toISOString().slice(0, 10)}.json`;
-
-            // Check Platform using Capacitor helper or window
-            const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform();
-
-            if (isNative) {
-                // --- Mobile: Save to Cache & Share ---
-                try {
-                    // 1. Write file
-                    const result = await Filesystem.writeFile({
-                        path: fileName,
-                        data: json,
-                        directory: Directory.Cache,
-                        encoding: Encoding.UTF8
-                    });
-
-                    // 2. Share file
-                    await Share.share({
-                        title: 'النسخة الاحتياطية - البيان',
-                        text: 'ملف النسخة الاحتياطية لتقدم الحفظ في تطبيق البيان',
-                        url: result.uri,
-                        dialogTitle: 'حفظ النسخة الاحتياطية'
-                    });
-                } catch (err) {
-                    console.error('Native export failed', err);
-                    alert('عذراً، حدث خطأ أثناء تصدير الملف على الهاتف.');
-                }
-            } else {
-                // --- Web: Download Blob ---
-                const blob = new Blob([json], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = fileName;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                setTimeout(() => URL.revokeObjectURL(url), 1000); // Cleanup
-            }
+            const dataStr = JSON.stringify(state, null, 2);
+            await Filesystem.writeFile({
+                path: 'albayan_backup.json',
+                data: dataStr,
+                directory: Directory.Documents,
+                encoding: Encoding.UTF8
+            });
+            alert('تم تصدير النسخة الاحتياطية بنجاح إلى المستندات');
         } catch (e) {
-            console.error('Export Generation Failed', e);
-            alert('حدث خطأ غير متوقع أثناء إنشاء النسخة الاحتياطية.');
+            console.error('Export failed', e);
+            alert('حدث خطأ أثناء تصدير البيانات');
         }
     };
 
-    const handleImportBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImportBackup = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Reset input so same file can be selected again if needed
-        e.target.value = '';
-
-        if (!file.name.endsWith('.json')) {
-            alert('عذراً، يجب اختيار ملف بصيغة .json');
-            return;
-        }
-
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             try {
-                const content = event.target?.result as string;
-                const restoredState = HifzService.validateAndRestore(content);
-
-                // Safety confirm
-                if (confirm(`تم قراءة النسخة الاحتياطية بنجاح.\nعدد السجلات: ${restoredState.history.length}\nهل تريد استبدال البيانات الحالية؟`)) {
-                    updateState(restoredState);
-                    alert('تم استعادة النسخة الاحتياطية بنجاح! سيتم تحديث الصفحة.');
-                    // Optional: window.location.reload() if deep state reset is needed, 
-                    // but React state update should be sufficient.
+                const dataStr = event.target?.result as string;
+                const parsed = JSON.parse(dataStr);
+                
+                // Simple validation
+                if (parsed && typeof parsed.startPoint === 'number') {
+                    if (window.confirm('سيتم استبدال بياناتك الحالية بالبيانات المستوردة. هل أنت متأكد؟')) {
+                        updateState(parsed);
+                        alert('تمت استعادة البيانات بنجاح!');
+                    }
+                } else {
+                    alert('ملف النسخة الاحتياطية غير صالح');
                 }
-            } catch (err: any) {
-                console.error('Import Error:', err);
-                alert(`فشل الاستعادة: ${err.message}`);
+            } catch (err) {
+                console.error('Import failed', err);
+                alert('حدث خطأ أثناء قراءة الملف');
             }
         };
-        reader.onerror = () => alert('عذراً، حدث خطأ أثناء قراءة الملف.');
         reader.readAsText(file);
+        
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
     };
-
-    // REMOVED: useEffect that was causing race condition with handleOpenBlankedMushaf
-    // Data is now loaded directly in handleOpenBlankedMushaf before opening the overlay
-
-    // Listen for Achievements
-    React.useEffect(() => {
-        const handleAchievement = (e: any) => {
-            const newUnlock = e.detail as import('../../../services/gamification').Achievement[];
-            if (newUnlock && newUnlock.length > 0) {
-                setAchievementToast(newUnlock);
-                playSound('complete');
-                // Auto dismiss after 5 seconds
-                setTimeout(() => setAchievementToast(null), 5000);
-            }
-        };
-
-        window.addEventListener('hifz-achievement-unlocked', handleAchievement);
-        return () => window.removeEventListener('hifz-achievement-unlocked', handleAchievement);
-    }, []);
 
     // --- Render ---
     if (!state) return null;
@@ -608,7 +320,7 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
     const hasMistakes = !!(state.mistakeMap && Object.values(state.mistakeMap).some(v => v > 0));
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-navy-950 dark:via-navy-900 dark:to-navy-950 pb-24 lg:pb-0 relative overflow-hidden font-sans">
+        <div className="min-h-screen bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-navy-950 dark:via-navy-900 dark:to-navy-950 pb-36 relative overflow-hidden font-sans">
             {/* Background Decorative Elements */}
             <div className="absolute inset-0 pointer-events-none">
                 <div className="absolute top-0 right-0 w-80 h-80 bg-gold-400/10 dark:bg-gold-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
@@ -625,7 +337,7 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, staggerChildren: 0.1 }}
                 >
-                    {/* Hero Progress - Responsive spanning */}
+                    {/* Hero Progress */}
                     <div className="sm:col-span-2 xl:col-span-2 h-full">
                         <ProgressCard
                             currentProgress={state.currentProgress}
@@ -634,7 +346,7 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
                         />
                     </div>
 
-                    {/* Streak - Spans 1 col */}
+                    {/* Streak */}
                     <div className="h-full">
                         <StreakCard
                             streak={streak}
@@ -642,7 +354,7 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
                         />
                     </div>
 
-                    {/* Estimation - Spans 1 col */}
+                    {/* Estimation */}
                     <div className="h-full">
                         <EstimationCard
                             currentProgress={state.currentProgress}
@@ -655,7 +367,7 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
                         />
                     </div>
 
-                    {/* Action Center - Full width */}
+                    {/* Action Center */}
                     <motion.div
                         className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4 mt-2"
                         initial={{ opacity: 0, scale: 0.95 }}
@@ -669,106 +381,66 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
                             startPoint={state.startPoint}
                             isTodayDone={isTodayDone}
                             hasMistakes={hasMistakes}
-                            isQuizLoading={isQuizLoading}
+                            isQuizLoading={false}
                             contextInfo={contextInfo}
                             onCompleteToday={() => handleCompleteToday()}
                             onUndoCompletion={onUndoCompletion}
                             onGoToLocation={handleGoToLocation}
-                            onStartDailyQuiz={handleStartDailyQuiz}
-                            onStartSelfTest={startSelfTest}
-                            onStartFocusSession={handleStartFocusSession}
+                            onStartDailyQuiz={() => navigate('/quiz?startDailyQuiz=true')}
                             onOpenBlankedMushaf={handleOpenBlankedMushaf}
-                            onOpenRevisionSetup={() => setIsSetupModalOpen(true)}
                         />
                     </motion.div>
                 </motion.div>
-            </div>
 
-            {/* Charts & Analytics - Lazy Loaded */}
-            {showCharts && (
-                <React.Suspense fallback={<div className="h-96 w-full animate-pulse bg-gray-100 dark:bg-navy-800 rounded-3xl"></div>}>
-                    <HifzChartsSection
-                        srsItems={state.srsItems}
-                        mistakeMap={state.mistakeMap || {}}
-                        history={state.history}
-                        testHistory={state.testHistory || []}
-                        onDayClick={handleDayClick}
-                    />
-                </React.Suspense>
-            )}
+                {/* Achievements Section */}
+                <AchievementsSection unlockedIds={state.unlockedAchievements || []} />
 
-            {/* Achievements Section */}
-            <AchievementsSection unlockedIds={state.unlockedAchievements || []} />
-
-            {/* Data Safety / Admin Section */}
-            <div className="bg-white dark:bg-navy-900 rounded-3xl p-6 border border-gray-100 dark:border-navy-700 shadow-sm mt-6">
-                <div className="flex items-center gap-2 mb-4">
-                    <Save className="text-blue-500" size={20} />
-                    <h3 className="text-lg font-bold text-navy-900 dark:text-white">النسخ الاحتياطي والأمان</h3>
+                {/* Data Safety / Admin Section */}
+                <div className="bg-white dark:bg-navy-900 rounded-3xl p-6 border border-gray-100 dark:border-navy-700 shadow-sm mt-6">
+                    <div className="flex items-center gap-2 mb-4">
+                        <Save className="text-blue-500" size={20} />
+                        <h3 className="text-lg font-bold text-navy-900 dark:text-white">النسخ الاحتياطي والأمان</h3>
+                    </div>
+                    <div className="flex gap-4">
+                        <button
+                            onClick={handleExportBackup}
+                            className="flex-1 py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors border border-blue-200"
+                        >
+                            <Download size={18} />
+                            <span>تصدير البيانات</span>
+                        </button>
+                        <button
+                            onClick={() => fileInputRef.current?.click()}
+                            className="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors border border-gray-200"
+                        >
+                            <Zap size={18} />
+                            <span>استعادة نسخة</span>
+                        </button>
+                        {/* Hidden Input */}
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handleImportBackup}
+                            accept=".json"
+                            className="hidden"
+                        />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2 text-center">
+                        قم بتصدير بياناتك بانتظام لتجنب فقدانها. الملف يتم حفظه باسم albayan_backup.json
+                    </p>
                 </div>
-                <div className="flex gap-4">
-                    <button
-                        onClick={handleExportBackup}
-                        className="flex-1 py-3 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors border border-blue-200"
-                    >
-                        <Download size={18} />
-                        <span>تصدير البيانات</span>
-                    </button>
-                    <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors border border-gray-200"
-                    >
-                        <Zap size={18} />
-                        <span>استعادة نسخة</span>
-                    </button>
-                    {/* Hidden Input */}
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleImportBackup}
-                        accept=".json"
-                        className="hidden"
+
+                {/* Hidden Share Card */}
+                <div className="absolute -left-[9999px] top-0 pointer-events-none">
+                    <ProgressShareCard
+                        ref={shareCardRef}
+                        state={state!}
+                        latestAchievement={state.unlockedAchievements && state.unlockedAchievements.length > 0
+                            ? ACHIEVEMENTS.find(a => a.id === state.unlockedAchievements![state.unlockedAchievements!.length - 1])
+                            : undefined}
                     />
                 </div>
-                <p className="text-xs text-gray-400 mt-2 text-center">
-                    قم بتصدير بياناتك بانتظام لتجنب فقدانها. الملف يتم حفظه باسم albayan_backup.json
-                </p>
             </div>
-
-            {/* Hidden Share Card */}
-            <div className="absolute -left-[9999px] top-0 pointer-events-none">
-                <ProgressShareCard
-                    ref={shareCardRef}
-                    state={state!}
-                    latestAchievement={state.unlockedAchievements && state.unlockedAchievements.length > 0
-                        ? ACHIEVEMENTS.find(a => a.id === state.unlockedAchievements![state.unlockedAchievements!.length - 1])
-                        : undefined}
-                />
-            </div>
-
-            {/* Modals will go here (QuizModal, etc.) - Simplified for V1 extraction */}
-            {
-                isSetupModalOpen && state && (
-                    <RevisionSetupModal
-                        onClose={() => setIsSetupModalOpen(false)}
-                        onStart={handleStartRevision}
-                        currentProgress={state!.startPoint + state!.currentProgress}
-                        planType={state!.planType}
-                        riskItemsCount={getDueItems(state!.srsItems || [], 100).length}
-                    />
-                )
-            }
-
-            {
-                showRevisionSession && ctxRevisionTasks && state && (
-                    <RevisionSessionModal
-                        tasks={ctxRevisionTasks}
-                        planType={state.planType}
-                        onClose={handleCloseRevision}
-                        onComplete={handleCompleteRevision}
-                    />
-                )
-            }
 
             {isBlankedMushafOpen && (
                 <BlankedMushafOverlay
@@ -780,39 +452,6 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
                     setRevealedAyahs={setRevealedAyahs}
                 />
             )}
-
-            {
-                showSelfTest && (
-                    <SelfTestModal
-                        onClose={() => setShowSelfTest(false)}
-                        maxPage={604}
-                        onStart={async (settings) => {
-                            setShowSelfTest(false);
-                            if (!state) return;
-
-                            // Generate Custom Quiz
-                            try {
-                                const testPlanType = 'pages'; // SelfTest currently only supports pages
-                                const startLoc = settings.start;
-
-                                const ayahs = await getAyahsForDailyWird(testPlanType, startLoc, settings.questionCount * 2);
-                                if (ayahs.length > 0) {
-                                    const questions = generateDailyQuiz(ayahs, true).slice(0, settings.questionCount);
-                                    setDailyQuizQuestions(questions);
-                                    setCurrentQuizIndex(0);
-                                    setQuizAnswers({});
-                                    setIsQuizFinished(false);
-                                    setActiveQuizType('revision');
-                                    setTestStartTime(Date.now()); // Start timer for self test
-                                    setIsQuizModalOpen(true);
-                                }
-                            } catch (e) {
-                                console.error('Failed to start self test', e);
-                            }
-                        }}
-                    />
-                )
-            }
 
             {/* Delete Confirmation Modal */}
             {isDeleteModalOpen && (
@@ -933,139 +572,6 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
                     </motion.div>
                 )}
             </AnimatePresence>
-
-            {adaptiveAlert && (
-                <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-navy-900/80 backdrop-blur-sm">
-                    <div className="bg-white dark:bg-navy-900 rounded-2xl p-6 max-w-sm w-full text-center space-y-4 shadow-2xl border border-gold-500/20 animate-in zoom-in duration-300">
-                        <div className="w-16 h-16 bg-amber-100 dark:bg-amber-500/20 rounded-full flex items-center justify-center mx-auto text-amber-500">
-                            <BrainCircuit size={32} />
-                        </div>
-                        <h3 className="text-xl font-bold text-navy-900 dark:text-white">اقتراح ذكي</h3>
-                        <p className="text-sm text-navy-500 dark:text-navy-300 leading-relaxed">
-                            {adaptiveAlert}
-                        </p>
-                        <div className="flex gap-3 pt-2">
-                            <button
-                                onClick={() => {
-                                    setAdaptiveAlert(null);
-                                    onEditPlan(); // Redirect to edit settings
-                                }}
-                                className="flex-1 py-3 bg-gold-500 hover:bg-gold-600 text-white rounded-xl font-bold transition-colors"
-                            >
-                                تعديل الخطة
-                            </button>
-                            <button
-                                onClick={() => setAdaptiveAlert(null)}
-                                className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-navy-800 dark:hover:bg-navy-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold transition-colors"
-                            >
-                                حسناً، سأحاول
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {
-                isQuizModalOpen && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-900/80 backdrop-blur-sm">
-                        <div className="bg-white dark:bg-navy-900 rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative">
-                            <button onClick={() => setIsQuizModalOpen(false)} className="absolute top-4 left-4 p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                                <X size={24} />
-                            </button>
-
-                            {isQuizFinished ? (
-                                <div className="text-center py-8 space-y-6">
-                                    {/* Score Card */}
-                                    <div className="relative inline-block">
-                                        <div className="text-5xl font-bold text-emerald-600 dark:text-emerald-400 mb-2">
-                                            {toArabicDigits(Math.round((evaluateQuiz(dailyQuizQuestions, quizAnswers).score)))}%
-                                        </div>
-                                        {evaluateQuiz(dailyQuizQuestions, quizAnswers).score === 100 && (
-                                            <motion.div
-                                                initial={{ scale: 0 }} animate={{ scale: 1 }}
-                                                className="absolute -top-6 -right-6 text-yellow-500"
-                                            >
-                                                <Trophy size={40} fill="currentColor" />
-                                            </motion.div>
-                                        )}
-                                    </div>
-
-                                    <h2 className="text-2xl font-bold text-navy-900 dark:text-white">
-                                        {evaluateQuiz(dailyQuizQuestions, quizAnswers).passed ? 'ما شاء الله! فتح الله عليك' : 'تحتاج لمزيد من التثبيت'}
-                                    </h2>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex flex-col gap-3 max-w-xs mx-auto">
-                                        {!evaluateQuiz(dailyQuizQuestions, quizAnswers).passed || evaluateQuiz(dailyQuizQuestions, quizAnswers).score < 100 ? (
-                                            <button
-                                                onClick={() => setShowMistakesReview(!showMistakesReview)}
-                                                className="flex items-center justify-center gap-2 py-3 px-6 bg-red-100 text-red-600 rounded-xl hover:bg-red-200 transition-colors font-bold"
-                                            >
-                                                {showMistakesReview ? 'إخفاء الأخطاء' : 'مراجعة الأخطاء وتصحيحها'}
-                                                <AlertTriangle size={18} />
-                                            </button>
-                                        ) : null}
-
-                                        <button
-                                            onClick={() => setIsQuizModalOpen(false)}
-                                            className="py-3 px-6 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors font-bold shadow-lg shadow-emerald-500/20"
-                                        >
-                                            متابعة
-                                        </button>
-                                    </div>
-
-                                    {/* Mistakes Review Panel */}
-                                    {showMistakesReview && (
-                                        <div className="mt-8 text-right bg-gray-50 dark:bg-navy-800 rounded-2xl p-4 border border-gray-100 dark:border-navy-700 animate-in slide-in-from-top-4">
-                                            <h3 className="font-bold mb-4 text-red-500 flex items-center gap-2">
-                                                <X size={18} />
-                                                الأخطاء المسجلة ({toArabicDigits(evaluateQuiz(dailyQuizQuestions, quizAnswers).mistakes.length)})
-                                            </h3>
-                                            <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                                                {evaluateQuiz(dailyQuizQuestions, quizAnswers).mistakes.map((m, idx) => {
-                                                    // Find original question
-                                                    const failedQs = dailyQuizQuestions.filter(q => quizAnswers[q.id] === false);
-                                                    const q = failedQs[idx];
-                                                    if (!q) return null;
-
-                                                    return (
-                                                        <div key={idx} className="p-3 bg-white dark:bg-navy-900 rounded-xl border border-red-100 dark:border-red-900/30">
-                                                            <p className="text-sm text-gray-500 mb-2">سؤال: {q.questionText}</p>
-                                                            <div className="flex justify-between items-end">
-                                                                <span className="font-quran text-lg text-navy-900 dark:text-white">
-                                                                    {Array.isArray(q.correctAnswer) ? q.correctAnswer.join(' ') : q.correctAnswer}
-                                                                </span>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        // Open Blanked Mushaf for this page
-                                                                        setIsQuizModalOpen(false);
-                                                                        const page = q.ayah ? getApproxPageFromGlobalAyah(q.ayah.number) : state!.startPoint;
-                                                                        handleOpenBlankedMushaf(page, 1);
-                                                                    }}
-                                                                    className="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg hover:bg-indigo-100"
-                                                                >
-                                                                    اختبرني فيها (مصحف مخفي)
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                dailyQuizQuestions.length > 0 && (
-                                    <DailyQuizCard
-                                        question={dailyQuizQuestions[currentQuizIndex]}
-                                        onAnswer={handleQuizAnswer}
-                                    />
-                                )
-                            )}
-                        </div>
-                    </div>
-                )
-            }
 
             {/* Duplicate BlankedMushafOverlay removed - kept only one instance at line 759 */}
         </div >

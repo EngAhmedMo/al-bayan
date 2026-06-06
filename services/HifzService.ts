@@ -475,6 +475,11 @@ export class HifzService {
     static completeDailyWird(currentState: HifzState): HifzState {
         const todayStr = this.getTodayString();
 
+        // Prevent double completion on the same day
+        if (currentState.history.includes(todayStr) || currentState.lastCompletedDate === todayStr) {
+            return currentState;
+        }
+
         // Calculate new progress
         // Max limit is 604 (Pages) or 6236 (Ayahs) based on startPoint
         const totalTarget = currentState.planType === 'pages' ? 604 : 6236;
