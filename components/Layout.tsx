@@ -60,11 +60,11 @@ export const AudioContext = createContext<AudioContextType>({
   autoAdvance: false,
   repeatCount: 0,
   continuousRepeat: 0,
-  surahRepeat: 0,
-  pageRepeat: 0,
+  surahRepeat: -1,
+  pageRepeat: -1,
   rangeStart: 0,
   rangeEnd: 0,
-  rangeRepeat: 0,
+  rangeRepeat: -1,
   playTrack: () => { },
   playNext: () => { },
   playPrev: () => { },
@@ -196,42 +196,47 @@ const AudioPlayerBar = () => {
     const badges = [];
 
     // Range Repeat Badges
-    if (rangeRepeat > 0) {
+    if (rangeStart > 0 && rangeEnd > 0) {
       // Range repeat (نطاق آيات)
-      const startMeta = rangeStart > 0 ? getMetadataFromGlobalAyah(rangeStart) : null;
-      const endMeta = rangeEnd > 0 ? getMetadataFromGlobalAyah(rangeEnd) : null;
+      const startMeta = getMetadataFromGlobalAyah(rangeStart);
+      const endMeta = getMetadataFromGlobalAyah(rangeEnd);
+      const displayCount = rangeRepeat >= 100 ? '∞' : (rangeRepeat + 1);
       badges.push(
         <span key="range" className="flex items-center gap-0.5 text-[9px] sm:text-[10px] text-rose-600 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
-          <Repeat size={10} /> نطاق {startMeta ? toArabicDigits(startMeta.ayahInSurah) : '?'}-{endMeta ? toArabicDigits(endMeta.ayahInSurah) : '?'} ×{rangeRepeat >= 100 ? '∞' : rangeRepeat}
+          <Repeat size={10} /> نطاق {startMeta ? toArabicDigits(startMeta.ayahInSurah) : '?'}-{endMeta ? toArabicDigits(endMeta.ayahInSurah) : '?'} ×{displayCount}
         </span>
       );
-    } else if (pageRepeat > 0) {
+    } else if (pageRepeat >= 0) {
+      const displayCount = pageRepeat >= 100 ? '∞' : (pageRepeat + 1);
       badges.push(
         <span key="page" className="flex items-center gap-0.5 text-[9px] sm:text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
-          <Repeat size={10} /> صفحة ×{pageRepeat >= 100 ? '∞' : pageRepeat}
+          <Repeat size={10} /> صفحة ×{displayCount}
         </span>
       );
-    } else if (surahRepeat > 0) {
+    } else if (surahRepeat >= 0) {
+      const displayCount = surahRepeat >= 100 ? '∞' : (surahRepeat + 1);
       badges.push(
         <span key="surah" className="flex items-center gap-0.5 text-[9px] sm:text-[10px] text-purple-600 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
-          <Repeat size={10} /> سورة ×{surahRepeat >= 100 ? '∞' : surahRepeat}
+          <Repeat size={10} /> سورة ×{displayCount}
         </span>
       );
     }
 
     // Ayah Repeat Badges
-    if (repeatCount > 0 && continuousRepeat === 0) {
-      // Single ayah repeat (no auto-advance)
-      badges.push(
-        <span key="ayah" className="flex items-center gap-0.5 text-[9px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
-          <Repeat size={10} /> آية ×{repeatCount >= 100 ? '∞' : repeatCount}
-        </span>
-      );
-    } else if (repeatCount > 0 && continuousRepeat > 0) {
+    if (continuousRepeat > 0) {
       // Continuous repeat (مع الاستمرار) — show repeat count per ayah
+      const displayCount = repeatCount >= 100 ? '∞' : (repeatCount + 1);
       badges.push(
         <span key="ayah-continuous" className="flex items-center gap-0.5 text-[9px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
-          <Repeat size={10} /> آية ×{repeatCount >= 100 ? '∞' : repeatCount} متصل
+          <Repeat size={10} /> آية ×{displayCount} متصل
+        </span>
+      );
+    } else if (repeatCount > 0) {
+      // Single ayah repeat (no auto-advance)
+      const displayCount = repeatCount >= 100 ? '∞' : (repeatCount + 1);
+      badges.push(
+        <span key="ayah" className="flex items-center gap-0.5 text-[9px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+          <Repeat size={10} /> آية ×{displayCount}
         </span>
       );
     }
@@ -568,16 +573,16 @@ export const Layout: React.FC = () => {
   const [repeatCount, setRepeatCount] = useState(savedState?.repeatCount ?? 0);
   const [continuousRepeat, setContinuousRepeat] = useState(savedState?.continuousRepeat ?? 0);
   const continuousRepeatRef = useRef(savedState?.continuousRepeat ?? 0);
-  const [surahRepeat, setSurahRepeat] = useState(savedState?.surahRepeat ?? 0);
-  const surahRepeatRef = useRef(savedState?.surahRepeat ?? 0);
-  const [pageRepeat, setPageRepeat] = useState(savedState?.pageRepeat ?? 0);
-  const pageRepeatRef = useRef(savedState?.pageRepeat ?? 0);
+  const [surahRepeat, setSurahRepeat] = useState(savedState?.surahRepeat ?? -1);
+  const surahRepeatRef = useRef(savedState?.surahRepeat ?? -1);
+  const [pageRepeat, setPageRepeat] = useState(savedState?.pageRepeat ?? -1);
+  const pageRepeatRef = useRef(savedState?.pageRepeat ?? -1);
   const [rangeStart, setRangeStart] = useState(savedState?.rangeStart ?? 0);
   const rangeStartRef = useRef(savedState?.rangeStart ?? 0);
   const [rangeEnd, setRangeEnd] = useState(savedState?.rangeEnd ?? 0);
   const rangeEndRef = useRef(savedState?.rangeEnd ?? 0);
-  const [rangeRepeat, setRangeRepeat] = useState(savedState?.rangeRepeat ?? 0);
-  const rangeRepeatRef = useRef(savedState?.rangeRepeat ?? 0);
+  const [rangeRepeat, setRangeRepeat] = useState(savedState?.rangeRepeat ?? -1);
+  const rangeRepeatRef = useRef(savedState?.rangeRepeat ?? -1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const preloadAudioRef = useRef<HTMLAudioElement | null>(null);
   const playTrackId = useRef<number>(0);
@@ -1276,7 +1281,7 @@ export const Layout: React.FC = () => {
     if (autoAdvanceRef.current && trackRef.current && trackRef.current.globalAyahNumber) {
 
       // Protect repeat scopes from early exit
-      if (isAndroid && continuousRepeatRef.current === 0 && rangeStartRef.current === 0 && pageRepeatRef.current === 0 && surahRepeatRef.current === 0) {
+      if (isAndroid && continuousRepeatRef.current === 0 && rangeStartRef.current === 0 && pageRepeatRef.current === -1 && surahRepeatRef.current === -1) {
         // GAPLESS SOLUTION: Trust Native Queue 100% ONLY IF NOT REPEATING
         // ExoPlayer handles transitions automatically via its internal queue.
         console.log('[Layout] Android: Trusting native gapless queue. No JS intervention.');
@@ -1330,9 +1335,13 @@ export const Layout: React.FC = () => {
       } else if (pageRange && current === pageRange.lastGlobal && tempPageRepeat > 0) {
           nextGlobal = pageRange.firstGlobal;
           if (tempPageRepeat !== 100) tempPageRepeat -= 1;
+      } else if (pageRange && current === pageRange.lastGlobal && tempPageRepeat === 0) {
+          break; // Page repeat finished
       } else if (currentMeta.ayahInSurah === surahLength && tempSurahRepeat > 0) {
           nextGlobal = getSurahGlobalAyahRange(currentMeta.surahNumber).firstGlobal;
           if (tempSurahRepeat !== 100) tempSurahRepeat -= 1;
+      } else if (currentMeta.ayahInSurah === surahLength && tempSurahRepeat === 0) {
+          break; // Surah repeat finished
       }
 
       if (nextGlobal > 6236) break;
@@ -1391,18 +1400,27 @@ export const Layout: React.FC = () => {
       setIsPlaying(false);
       setRangeStart(0); rangeStartRef.current = 0;
       setRangeEnd(0); rangeEndRef.current = 0;
+      setRangeRepeat(-1); rangeRepeatRef.current = -1;
       return;
     } else if (pageRange && currentGlobal === pageRange.lastGlobal && newPageRepeat > 0) {
       if (newPageRepeat !== 100) newPageRepeat -= 1;
       setPageRepeat(newPageRepeat);
       pageRepeatRef.current = newPageRepeat;
       nextGlobal = pageRange.firstGlobal;
+    } else if (pageRange && currentGlobal === pageRange.lastGlobal && newPageRepeat === 0) {
+      setIsPlaying(false);
+      setPageRepeat(-1); pageRepeatRef.current = -1;
+      return;
     } else if (currentMeta.ayahInSurah === surahLength && newSurahRepeat > 0) {
       if (newSurahRepeat !== 100) newSurahRepeat -= 1;
       setSurahRepeat(newSurahRepeat);
       surahRepeatRef.current = newSurahRepeat;
       // Loop back to the first Ayah of the current Surah
       nextGlobal = getSurahGlobalAyahRange(currentMeta.surahNumber).firstGlobal;
+    } else if (currentMeta.ayahInSurah === surahLength && newSurahRepeat === 0) {
+      setIsPlaying(false);
+      setSurahRepeat(-1); surahRepeatRef.current = -1;
+      return;
     }
 
     if (nextGlobal <= 6236) {
@@ -1471,8 +1489,12 @@ export const Layout: React.FC = () => {
             afterNextGlobal = 6237; // Out of bounds so it doesn't preload
         } else if (afterNextPageRange && nextGlobal === afterNextPageRange.lastGlobal && newPageRepeat > 0) {
             afterNextGlobal = afterNextPageRange.firstGlobal;
+        } else if (afterNextPageRange && nextGlobal === afterNextPageRange.lastGlobal && newPageRepeat === 0) {
+            afterNextGlobal = 6237;
         } else if (afterNextMeta.ayahInSurah === afterNextSurahLength && newSurahRepeat > 0) {
             afterNextGlobal = getSurahGlobalAyahRange(afterNextMeta.surahNumber).firstGlobal;
+        } else if (afterNextMeta.ayahInSurah === afterNextSurahLength && newSurahRepeat === 0) {
+            afterNextGlobal = 6237;
         }
 
         if (afterNextGlobal <= 6236) {
@@ -1501,7 +1523,7 @@ export const Layout: React.FC = () => {
     }
   };
 
-  const playTrack = async (url: string, title: string, subtitle: string, globalAyahNumber?: number, shouldAutoAdvance = false, repeat = 0, forceReciterId?: string, continuousRepeatCount = 0, surahRepeatCount = 0, pageRepeatCount = 0, rangeStartGlobal = 0, rangeEndGlobal = 0, rangeRepeatCount = 0) => {
+  const playTrack = async (url: string, title: string, subtitle: string, globalAyahNumber?: number, shouldAutoAdvance = false, repeat = 0, forceReciterId?: string, continuousRepeatCount = 0, surahRepeatCount = -1, pageRepeatCount = -1, rangeStartGlobal = 0, rangeEndGlobal = 0, rangeRepeatCount = -1) => {
     if (activeStationRef.current) stopRadio();
     if (previewPlayingId && azhanPreviewRef.current) { azhanPreviewRef.current.pause(); setPreviewPlayingId(null); }
     const requestId = ++playTrackId.current;
@@ -1640,7 +1662,9 @@ export const Layout: React.FC = () => {
     setRepeatCount(0);
     setRangeStart(0); rangeStartRef.current = 0;
     setRangeEnd(0); rangeEndRef.current = 0;
-    setRangeRepeat(0); rangeRepeatRef.current = 0;
+    setPageRepeat(-1); pageRepeatRef.current = -1;
+    setSurahRepeat(-1); surahRepeatRef.current = -1;
+    setRangeRepeat(-1); rangeRepeatRef.current = -1;
     consecutiveErrors.current = 0;
   };
 

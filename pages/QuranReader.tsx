@@ -358,8 +358,8 @@ export const QuranReader: React.FC = () => {
       0,              // repeatCount
       reciterId,
       0,              // continuousRepeat
-      0,              // surahRepeat
-      0,              // pageRepeat
+      -1,             // surahRepeat
+      -1,             // pageRepeat
       rangeStartGlobal,
       rangeEndGlobal,
       repeatCount     // rangeRepeatCount
@@ -393,8 +393,8 @@ export const QuranReader: React.FC = () => {
       ayahRepeat - 1,  // repeatCount: تكرار الآية الأولى (0 = مرة واحدة)
       reciterId,
       ayahRepeat - 1,  // continuousRepeat: عدد التكرارات الإضافية للآية الواحدة (0 = مرة واحدة)
-      0,               // surahRepeat
-      0,               // pageRepeat
+      -1,              // surahRepeat
+      -1,              // pageRepeat
       rangeStartGlobal,
       rangeEndGlobal,
       wirdRepeat === 100 ? 100 : wirdRepeat - 1 // rangeRepeatCount: عدد التكرارات الإضافية للورد كاملاً
@@ -416,11 +416,11 @@ export const QuranReader: React.FC = () => {
     let repeatCount = advAyahRepeat - 1; // repeatCount of first track
     let continuousRepeatCount = advAyahRepeat - 1;
 
-    let surahRepeatCount = 0;
-    let pageRepeatCount = 0;
+    let surahRepeatCount = -1;
+    let pageRepeatCount = -1;
     let rangeStartGlobal = 0;
     let rangeEndGlobal = 0;
-    let rangeRepeatCount = 0;
+    let rangeRepeatCount = -1;
 
     const maxAyahs = SURAH_AYAH_COUNTS[surahNum - 1];
 
@@ -1233,7 +1233,7 @@ export const QuranReader: React.FC = () => {
 
   const [modalTouch, setModalTouch] = useState<{ x: number, y: number } | null>(null);
 
-  const playFromHere = (autoAdvance: boolean, repeatCount: number = 0, continuousRepeat: number = 0, surahRepeat: number = 0, pageRepeat: number = 0) => {
+  const playFromHere = (autoAdvance: boolean, repeatCount: number = 0, continuousRepeat: number = 0, surahRepeat: number = -1, pageRepeat: number = -1) => {
     if (selectedAyah) {
       const globalId = selectedAyah.number;
       const audioUrl = getAudioUrl(reciterId, globalId);
@@ -1294,8 +1294,8 @@ export const QuranReader: React.FC = () => {
       0,     // no single-ayah repeat
       reciterId,
       0,     // no continuous repeat
-      0,     // no surah repeat
-      0,     // no page repeat
+      -1,    // no surah repeat
+      -1,    // no page repeat
       rangeStartGlobal,
       rangeEndGlobal,
       repeatCount
@@ -2164,8 +2164,8 @@ export const QuranReader: React.FC = () => {
                       {[
                         { icon: <Bookmark size={26} className={isAyahSaved ? "fill-current" : ""} />, label: isAyahSaved ? "محفوظة" : "حفظ", action: () => { toggleAyahBookmark({ surahName: (selectedAyah as any).surah.name, surahNumber: (selectedAyah as any).surah.number, ayahNumber: selectedAyah.numberInSurah, pageNumber: page, timestamp: Date.now() }); setIsAyahSaved(!isAyahSaved); }, color: isAyahSaved ? "from-red-600 to-red-700 shadow-red-500/20" : "from-navy-600 to-navy-700 shadow-navy-500/20" },
                         { icon: <BookOpen size={26} />, label: "تفسير", action: () => { setShowNoteInput(false); !tafsirData ? (setTafsirLoading(true), setTimeout(() => document.getElementById('tafsir-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50), fetchTafsir((selectedAyah as any).surah.number, selectedAyah.numberInSurah).then(d => { setTafsirData(d); setTafsirLoading(false); })) : setTafsirData(null); }, color: "from-emerald-600 to-emerald-700 shadow-emerald-500/20" },
-                        { icon: <Repeat size={26} />, label: "إكمال التلاوة", action: () => playFromHere(true, 0, 0, 0), color: "from-purple-600 to-purple-700 shadow-purple-500/20" },
-                        { icon: <PlayCircle size={26} />, label: "استماع", action: () => playFromHere(false, 0, 0, 0), color: "from-indigo-600 to-indigo-700 shadow-indigo-500/20" },
+                        { icon: <Repeat size={26} />, label: "إكمال التلاوة", action: () => playFromHere(true, 0, 0), color: "from-purple-600 to-purple-700 shadow-purple-500/20" },
+                        { icon: <PlayCircle size={26} />, label: "استماع", action: () => playFromHere(false, 0, 0), color: "from-indigo-600 to-indigo-700 shadow-indigo-500/20" },
                       ].map((btn, i) => (
                         <button key={i} onClick={btn.action} className="group flex flex-col items-center gap-2">
                           <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${btn.color} text-white flex items-center justify-center shadow-lg transition-transform group-active:scale-95 group-hover:scale-105`}>
