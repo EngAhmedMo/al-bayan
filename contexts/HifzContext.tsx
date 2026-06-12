@@ -186,8 +186,9 @@ export const HifzProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     const streak = state ? HifzService.calculateStreak(state) : 0;
-    const totalTarget = state ? (state.planType === 'pages' ? TOTAL_PAGES : TOTAL_AYAHS) : TOTAL_PAGES;
-    const actualRange = state ? (totalTarget - state.startPoint + 1) : totalTarget;
+    const fullTarget = state?.planType === 'pages' ? TOTAL_PAGES : TOTAL_AYAHS;
+    const totalTarget = state?.endPoint ?? fullTarget;
+    const actualRange = state ? (totalTarget - state.startPoint + 1) : fullTarget;
     const progressPercent = state ? Math.min(100, Math.round((state.currentProgress / actualRange) * 100)) : 0;
     const hasHifzPlan = state?.isSetup || false;
 

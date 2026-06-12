@@ -29,6 +29,19 @@ export interface HifzState {
     startPoint: number;      // Page 1 or Global Ayah 1
     history: string[];       // ISO Date strings (YYYY-MM-DD)
     lastCompletedDate: string | null;
+    lastMemorizedAmount?: number;
+    lastCompletedWasExtra?: boolean;
+
+    // Range selector support (NEW)
+    planScopeMode?: 'whole' | 'surah_range' | 'specific_juz' | 'juz_range';
+    endPoint?: number;       // The end point (Page or Global Ayah), undefined if whole Quran
+    rangeOptions?: {
+        startSurah?: number;
+        endSurah?: number;
+        specificJuz?: number;
+        startJuz?: number;
+        endJuz?: number;
+    };
 
     // User Preferences
     hasSeenOnboarding?: boolean;
@@ -75,8 +88,12 @@ export const DEFAULT_HIFZ_STATE: HifzState = {
     selectedDays: [0, 1, 2, 3, 4, 6], // Sat-Thu default
     currentProgress: 0,
     startPoint: 1,
+    planScopeMode: 'whole',
+    endPoint: undefined,
     history: [],
     lastCompletedDate: null,
+    lastMemorizedAmount: 0,
+    lastCompletedWasExtra: false,
 
     notificationEnabled: true,
     notificationTime: '08:00',
@@ -146,6 +163,12 @@ export class HifzService {
             const todayStr = this.getTodayString();
             if (parsed.lastRevisionDate !== todayStr) {
                 parsed.todayRevisionDone = false;
+            }
+
+            // Migration for Range Plan options
+            if (parsed.planScopeMode === undefined) {
+                parsed.planScopeMode = 'whole';
+                parsed.endPoint = undefined;
             }
 
             return parsed;
@@ -256,8 +279,9 @@ export class HifzService {
      */
     static markAsMemorized(currentState: HifzState, amount: number = 1): HifzState {
         const todayStr = this.getTodayString();
+        const isAlreadyDone = currentState.history.includes(todayStr);
 
-        const newHistory = currentState.history.includes(todayStr)
+        const newHistory = isAlreadyDone
             ? currentState.history
             : [...currentState.history, todayStr];
 
@@ -265,7 +289,9 @@ export class HifzService {
             ...currentState,
             currentProgress: currentState.currentProgress + amount,
             lastCompletedDate: todayStr,
-            history: newHistory
+            history: newHistory,
+            lastMemorizedAmount: amount,
+            lastCompletedWasExtra: isAlreadyDone
         };
     }
 
@@ -283,9 +309,10 @@ export class HifzService {
         let nextStart = (currentState.revisionStartPoint || 1) + currentState.revisionAmount;
         let cycleCount = currentState.revisionCycleCount || 0;
 
-        const totalUnits = currentState.planType === 'pages' ? 604 : 6236;
+        const fullTarget = currentState.planType === 'pages' ? 604 : 6236;
+        const effectiveEnd = currentState.endPoint ?? fullTarget;
 
-        if (nextStart > totalUnits) {
+        if (nextStart > effectiveEnd) {
             // Khatma Complete! Return to user's original start point
             nextStart = currentState.startPoint;
             cycleCount += 1;
@@ -445,16 +472,18 @@ export class HifzService {
             return currentState;
         }
 
-        const newHistory = currentState.history.filter(d => d !== todayStr);
+        // Determine if the last completion was an extra wird today
+        const isExtra = !!currentState.lastCompletedWasExtra;
+
+        // If it was an extra completion today, today is STILL completed (daily wird is still intact).
+        // If it was not an extra completion, today is no longer completed.
+        const newHistory = isExtra
+            ? currentState.history
+            : currentState.history.filter(d => d !== todayStr);
 
         // Rollback progress
-        // We assume the amount added was amountPerDay. 
-        // Corner case: If user was near end of Quran, they might have added less than amountPerDay.
-        // Ideally we should track exactly how much was added, but for V1 we approximate or clamp.
-
-        // Calculate what the "previous" progress would have been
-        // Ensure we don't go below 0
-        const newProgress = Math.max(0, currentState.currentProgress - currentState.amountPerDay);
+        const undoAmount = currentState.lastMemorizedAmount !== undefined ? currentState.lastMemorizedAmount : currentState.amountPerDay;
+        const newProgress = Math.max(0, currentState.currentProgress - undoAmount);
 
         // Find the new "last completed date" from the remaining history
         // Sort history to be safe
@@ -465,33 +494,37 @@ export class HifzService {
             ...currentState,
             currentProgress: newProgress,
             history: newHistory,
-            lastCompletedDate: newLastCompleted
+            lastCompletedDate: newLastCompleted,
+            lastMemorizedAmount: 0,
+            lastCompletedWasExtra: false
         };
     }
 
     /**
      * Mark daily wird as completed, advancing progress safely.
      */
-    static completeDailyWird(currentState: HifzState): HifzState {
+    static completeDailyWird(currentState: HifzState, customAmount?: number): HifzState {
         const todayStr = this.getTodayString();
+        const isAlreadyDone = currentState.history.includes(todayStr);
 
-        // Prevent double completion on the same day
-        if (currentState.history.includes(todayStr) || currentState.lastCompletedDate === todayStr) {
+        // Prevent double completion on the same day (unless it's a custom amount/extra wird)
+        if (customAmount === undefined && (isAlreadyDone || currentState.lastCompletedDate === todayStr)) {
             return currentState;
         }
 
         // Calculate new progress
-        // Max limit is 604 (Pages) or 6236 (Ayahs) based on startPoint
-        const totalTarget = currentState.planType === 'pages' ? 604 : 6236;
+        // Max limit is 604 (Pages) or 6236 (Ayahs) based on startPoint, or custom endPoint
+        const fullTarget = currentState.planType === 'pages' ? 604 : 6236;
+        const totalTarget = currentState.endPoint ?? fullTarget;
         const currentLoc = currentState.startPoint + currentState.currentProgress;
 
         // Ensure we don't exceed total
-        let amount = currentState.amountPerDay;
+        let amount = customAmount !== undefined ? customAmount : currentState.amountPerDay;
         if (currentLoc + amount > totalTarget) {
             amount = Math.max(0, totalTarget - currentLoc + 1);
         }
 
-        const newHistory = currentState.history.includes(todayStr)
+        const newHistory = isAlreadyDone
             ? currentState.history
             : [...currentState.history, todayStr];
 
@@ -499,7 +532,9 @@ export class HifzService {
             ...currentState,
             currentProgress: currentState.currentProgress + amount,
             lastCompletedDate: todayStr,
-            history: newHistory
+            history: newHistory,
+            lastMemorizedAmount: amount,
+            lastCompletedWasExtra: isAlreadyDone
         };
     }
 
@@ -568,6 +603,11 @@ export class HifzService {
                 amountPerDay: Number(rawState.amountPerDay) || 1,
                 daysPerWeek: Number(rawState.daysPerWeek) || 6,
                 selectedDays: Array.isArray(rawState.selectedDays) ? rawState.selectedDays : [0, 1, 2, 3, 4, 5, 6],
+
+                // Range Selector (NEW)
+                planScopeMode: rawState.planScopeMode || 'whole',
+                endPoint: rawState.endPoint !== undefined ? Number(rawState.endPoint) : undefined,
+                rangeOptions: rawState.rangeOptions && typeof rawState.rangeOptions === 'object' ? rawState.rangeOptions : undefined,
 
                 // Notifications
                 notificationEnabled: !!rawState.notificationEnabled,

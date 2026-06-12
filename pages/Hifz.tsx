@@ -11,7 +11,16 @@ import {
 } from 'lucide-react';
 import { toArabicDigits } from '../services/normalization';
 import { ArabicTimePicker } from '../components/ArabicTimePicker';
-import { getApproxGlobalAyahFromPage, getApproxPageFromGlobalAyah } from '../services/quranStaticData';
+import {
+  getApproxGlobalAyahFromPage,
+  getApproxPageFromGlobalAyah,
+  getJuzPageRange,
+  getJuzGlobalAyahRange,
+  getSurahPageRange,
+  getSurahRangePages,
+  getSurahGlobalAyahRange,
+  SURAH_NAMES_ARABIC
+} from '../services/quranStaticData';
 import { HifzState, HifzService } from '../services/HifzService';
 
 // --- Preset Plans for Quick Start ---
@@ -86,12 +95,34 @@ export const Hifz: React.FC = () => {
   const [tempStrictness, setTempStrictness] = useState<'easy' | 'medium' | 'strict'>('medium');
   const [tempMode, setTempMode] = useState<'classic' | 'interactive'>('interactive');
 
+  // Range Selector States (NEW)
+  const [tempScopeMode, setTempScopeMode] = useState<'whole' | 'surah_range' | 'specific_juz' | 'juz_range'>('whole');
+  const [tempRangeOptions, setTempRangeOptions] = useState({
+    startSurah: 1,
+    endSurah: 114,
+    specificJuz: 1,
+    startJuz: 1,
+    endJuz: 30
+  });
+
   const [selectedPreset, setSelectedPreset] = useState<string | null>('moderate');
   const [showCustomOptions, setShowCustomOptions] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showCompletionCalendar, setShowCompletionCalendar] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const customSettingsRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to top of the page when transitioning to dashboard (i.e. isEditing becomes false)
+  useEffect(() => {
+    if (!isEditing && state?.isSetup) {
+      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      if (document.body) {
+        document.body.scrollTop = 0;
+      }
+    }
+  }, [isEditing, state?.isSetup]);
 
   // Sync state to form when editing starts
   useEffect(() => {
@@ -102,6 +133,24 @@ export const Hifz: React.FC = () => {
       setTempStart(state.startPoint);
       setTempStrictness(state.testStrictness || 'medium');
       setTempMode(state.preferredTestMode || 'interactive');
+      setTempScopeMode(state.planScopeMode || 'whole');
+      if (state.rangeOptions) {
+        setTempRangeOptions({
+          startSurah: state.rangeOptions.startSurah || 1,
+          endSurah: state.rangeOptions.endSurah || 114,
+          specificJuz: state.rangeOptions.specificJuz || 1,
+          startJuz: state.rangeOptions.startJuz || 1,
+          endJuz: state.rangeOptions.endJuz || 30
+        });
+      } else {
+        setTempRangeOptions({
+          startSurah: 1,
+          endSurah: 114,
+          specificJuz: 1,
+          startJuz: 1,
+          endJuz: 30
+        });
+      }
       setShowCustomOptions(true);
       setSelectedPreset('custom');
     }
@@ -122,14 +171,54 @@ export const Hifz: React.FC = () => {
   };
 
   const handleStartPlan = () => {
-    // If state is null (fresh start), use default or passed state
-    // Actually useHifz provides initial state usually, but safe check
     const baseState = state || HifzService.loadState();
 
-    let newStartPoint = tempStart;
+    // Calculate computed start and end based on scope mode
+    let computedStart = 1;
+    let computedEnd: number | undefined = undefined;
+
+    if (tempScopeMode === 'whole') {
+      computedStart = tempStart;
+      computedEnd = undefined;
+    } else if (tempScopeMode === 'surah_range') {
+      const startSurah = tempRangeOptions.startSurah;
+      const endSurah = tempRangeOptions.endSurah;
+      if (tempType === 'pages') {
+        const range = getSurahRangePages(startSurah, endSurah);
+        computedStart = range.startPage;
+        computedEnd = range.endPage;
+      } else {
+        const startRange = getSurahGlobalAyahRange(startSurah);
+        const endRange = getSurahGlobalAyahRange(endSurah);
+        computedStart = startRange.firstGlobal;
+        computedEnd = endRange.lastGlobal;
+      }
+    } else if (tempScopeMode === 'specific_juz') {
+      const juz = tempRangeOptions.specificJuz;
+      if (tempType === 'pages') {
+        const range = getJuzPageRange(juz);
+        computedStart = range.startPage;
+        computedEnd = range.endPage;
+      } else {
+        const range = getJuzGlobalAyahRange(juz);
+        computedStart = range.startAyah;
+        computedEnd = range.endAyah;
+      }
+    } else if (tempScopeMode === 'juz_range') {
+      const startJuz = tempRangeOptions.startJuz;
+      const endJuz = tempRangeOptions.endJuz;
+      if (tempType === 'pages') {
+        computedStart = getJuzPageRange(startJuz).startPage;
+        computedEnd = getJuzPageRange(endJuz).endPage;
+      } else {
+        computedStart = getJuzGlobalAyahRange(startJuz).startAyah;
+        computedEnd = getJuzGlobalAyahRange(endJuz).endAyah;
+      }
+    }
+
+    let newStartPoint = computedStart;
 
     // --- Validation & Sanitization ---
-    // 1. Clamp Start Point
     newStartPoint = Math.max(1, newStartPoint);
     if (tempType === 'pages') newStartPoint = Math.min(newStartPoint, 604);
     else newStartPoint = Math.min(newStartPoint, 6236);
@@ -148,17 +237,10 @@ export const Hifz: React.FC = () => {
     // ---------------------------------
     let newProgress = baseState.currentProgress || 0;
 
-    // Migration Logic if switching types
-    if (baseState.isSetup && baseState.planType !== tempType) {
-      const currentTotalProgress = baseState.startPoint + baseState.currentProgress;
-      if (baseState.planType === 'pages' && tempType === 'ayahs') {
-        newStartPoint = getApproxGlobalAyahFromPage(currentTotalProgress);
-      } else if (baseState.planType === 'ayahs' && tempType === 'pages') {
-        newStartPoint = getApproxPageFromGlobalAyah(currentTotalProgress);
-      }
-      newProgress = 0; // Reset progress count as unit changed, but start point moved
+    // Reset progress if changing range or plan type
+    if (baseState.isSetup && (baseState.planType !== tempType || baseState.startPoint !== newStartPoint || baseState.endPoint !== computedEnd)) {
+      newProgress = 0; // Reset progress count as range/unit changed
     } else if (!baseState.isSetup) {
-      // New plan
       newProgress = 0;
     }
 
@@ -170,11 +252,14 @@ export const Hifz: React.FC = () => {
       daysPerWeek: tempSelectedDays.length,
       selectedDays: tempSelectedDays,
       startPoint: newStartPoint,
+      endPoint: computedEnd,
+      planScopeMode: tempScopeMode,
+      rangeOptions: tempScopeMode !== 'whole' ? tempRangeOptions : undefined,
       currentProgress: newProgress,
       testStrictness: tempStrictness,
       preferredTestMode: tempMode,
-      // Preserve history if editing
-      history: baseState.isSetup ? baseState.history : [],
+      // Preserve history if editing and range hasn't changed
+      history: baseState.isSetup && baseState.startPoint === newStartPoint && baseState.endPoint === computedEnd ? baseState.history : [],
     };
 
     updateState(newState);
@@ -286,16 +371,73 @@ export const Hifz: React.FC = () => {
     />;
   } else {
     // 2. SETUP/EDIT VIEW
-    // Calculate generic plan stats dynamically for display
+    // Calculate range limits dynamically
+    let computedStart = 1;
+    let computedEnd: number | undefined = undefined;
+
+    if (tempScopeMode === 'whole') {
+      computedStart = tempStart;
+      computedEnd = undefined;
+    } else if (tempScopeMode === 'surah_range') {
+      const startSurah = tempRangeOptions.startSurah;
+      const endSurah = tempRangeOptions.endSurah;
+      if (tempType === 'pages') {
+        const range = getSurahRangePages(startSurah, endSurah);
+        computedStart = range.startPage;
+        computedEnd = range.endPage;
+      } else {
+        computedStart = getSurahGlobalAyahRange(startSurah).firstGlobal;
+        computedEnd = getSurahGlobalAyahRange(endSurah).lastGlobal;
+      }
+    } else if (tempScopeMode === 'specific_juz') {
+      const juz = tempRangeOptions.specificJuz;
+      if (tempType === 'pages') {
+        const range = getJuzPageRange(juz);
+        computedStart = range.startPage;
+        computedEnd = range.endPage;
+      } else {
+        const range = getJuzGlobalAyahRange(juz);
+        computedStart = range.startAyah;
+        computedEnd = range.endAyah;
+      }
+    } else if (tempScopeMode === 'juz_range') {
+      const startJuz = tempRangeOptions.startJuz;
+      const endJuz = tempRangeOptions.endJuz;
+      if (tempType === 'pages') {
+        computedStart = getJuzPageRange(startJuz).startPage;
+        computedEnd = getJuzPageRange(endJuz).endPage;
+      } else {
+        computedStart = getJuzGlobalAyahRange(startJuz).startAyah;
+        computedEnd = getJuzGlobalAyahRange(endJuz).endAyah;
+      }
+    }
+
+    const rangeSize = (() => {
+      const end = computedEnd ?? (tempType === 'pages' ? 604 : 6236);
+      return Math.max(1, end - computedStart + 1);
+    })();
+
+    const getRangeText = () => {
+      if (tempScopeMode === 'whole') {
+        return 'القرآن كاملاً';
+      }
+      if (tempScopeMode === 'surah_range') {
+        return `من سورة ${SURAH_NAMES_ARABIC[tempRangeOptions.startSurah - 1]} إلى سورة ${SURAH_NAMES_ARABIC[tempRangeOptions.endSurah - 1]}`;
+      }
+      if (tempScopeMode === 'specific_juz') {
+        return `الجزء ${toArabicDigits(tempRangeOptions.specificJuz)}`;
+      }
+      if (tempScopeMode === 'juz_range') {
+        return `من الجزء ${toArabicDigits(tempRangeOptions.startJuz)} إلى الجزء ${toArabicDigits(tempRangeOptions.endJuz)}`;
+      }
+      return '';
+    };
+
     const currentPlanDetails = {
       amount: tempAmount,
       days: tempSelectedDays.length,
-      estimatedMonths: tempType === 'pages'
-        ? Math.ceil(604 / (tempAmount * tempSelectedDays.length * 4)) // Approx weeks -> months
-        : Math.ceil(6236 / (tempAmount * tempSelectedDays.length * 4)),
-      endDate: new Date(Date.now() + (tempType === 'pages'
-        ? (604 / (tempAmount * tempSelectedDays.length / 7) * 24 * 60 * 60 * 1000)
-        : (6236 / (tempAmount * tempSelectedDays.length / 7) * 24 * 60 * 60 * 1000)))
+      estimatedMonths: Math.ceil(rangeSize / (tempAmount * tempSelectedDays.length * 4)),
+      endDate: new Date(Date.now() + (rangeSize / (tempAmount * tempSelectedDays.length / 7) * 24 * 60 * 60 * 1000))
     };
 
     content = (
@@ -425,7 +567,12 @@ export const Hifz: React.FC = () => {
                       </h3>
                       {/* Edit Button for Custom only or all? Let's show edit link if needed */}
                       <button
-                        onClick={() => setShowCustomOptions(!showCustomOptions)}
+                        onClick={() => {
+                          setShowCustomOptions(true);
+                          setTimeout(() => {
+                            customSettingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }, 100);
+                        }}
                         className="text-xs text-emerald-300 underline hover:text-emerald-200"
                       >
                         تعديل التفاصيل
@@ -433,6 +580,9 @@ export const Hifz: React.FC = () => {
                     </div>
                     <p className="text-emerald-100/80 text-sm leading-relaxed">
                       {toArabicDigits(tempAmount)} {tempType === 'pages' ? 'صفحات' : 'آيات'} × {toArabicDigits(tempSelectedDays.length)} أيام/أسبوع
+                    </p>
+                    <p className="text-emerald-100/70 text-xs mt-1">
+                      النطاق: {getRangeText()}
                     </p>
                   </div>
                 </div>
@@ -442,7 +592,10 @@ export const Hifz: React.FC = () => {
 
           {/* CUSTOM OPTIONS PANEL (Collapsible or Modal-like) */}
           {(showCustomOptions || selectedPreset === 'custom') && (
-            <div className="bg-white dark:bg-navy-900 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-navy-700 mb-20 animate-in fade-in zoom-in-95 duration-300">
+            <div
+              ref={customSettingsRef}
+              className="bg-white dark:bg-navy-900 rounded-3xl p-6 shadow-xl border border-gray-100 dark:border-navy-700 mb-20 animate-in fade-in zoom-in-95 duration-300"
+            >
               <h3 className="font-bold text-navy-900 dark:text-white mb-6 flex items-center gap-2">
                 <Sparkles size={18} className="text-gold-500" />
                 تخصيص الإعدادات
@@ -465,6 +618,161 @@ export const Hifz: React.FC = () => {
                     آيات
                   </button>
                 </div>
+              </div>
+
+              {/* نطاق الحفظ (NEW Range Selector) */}
+              <div className="mb-6">
+                <label className="text-xs font-bold text-navy-500 uppercase tracking-wider mb-2 block">نطاق الحفظ</label>
+                <div className="grid grid-cols-2 gap-2 mb-3">
+                  <button
+                    type="button"
+                    onClick={() => setTempScopeMode('whole')}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                      tempScopeMode === 'whole'
+                        ? 'bg-navy-900 dark:bg-white text-white dark:text-navy-900 border-transparent shadow'
+                        : 'bg-transparent text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-800 hover:bg-navy-50 dark:hover:bg-navy-800/40'
+                    }`}
+                  >
+                    القرآن كاملاً
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTempScopeMode('surah_range')}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                      tempScopeMode === 'surah_range'
+                        ? 'bg-navy-900 dark:bg-white text-white dark:text-navy-900 border-transparent shadow'
+                        : 'bg-transparent text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-800 hover:bg-navy-50 dark:hover:bg-navy-800/40'
+                    }`}
+                  >
+                    من سورة إلى سورة
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTempScopeMode('specific_juz')}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                      tempScopeMode === 'specific_juz'
+                        ? 'bg-navy-900 dark:bg-white text-white dark:text-navy-900 border-transparent shadow'
+                        : 'bg-transparent text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-800 hover:bg-navy-50 dark:hover:bg-navy-800/40'
+                    }`}
+                  >
+                    جزء محدد
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTempScopeMode('juz_range')}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all ${
+                      tempScopeMode === 'juz_range'
+                        ? 'bg-navy-900 dark:bg-white text-white dark:text-navy-900 border-transparent shadow'
+                        : 'bg-transparent text-navy-600 dark:text-navy-300 border-navy-100 dark:border-navy-800 hover:bg-navy-50 dark:hover:bg-navy-800/40'
+                    }`}
+                  >
+                    من جزء إلى جزء
+                  </button>
+                </div>
+
+                {/* Conditional Dropdowns based on scope mode */}
+                {tempScopeMode === 'surah_range' && (
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 dark:bg-navy-950 p-3 rounded-2xl border border-gray-100 dark:border-navy-800/50 animate-in slide-in-from-top-2 duration-200">
+                    <div>
+                      <label className="text-[10px] font-bold text-navy-400 block mb-1">من سورة</label>
+                      <select
+                        value={tempRangeOptions.startSurah}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setTempRangeOptions(prev => ({
+                            ...prev,
+                            startSurah: val,
+                            // If startSurah > endSurah, align them
+                            endSurah: val > prev.endSurah ? val : prev.endSurah
+                          }));
+                        }}
+                        className="w-full bg-white dark:bg-navy-800 border border-gray-200 dark:border-navy-700 rounded-xl px-2 py-2 text-sm font-bold text-navy-800 dark:text-white outline-none focus:border-gold-500"
+                      >
+                        {SURAH_NAMES_ARABIC.map((name, index) => (
+                          <option key={index + 1} value={index + 1}>{index + 1}. {name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-navy-400 block mb-1">إلى سورة</label>
+                      <select
+                        value={tempRangeOptions.endSurah}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setTempRangeOptions(prev => ({
+                            ...prev,
+                            endSurah: val,
+                            // If endSurah < startSurah, align them
+                            startSurah: val < prev.startSurah ? val : prev.startSurah
+                          }));
+                        }}
+                        className="w-full bg-white dark:bg-navy-800 border border-gray-200 dark:border-navy-700 rounded-xl px-2 py-2 text-sm font-bold text-navy-800 dark:text-white outline-none focus:border-gold-500"
+                      >
+                        {SURAH_NAMES_ARABIC.map((name, index) => (
+                          <option key={index + 1} value={index + 1}>{index + 1}. {name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {tempScopeMode === 'specific_juz' && (
+                  <div className="bg-gray-50 dark:bg-navy-950 p-3 rounded-2xl border border-gray-100 dark:border-navy-800/50 animate-in slide-in-from-top-2 duration-200">
+                    <label className="text-[10px] font-bold text-navy-400 block mb-1">اختر الجزء</label>
+                    <select
+                      value={tempRangeOptions.specificJuz}
+                      onChange={(e) => setTempRangeOptions(prev => ({ ...prev, specificJuz: Number(e.target.value) }))}
+                      className="w-full bg-white dark:bg-navy-800 border border-gray-200 dark:border-navy-700 rounded-xl px-3 py-2 text-sm font-bold text-navy-800 dark:text-white outline-none focus:border-gold-500"
+                    >
+                      {Array.from({ length: 30 }, (_, i) => i + 1).map((juz) => (
+                        <option key={juz} value={juz}>الجزء {toArabicDigits(juz)}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {tempScopeMode === 'juz_range' && (
+                  <div className="grid grid-cols-2 gap-3 bg-gray-50 dark:bg-navy-950 p-3 rounded-2xl border border-gray-100 dark:border-navy-800/50 animate-in slide-in-from-top-2 duration-200">
+                    <div>
+                      <label className="text-[10px] font-bold text-navy-400 block mb-1">من جزء</label>
+                      <select
+                        value={tempRangeOptions.startJuz}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setTempRangeOptions(prev => ({
+                            ...prev,
+                            startJuz: val,
+                            endJuz: val > prev.endJuz ? val : prev.endJuz
+                          }));
+                        }}
+                        className="w-full bg-white dark:bg-navy-800 border border-gray-200 dark:border-navy-700 rounded-xl px-2 py-2 text-sm font-bold text-navy-800 dark:text-white outline-none focus:border-gold-500"
+                      >
+                        {Array.from({ length: 30 }, (_, i) => i + 1).map((juz) => (
+                          <option key={juz} value={juz}>الجزء {toArabicDigits(juz)}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-bold text-navy-400 block mb-1">إلى جزء</label>
+                      <select
+                        value={tempRangeOptions.endJuz}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setTempRangeOptions(prev => ({
+                            ...prev,
+                            endJuz: val,
+                            startJuz: val < prev.startJuz ? val : prev.startJuz
+                          }));
+                        }}
+                        className="w-full bg-white dark:bg-navy-800 border border-gray-200 dark:border-navy-700 rounded-xl px-2 py-2 text-sm font-bold text-navy-800 dark:text-white outline-none focus:border-gold-500"
+                      >
+                        {Array.from({ length: 30 }, (_, i) => i + 1).map((juz) => (
+                          <option key={juz} value={juz}>الجزء {toArabicDigits(juz)}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Amount Slider */}
@@ -515,9 +823,10 @@ export const Hifz: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
-                      value={tempStart}
+                      value={tempScopeMode === 'whole' ? tempStart : computedStart}
+                      disabled={tempScopeMode !== 'whole'}
                       onChange={(e) => setTempStart(Number(e.target.value))}
-                      className="w-full bg-transparent font-bold text-lg text-navy-900 dark:text-white outline-none placeholder-navy-300"
+                      className="w-full bg-transparent font-bold text-lg text-navy-900 dark:text-white outline-none placeholder-navy-300 disabled:opacity-70"
                       placeholder="1"
                     />
                     <BookOpen size={16} className="text-navy-300" />
@@ -666,7 +975,7 @@ export const Hifz: React.FC = () => {
                   هل أنت متأكد من التراجع عن تسجيل ورد اليوم؟
                   <br />
                   <span className="text-amber-600 dark:text-amber-400 font-bold text-xs mt-2 block bg-amber-50 dark:bg-amber-900/20 py-2 rounded-lg">
-                    سيتم إعادتك للحفظ من: {state.planType === 'pages' ? 'صفحة' : 'آية'} {toArabicDigits(Math.max(1, state.startPoint + state.currentProgress - state.amountPerDay))}
+                    سيتم إعادتك للحفظ من: {state.planType === 'pages' ? 'صفحة' : 'آية'} {toArabicDigits(Math.max(1, state.startPoint + state.currentProgress - (state.lastMemorizedAmount !== undefined ? state.lastMemorizedAmount : state.amountPerDay)))}
                   </span>
                 </p>
               </div>

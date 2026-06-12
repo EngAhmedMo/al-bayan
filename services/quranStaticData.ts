@@ -247,6 +247,37 @@ export const getMetadataFromGlobalAyah = (globalAyah: number): { surahNumber: nu
   };
 };
 
+export const JUZ_START_AYAHS = [
+  1, 149, 260, 385, 517, 641, 751, 900, 1042, 1201,
+  1329, 1479, 1649, 1803, 2030, 2215, 2484, 2674, 2876, 3215,
+  3386, 3564, 3733, 4090, 4265, 4511, 4706, 5105, 5242, 5673
+];
+
+export const getJuzPageRange = (juz: number): { startPage: number, endPage: number } => {
+  const startPage = HIZB_QUARTER_START_PAGES[(juz - 1) * 8];
+  const endPage = juz === 30 ? 604 : HIZB_QUARTER_START_PAGES[juz * 8] - 1;
+  return { startPage, endPage };
+};
+
+export const getJuzGlobalAyahRange = (juz: number): { startAyah: number, endAyah: number } => {
+  const startAyah = JUZ_START_AYAHS[juz - 1];
+  const endAyah = juz === 30 ? 6236 : JUZ_START_AYAHS[juz] - 1;
+  return { startAyah, endAyah };
+};
+
+export const getSurahPageRange = (surahNum: number): { startPage: number, endPage: number } => {
+  const startPage = SURAH_START_PAGES[surahNum - 1];
+  const nextStart = surahNum === 114 ? 605 : SURAH_START_PAGES[surahNum];
+  const endPage = nextStart === startPage ? startPage : nextStart - 1;
+  return { startPage, endPage };
+};
+
+export const getSurahRangePages = (startSurah: number, endSurah: number): { startPage: number, endPage: number } => {
+  const startPage = SURAH_START_PAGES[startSurah - 1];
+  const endPage = getSurahPageRange(endSurah).endPage;
+  return { startPage, endPage };
+};
+
 // ==========================================
 // PART 1.5: OFFLINE CONTEXT HELPERS
 // ==========================================

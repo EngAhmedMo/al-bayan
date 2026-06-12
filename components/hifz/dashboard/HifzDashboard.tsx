@@ -189,7 +189,7 @@ export const HifzDashboard: React.FC<HifzDashboardProps> = ({ onEditPlan, onShow
 
     const getEstimation = () => {
         if (!state) return { date: '', remainingDays: 0 };
-        const total = state.planType === 'pages' ? 604 : 6236;
+        const total = state.endPoint ?? (state.planType === 'pages' ? 604 : 6236);
         const progress = state.currentProgress;
         const remainingUnits = Math.max(0, total - (state.startPoint - 1) - progress);
 

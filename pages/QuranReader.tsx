@@ -5,10 +5,10 @@ import { Ayah, Surah, TafsirResponse } from '../types';
 import { fetchPage, fetchTafsir, fetchSurahs, RECITERS, getAudioUrl } from '../services/api';
 import { loadSingleAyahTafsir, TAFSIR_SOURCES } from '../services/tafsirService';
 import { toArabicDigits } from '../services/normalization';
-import { SURAH_START_PAGES, SURAH_AYAH_COUNTS, SURAH_NAMES_TASHKEEL, getGlobalAyahNumber, getApproxPageFromGlobalAyah, getAyahById, getMetadataFromGlobalAyah } from '../services/quranStaticData';
+import { SURAH_START_PAGES, SURAH_AYAH_COUNTS, SURAH_NAMES_TASHKEEL, getGlobalAyahNumber, getApproxPageFromGlobalAyah, getAyahById, getMetadataFromGlobalAyah, getPageGlobalAyahRangeSync } from '../services/quranStaticData';
 import { TopBar } from '../components/TopBar';
 import { useAudio, useSettings, NavigationContext, useTheme } from '../components/Layout';
-import { ChevronLeft, ChevronRight, PlayCircle, BookOpen, X, Copy, Bookmark, BookmarkPlus, BookmarkCheck, Settings, Type, Mic, FileEdit, Save, Maximize2, Minimize2, Share2, Grid, Book, Hash, Repeat, Play, Infinity as InfinityIcon, LogOut, Plus, Minus, Sun, Moon, RotateCcw, ArrowDownUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, PlayCircle, BookOpen, Brain, X, Copy, Bookmark, BookmarkPlus, BookmarkCheck, Settings, Type, Mic, FileEdit, Save, Maximize2, Minimize2, Share2, Grid, Book, Hash, Repeat, Play, Infinity as InfinityIcon, LogOut, Plus, Minus, Sun, Moon, RotateCcw, ArrowDownUp } from 'lucide-react';
 import {
   toggleAyahBookmark,
   isAyahBookmarked,
@@ -222,8 +222,18 @@ export const QuranReader: React.FC = () => {
     ? (hifzContext.state.startPoint + hifzContext.state.currentProgress)
     : (urlStart || 1);
 
-  const [isHifzBannerClosed, setIsHifzBannerClosed] = useState(false);
+  const [isHifzBannerClosed, setIsHifzBannerClosed] = useState(true);
   const [isHifzSubmitting, setIsHifzSubmitting] = useState(false);
+  const [showReciterDropdown, setShowReciterDropdown] = useState(false);
+  const [isWirdRepeatModalOpen, setIsWirdRepeatModalOpen] = useState(false);
+  const [wirdAyahRepeatCount, setWirdAyahRepeatCount] = useState(1);   // تكرار الآية الواحدة
+  const [wirdTotalRepeatCount, setWirdTotalRepeatCount] = useState(1); // تكرار الورد كاملاً
+
+  // متغيرات حالة نافذة التكرار الموحدة والمتقدمة للآية
+  const [isAdvancedRepeatModalOpen, setIsAdvancedRepeatModalOpen] = useState(false);
+  const [advRepeatScope, setAdvRepeatScope] = useState<'page' | 'surah' | 'wird' | 'custom'>('page');
+  const [advAyahRepeat, setAdvAyahRepeat] = useState(1);
+  const [advScopeRepeat, setAdvScopeRepeat] = useState(1);
 
   const getTodayDateString = (): string => {
     const d = new Date();
@@ -234,11 +244,11 @@ export const QuranReader: React.FC = () => {
   };
 
   const isTodayDone = hifzContext?.state?.lastCompletedDate === getTodayDateString();
-  const shouldShowHifzBanner = hifzMode && hifzContext?.state && !isTodayDone && !isHifzBannerClosed;
+  const shouldShowHifzBanner = (hifzMode || !!hifzContext?.state?.isSetup) && hifzContext?.state && !isTodayDone && !isHifzBannerClosed;
 
   const bannerBottomClass = isFullscreen
-    ? "bottom-4 sm:bottom-6"
-    : "bottom-[84px] md:bottom-[96px]";
+    ? (currentTrack ? "bottom-[96px] sm:bottom-[104px]" : "bottom-4 sm:bottom-6")
+    : (currentTrack ? "bottom-[168px] sm:bottom-[176px]" : "bottom-[84px] md:bottom-[96px]");
 
   const pageControlsBottomClass = shouldShowHifzBanner
     ? (currentTrack ? 'bottom-[224px] sm:bottom-[232px]' : 'bottom-[158px] sm:bottom-[166px]')
@@ -282,8 +292,191 @@ export const QuranReader: React.FC = () => {
     }
   };
 
-  const hasNextPageInWird = hifzMode && page < wirdEndPage;
-  const isBeforeWirdStart = hifzMode && page < wirdStartPage;
+  const hasActivePlan = !!hifzContext?.state?.isSetup;
+  const hasNextPageInWird = (hifzMode || hasActivePlan) && page < wirdEndPage;
+  const isBeforeWirdStart = (hifzMode || hasActivePlan) && page < wirdStartPage;
+
+  // هل الآية ضمن ورد اليوم؟ (يعمل للوضعين: pages و ayahs)
+  const isAyahInWird = React.useCallback((globalId: number): boolean => {
+    const hasActivePlan = hifzContext?.state?.isSetup;
+    if (!hasActivePlan || isTodayDone) return false;
+    
+    if (hifzPlanType === 'pages') {
+      const ayahPage = getApproxPageFromGlobalAyah(globalId);
+      return ayahPage >= wirdStartPage && ayahPage <= wirdEndPage;
+    } else {
+      const wirdStartGlobal = hifzStart;
+      const wirdEndGlobal = hifzStart + hifzAmount - 1;
+      return globalId >= wirdStartGlobal && globalId <= wirdEndGlobal;
+    }
+  }, [hifzContext?.state?.isSetup, isTodayDone, hifzPlanType, hifzStart, hifzAmount, wirdStartPage, wirdEndPage]);
+
+  // الـ Global IDs لبداية ونهاية الورد (للتكرار الصوتي)
+  const wirdGlobalRange = React.useMemo(() => {
+    const hasActivePlan = hifzContext?.state?.isSetup;
+    if (!hasActivePlan || isTodayDone) return null;
+    
+    if (hifzPlanType === 'pages') {
+      const startRange = getPageGlobalAyahRangeSync(wirdStartPage);
+      const endRange = getPageGlobalAyahRangeSync(wirdEndPage);
+      if (!startRange || !endRange) {
+        // Fallback to approximate numbers if pages are not yet cached
+        return {
+          start: Math.max(1, Math.min(6236, Math.floor((wirdStartPage - 1) * 10.3) + 1)),
+          end: Math.max(1, Math.min(6236, Math.floor((wirdEndPage) * 10.3)))
+        };
+      }
+      return { start: startRange.firstGlobal, end: endRange.lastGlobal };
+    } else {
+      return { start: hifzStart, end: hifzStart + hifzAmount - 1 };
+    }
+  }, [hifzContext?.state?.isSetup, isTodayDone, hifzPlanType, hifzStart, hifzAmount, wirdStartPage, wirdEndPage, ayahs]);
+
+  const playWirdRepeat = (repeatCount: number) => {
+    if (!wirdGlobalRange || !hifzContext?.state) return;
+    const { start: rangeStartGlobal, end: rangeEndGlobal } = wirdGlobalRange;
+    if (rangeStartGlobal <= 0 || rangeEndGlobal <= 0 || rangeStartGlobal > rangeEndGlobal) return;
+
+    const audioUrl = getAudioUrl(reciterId, rangeStartGlobal);
+    const startMeta = getMetadataFromGlobalAyah(rangeStartGlobal);
+
+    AnalyticsService.logEvent('play_wird_repeat', {
+      range_start: rangeStartGlobal,
+      range_end: rangeEndGlobal,
+      repeat_count: repeatCount,
+      plan_type: hifzPlanType,
+    });
+
+    playTrack(
+      audioUrl,
+      startMeta.surahName ? `سورة ${startMeta.surahName}` : 'ورد اليوم',
+      `الآيات ${toArabicDigits(startMeta.ayahInSurah)}…`,
+      rangeStartGlobal,
+      true,           // autoAdvance
+      0,              // repeatCount
+      reciterId,
+      0,              // continuousRepeat
+      0,              // surahRepeat
+      0,              // pageRepeat
+      rangeStartGlobal,
+      rangeEndGlobal,
+      repeatCount     // rangeRepeatCount
+    );
+    setIsModalOpen(false);
+    setSelectedAyah(null);
+  };
+
+  const playAdvancedWirdRepeat = (ayahRepeat: number, wirdRepeat: number) => {
+    if (!wirdGlobalRange || !hifzContext?.state) return;
+    const { start: rangeStartGlobal, end: rangeEndGlobal } = wirdGlobalRange;
+    if (rangeStartGlobal <= 0 || rangeEndGlobal <= 0 || rangeStartGlobal > rangeEndGlobal) return;
+
+    const audioUrl = getAudioUrl(reciterId, rangeStartGlobal);
+    const startMeta = getMetadataFromGlobalAyah(rangeStartGlobal);
+
+    AnalyticsService.logEvent('play_advanced_wird_repeat', {
+      range_start: rangeStartGlobal,
+      range_end: rangeEndGlobal,
+      ayah_repeat: ayahRepeat,
+      wird_repeat: wirdRepeat,
+      plan_type: hifzPlanType,
+    });
+
+    playTrack(
+      audioUrl,
+      startMeta.surahName ? `سورة ${startMeta.surahName}` : 'ورد اليوم',
+      `الآيات ${toArabicDigits(startMeta.ayahInSurah)}…`,
+      rangeStartGlobal,
+      true,            // autoAdvance: يكمل الورد آية آية
+      ayahRepeat - 1,  // repeatCount: تكرار الآية الأولى (0 = مرة واحدة)
+      reciterId,
+      ayahRepeat - 1,  // continuousRepeat: عدد التكرارات الإضافية للآية الواحدة (0 = مرة واحدة)
+      0,               // surahRepeat
+      0,               // pageRepeat
+      rangeStartGlobal,
+      rangeEndGlobal,
+      wirdRepeat === 100 ? 100 : wirdRepeat - 1 // rangeRepeatCount: عدد التكرارات الإضافية للورد كاملاً
+    );
+    setIsWirdRepeatModalOpen(false);
+    setIsModalOpen(false);
+    setSelectedAyah(null);
+  };
+
+  const playAdvancedScopeRepeat = () => {
+    if (!selectedAyah) return;
+    const surahNum = (selectedAyah as any).surah?.number;
+    if (!surahNum) return;
+
+    const globalId = selectedAyah.number;
+    let startGlobal = globalId;
+
+    let autoAdvance = true;
+    let repeatCount = advAyahRepeat - 1; // repeatCount of first track
+    let continuousRepeatCount = advAyahRepeat - 1;
+
+    let surahRepeatCount = 0;
+    let pageRepeatCount = 0;
+    let rangeStartGlobal = 0;
+    let rangeEndGlobal = 0;
+    let rangeRepeatCount = 0;
+
+    const maxAyahs = SURAH_AYAH_COUNTS[surahNum - 1];
+
+    if (advRepeatScope === 'page') {
+      pageRepeatCount = advScopeRepeat === 100 ? 100 : advScopeRepeat - 1;
+    } else if (advRepeatScope === 'surah') {
+      surahRepeatCount = advScopeRepeat === 100 ? 100 : advScopeRepeat - 1;
+    } else if (advRepeatScope === 'wird') {
+      if (wirdGlobalRange) {
+        startGlobal = wirdGlobalRange.start;
+        rangeStartGlobal = wirdGlobalRange.start;
+        rangeEndGlobal = wirdGlobalRange.end;
+        rangeRepeatCount = advScopeRepeat === 100 ? 100 : advScopeRepeat - 1;
+      }
+    } else if (advRepeatScope === 'custom') {
+      const fromAyah = Math.max(1, Math.min(rangeFromAyah, maxAyahs));
+      const toAyah = Math.max(fromAyah, Math.min(rangeToAyah, maxAyahs));
+      const rStart = getGlobalAyahNumber(surahNum, fromAyah);
+      const rEnd = getGlobalAyahNumber(surahNum, toAyah);
+      startGlobal = rStart;
+      rangeStartGlobal = rStart;
+      rangeEndGlobal = rEnd;
+      rangeRepeatCount = advScopeRepeat === 100 ? 100 : advScopeRepeat - 1;
+    }
+
+    const audioUrl = getAudioUrl(reciterId, startGlobal);
+    const startMeta = getMetadataFromGlobalAyah(startGlobal);
+
+    AnalyticsService.logEvent('play_advanced_scope_repeat', {
+      scope: advRepeatScope,
+      start_global: startGlobal,
+      ayah_repeat: advAyahRepeat,
+      scope_repeat: advScopeRepeat,
+      reciter_id: reciterId
+    });
+
+    playTrack(
+      audioUrl,
+      startMeta.surahName ? `سورة ${startMeta.surahName}` : (surahNum >= 1 && surahNum <= 114 ? SURAH_NAMES_TASHKEEL[surahNum - 1] : ''),
+      `الآية ${toArabicDigits(startMeta.ayahInSurah)}`,
+      startGlobal,
+      autoAdvance,
+      repeatCount,
+      reciterId,
+      continuousRepeatCount,
+      surahRepeatCount,
+      pageRepeatCount,
+      rangeStartGlobal,
+      rangeEndGlobal,
+      rangeRepeatCount
+    );
+
+    setIsAdvancedRepeatModalOpen(false);
+    setIsModalOpen(false);
+    setSelectedAyah(null);
+  };
+
+
 
   const handleCompleteWirdClick = async () => {
     if (isHifzSubmitting || !hifzContext?.state) return;
@@ -1201,7 +1394,7 @@ export const QuranReader: React.FC = () => {
                 className={`${headerBtnClass} !text-emerald-500 !border-emerald-200 dark:!border-emerald-900 hover:!bg-emerald-50 dark:hover:!bg-emerald-900/20 ${smartQuizLoading ? 'opacity-50 cursor-wait' : ''}`}
                 title="اختبار الصفحة (٣ مراحل)"
               >
-                <BookOpen size={20} className={smartQuizLoading ? 'animate-pulse' : ''} />
+                <Brain size={20} className={smartQuizLoading ? 'animate-pulse' : ''} />
               </button>
               {/* QCF Mode Toggle Button */}
               <button
@@ -1457,6 +1650,7 @@ export const QuranReader: React.FC = () => {
                       isDark={isDark}
                       fontSize={fontSize}
                       baseUrl={import.meta.env.BASE_URL}
+                      isAyahInWird={isAyahInWird}
                     />
                   ) : (
                     /* ── Standard Uthmani Text Mode ── */
@@ -1541,6 +1735,7 @@ export const QuranReader: React.FC = () => {
                               hover:bg-gold-50 dark:hover:bg-navy-800
                               ${isSelected ? 'bg-gold-100 dark:bg-gold-900/20' : ''}
                               ${highlighted ? 'bg-emerald-200/50 dark:bg-emerald-900/30 animate-pulse' : ''}
+                              ${!highlighted && isAyahInWird(globalId) ? 'hifz-wird-highlight' : ''}
                               ${isMarked ? 'underline decoration-red-400 decoration-2 underline-offset-8' : ''}
                               ${isFatiha ? 'text-center' : ''}`}
                           >
@@ -1979,247 +2174,83 @@ export const QuranReader: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* Hifz (Memorization) Repeater Tools — Compact 2×2 Grid */}
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* 1. Single Ayah Repeat */}
-                      <div className="bg-white dark:bg-navy-900/90 rounded-xl p-2.5 border-2 border-gold-200/80 dark:border-[#C6AD73]/40 shadow-sm hover:border-gold-400 dark:hover:border-[#C6AD73] transition-colors relative group">
-                        {/* Decorative corner accents */}
-                        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-gold-400 dark:border-gold-500 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-gold-400 dark:border-gold-500 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <div className="w-5 h-5 rounded-md bg-gold-100 dark:bg-gold-900/20 flex items-center justify-center flex-shrink-0">
-                            <Repeat size={12} className="text-gold-600 dark:text-gold-400" />
-                          </div>
-                          <span className="text-[10px] font-bold text-navy-700 dark:text-navy-200 leading-tight">تكرار الآية</span>
+                    {/* Reciter Selector in Ayah Menu */}
+                    <div className="relative z-[100]" dir="rtl">
+                      <button
+                        onClick={() => setShowReciterDropdown(!showReciterDropdown)}
+                        className="w-full flex items-center justify-between bg-white dark:bg-navy-900 border border-navy-100 dark:border-navy-800 rounded-xl px-4 py-2.5 shadow-sm text-xs mt-2 relative group hover:border-gold-400 dark:hover:border-[#C6AD73]/60 transition-all duration-200 active:scale-[0.99]"
+                      >
+                        <div className="absolute top-0 right-0 w-2 h-2 border-t border-r border-gold-400 dark:border-gold-500 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <div className="absolute bottom-0 left-0 w-2 h-2 border-b border-l border-gold-400 dark:border-gold-500 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        
+                        <div className="flex items-center gap-2 text-navy-600 dark:text-navy-300 font-bold shrink-0">
+                          <Mic size={16} className="text-gold-600 dark:text-[#C6AD73] group-hover:scale-110 transition-transform duration-200" />
+                          <span>القارئ الحالي:</span>
                         </div>
-                        <div className="grid grid-cols-4 gap-1">
-                          {[3, 5, 10, 100].map((count) => (
-                            <button
-                              key={`ayah-${count}`}
-                              onClick={() => playFromHere(false, count)}
-                              className="py-1.5 bg-navy-50 dark:bg-navy-800 hover:bg-gold-500 hover:text-white dark:hover:bg-gold-500 rounded-lg text-[11px] font-bold text-navy-600 dark:text-navy-300 transition-all active:scale-95 flex items-center justify-center"
-                            >
-                              {count === 100 ? <InfinityIcon size={13} /> : count}
-                            </button>
-                          ))}
+                        
+                        <div className="flex items-center gap-1.5 font-bold text-navy-900 dark:text-white max-w-[200px] truncate">
+                          <span>{RECITERS.find(r => r.id === reciterId)?.name || 'المنشاوي (مرتل)'}</span>
+                          <ChevronDown size={14} className={`text-gold-500 transition-transform duration-300 ${showReciterDropdown ? 'rotate-180' : ''}`} />
                         </div>
-                      </div>
+                      </button>
 
-                      {/* 2. Continuous Repeat (مع الاستمرار) */}
-                      <div className="bg-white dark:bg-navy-900/90 rounded-xl p-2.5 border-2 border-gold-200/80 dark:border-[#C6AD73]/40 shadow-sm hover:border-gold-400 dark:hover:border-[#C6AD73] transition-colors relative group">
-                        {/* Decorative corner accents */}
-                        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-gold-400 dark:border-gold-500 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-gold-400 dark:border-gold-500 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <div className="w-5 h-5 rounded-md bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center flex-shrink-0">
-                            <RotateCcw size={12} className="text-emerald-600 dark:text-emerald-400" />
-                          </div>
-                          <span className="text-[10px] font-bold text-navy-700 dark:text-navy-200 leading-tight">تكرار الآية (مع الاستمرار)</span>
-                        </div>
-                        <div className="grid grid-cols-4 gap-1">
-                          {[3, 5, 10, 100].map((count) => (
-                            <button
-                              key={`cont-${count}`}
-                              onClick={() => playFromHere(true, count, count)}
-                              className="py-1.5 bg-navy-50 dark:bg-navy-800 hover:bg-emerald-500 hover:text-white dark:hover:bg-emerald-500 rounded-lg text-[11px] font-bold text-navy-600 dark:text-navy-300 transition-all active:scale-95 flex items-center justify-center"
-                            >
-                              {count === 100 ? <InfinityIcon size={13} /> : count}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* 3. Page Repeat */}
-                      <div className="bg-white dark:bg-navy-900/90 rounded-xl p-2.5 border-2 border-gold-200/80 dark:border-[#C6AD73]/40 shadow-sm hover:border-gold-400 dark:hover:border-[#C6AD73] transition-colors relative group">
-                        {/* Decorative corner accents */}
-                        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-gold-400 dark:border-gold-500 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-gold-400 dark:border-gold-500 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <div className="w-5 h-5 rounded-md bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0">
-                            <Book size={12} className="text-blue-600 dark:text-blue-400" />
-                          </div>
-                          <span className="text-[10px] font-bold text-navy-700 dark:text-navy-200 leading-tight">تكرار الصفحة</span>
-                        </div>
-                        <div className="grid grid-cols-4 gap-1">
-                          {[3, 5, 10, 100].map((count) => (
-                            <button
-                              key={`page-${count}`}
-                              onClick={() => playFromHere(true, 0, 0, 0, count)}
-                              className="py-1.5 bg-navy-50 dark:bg-navy-800 hover:bg-blue-500 hover:text-white dark:hover:bg-blue-500 rounded-lg text-[11px] font-bold text-navy-600 dark:text-navy-300 transition-all active:scale-95 flex items-center justify-center"
-                            >
-                              {count === 100 ? <InfinityIcon size={13} /> : count}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* 4. Surah Repeat */}
-                      <div className="bg-white dark:bg-navy-900/90 rounded-xl p-2.5 border-2 border-gold-200/80 dark:border-[#C6AD73]/40 shadow-sm hover:border-gold-400 dark:hover:border-[#C6AD73] transition-colors relative group">
-                        {/* Decorative corner accents */}
-                        <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-gold-400 dark:border-gold-500 rounded-tr-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-gold-400 dark:border-gold-500 rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                        <div className="flex items-center gap-1.5 mb-2">
-                          <div className="w-5 h-5 rounded-md bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center flex-shrink-0">
-                            <RotateCcw size={12} className="text-purple-600 dark:text-purple-400" />
-                          </div>
-                          <span className="text-[10px] font-bold text-navy-700 dark:text-navy-200 leading-tight">تكرار السورة كاملة</span>
-                        </div>
-                        <div className="grid grid-cols-4 gap-1">
-                          {[3, 5, 10, 100].map((count) => (
-                            <button
-                              key={`surah-${count}`}
-                              onClick={() => playFromHere(true, 0, 0, count)}
-                              className="py-1.5 bg-navy-50 dark:bg-navy-800 hover:bg-purple-500 hover:text-white dark:hover:bg-purple-500 rounded-lg text-[11px] font-bold text-navy-600 dark:text-navy-300 transition-all active:scale-95 flex items-center justify-center"
-                            >
-                              {count === 100 ? <InfinityIcon size={13} /> : count}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* 5. Range Repeat (تكرار نطاق آيات) — Full Width */}
-                    <div className="col-span-2 bg-white dark:bg-navy-900/90 rounded-xl p-3 border-2 border-gold-200/80 dark:border-[#C6AD73]/40 shadow-sm mt-1 hover:border-gold-400 dark:hover:border-[#C6AD73] transition-colors relative group">
-                      {/* Decorative corner accents */}
-                      <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-gold-400 dark:border-gold-500 rounded-tr-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-gold-400 dark:border-gold-500 rounded-bl-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                      <div className="flex items-center gap-1.5 mb-3">
-                        <div className="w-5 h-5 rounded-md bg-rose-50 dark:bg-rose-900/20 flex items-center justify-center flex-shrink-0">
-                          <ArrowDownUp size={12} className="text-rose-500 dark:text-rose-400" />
-                        </div>
-                        <span className="text-[10px] font-bold text-navy-700 dark:text-navy-200 leading-tight">تكرار نطاق آيات</span>
-                      </div>
-
-                      {/* From/To Inputs */}
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="flex-1 flex items-center gap-1.5 bg-navy-50 dark:bg-navy-950 rounded-lg border border-navy-100 dark:border-navy-800 px-2 py-1.5 transition-colors focus-within:border-rose-300 dark:focus-within:border-rose-800">
-                          <span className="text-[9px] font-bold text-navy-400 dark:text-navy-500 whitespace-nowrap">من آية</span>
-                          <input
-                            type="number"
-                            min={1}
-                            max={SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1}
-                            value={rangeFromAyah}
-                            onChange={(e) => {
-                              const maxAyahs = SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1;
-                              const v = Math.max(1, Math.min(parseInt(e.target.value) || 1, maxAyahs));
-                              setRangeFromAyah(v);
-                              if (v > rangeToAyah) setRangeToAyah(v);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-full text-center text-sm font-bold text-navy-800 dark:text-white bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                          />
-                        </div>
-                        <span className="text-xs font-bold text-navy-300 dark:text-navy-600">→</span>
-                        <div className="flex-1 flex items-center gap-1.5 bg-navy-50 dark:bg-navy-950 rounded-lg border border-navy-100 dark:border-navy-800 px-2 py-1.5 transition-colors focus-within:border-rose-300 dark:focus-within:border-rose-800">
-                          <span className="text-[9px] font-bold text-navy-400 dark:text-navy-500 whitespace-nowrap">إلى آية</span>
-                          <input
-                            type="number"
-                            min={rangeFromAyah}
-                            max={SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1}
-                            value={rangeToAyah}
-                            onChange={(e) => {
-                              const maxAyahs = SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1;
-                              const v = Math.max(rangeFromAyah, Math.min(parseInt(e.target.value) || rangeFromAyah, maxAyahs));
-                              setRangeToAyah(v);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="w-full text-center text-sm font-bold text-navy-800 dark:text-white bg-transparent outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Dual Range Slider */}
-                      {(() => {
-                        const rangeMax = SURAH_AYAH_COUNTS[(selectedAyah as any)?.surah?.number - 1] || 1;
-                        if (rangeMax <= 1) return null;
-                        const sliderDenom = Math.max(1, rangeMax - 1);
-                        const rightPercent = ((rangeFromAyah - 1) / sliderDenom) * 100;
-                        const leftPercent = ((rangeMax - rangeToAyah) / sliderDenom) * 100;
-                        return (
-                          <div className="relative h-6 mt-1 mb-4 px-2 flex items-center" dir="rtl">
-                            {/* Track background */}
-                            <div className="absolute left-2 right-2 h-1.5 bg-navy-100 dark:bg-navy-800 rounded-full" />
-                            {/* Active Track */}
+                      <AnimatePresence>
+                        {showReciterDropdown && (
+                          <>
+                            {/* Invisible backdrop to capture clicks outside */}
                             <div 
-                              className="absolute h-1.5 bg-rose-400 dark:bg-rose-500 rounded-full pointer-events-none"
-                              style={{ left: `calc(0.5rem + ${leftPercent}%)`, right: `calc(0.5rem + ${rightPercent}%)` }}
+                              className="fixed inset-0 z-[101] cursor-default"
+                              onClick={() => setShowReciterDropdown(false)}
                             />
-                            {/* Input Start (From) */}
-                            <input 
-                              type="range"
-                              min={1}
-                              max={rangeMax}
-                              value={rangeFromAyah}
-                              onChange={(e) => {
-                                const v = Math.min(parseInt(e.target.value) || 1, rangeMax);
-                                setRangeFromAyah(v);
-                                if (v > rangeToAyah) setRangeToAyah(v);
-                              }}
-                              className="absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rose-600 dark:[&::-webkit-slider-thumb]:bg-rose-400 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-navy-900 z-10"
-                            />
-                            {/* Input End (To) */}
-                            <input 
-                              type="range"
-                              min={1}
-                              max={rangeMax}
-                              value={rangeToAyah}
-                              onChange={(e) => {
-                                const v = Math.min(parseInt(e.target.value) || 1, rangeMax);
-                                setRangeToAyah(Math.max(v, rangeFromAyah));
-                              }}
-                              className="absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-rose-600 dark:[&::-webkit-slider-thumb]:bg-rose-400 [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white dark:[&::-webkit-slider-thumb]:border-navy-900 z-20"
-                            />
-                          </div>
-                        );
-                      })()}
-
-                      {/* Live Ayah Preview Cards */}
-                      {(() => {
-                        return (
-                          <div className="flex flex-col sm:flex-row gap-2 mb-3">
-                            <div className="flex-1 bg-navy-50/50 dark:bg-navy-900/30 rounded-lg p-2.5 border border-navy-100 dark:border-navy-800">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold">بداية التكرار</span>
-                                <span className="text-[9px] font-bold text-navy-500 dark:text-navy-400 bg-navy-100 dark:bg-navy-800 px-1.5 py-0.5 rounded">آية {toArabicDigits(rangeFromAyah)}</span>
-                              </div>
-                              <div className="text-[11px] font-quran text-navy-800 dark:text-navy-200 line-clamp-2 leading-relaxed">
-                                {rangeStartText ? cleanTajweedTags(rangeStartText) : 'جاري التحميل...'}
-                              </div>
-                            </div>
-                            <div className="flex-1 bg-navy-50/50 dark:bg-navy-900/30 rounded-lg p-2.5 border border-navy-100 dark:border-navy-800">
-                              <div className="flex justify-between items-center mb-1">
-                                <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold">نهاية التكرار</span>
-                                <span className="text-[9px] font-bold text-navy-500 dark:text-navy-400 bg-navy-100 dark:bg-navy-800 px-1.5 py-0.5 rounded">آية {toArabicDigits(rangeToAyah)}</span>
-                              </div>
-                              <div className="text-[11px] font-quran text-navy-800 dark:text-navy-200 line-clamp-2 leading-relaxed">
-                                {rangeEndText ? cleanTajweedTags(rangeEndText) : 'جاري التحميل...'}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      {/* Ayah count info */}
-                      <div className="text-center mb-3">
-                        <span className="text-[9px] font-bold text-navy-600 dark:text-navy-300 bg-navy-100 dark:bg-navy-800 px-2.5 py-1 rounded-full">
-                          النطاق المحدد: {rangeToAyah >= rangeFromAyah ? `${toArabicDigits(rangeToAyah - rangeFromAyah + 1)} آية` : 'حدد النطاق'}
-                        </span>
-                      </div>
-
-                      {/* Repeat Count Buttons */}
-                      <div className="grid grid-cols-4 gap-1">
-                        {[3, 5, 10, 100].map((count) => (
-                          <button
-                            key={`range-${count}`}
-                            onClick={() => playRangeRepeat(count)}
-                            disabled={rangeToAyah < rangeFromAyah}
-                            className="py-1.5 bg-navy-50 dark:bg-navy-800 hover:bg-rose-500 hover:text-white dark:hover:bg-rose-500 rounded-lg text-[11px] font-bold text-navy-600 dark:text-navy-300 transition-all active:scale-95 flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed"
-                          >
-                            {count === 100 ? <InfinityIcon size={13} /> : count}
-                          </button>
-                        ))}
-                      </div>
+                            
+                            {/* Dropdown Card */}
+                            <motion.div
+                              initial={{ opacity: 0, y: -8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -8 }}
+                              transition={{ duration: 0.15 }}
+                              className="absolute top-full left-0 right-0 mt-1.5 z-[102] bg-white/95 dark:bg-navy-900/95 backdrop-blur-md border border-navy-100 dark:border-navy-800 rounded-2xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar p-1.5 space-y-1"
+                            >
+                              {RECITERS.map((r) => {
+                                const isSelected = r.id === reciterId;
+                                return (
+                                  <button
+                                    key={r.id}
+                                    onClick={() => {
+                                      setReciterId(r.id);
+                                      setShowReciterDropdown(false);
+                                    }}
+                                    className={`w-full text-right px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-between gap-2 ${
+                                      isSelected 
+                                        ? 'bg-gradient-to-r from-gold-500 to-amber-600 text-white shadow-md shadow-gold-500/10' 
+                                        : 'text-navy-800 dark:text-navy-200 hover:bg-gold-50/50 dark:hover:bg-navy-800/60'
+                                    }`}
+                                  >
+                                    <span>{r.name}</span>
+                                    {isSelected && <Check size={14} className="text-white" />}
+                                  </button>
+                                );
+                              })}
+                            </motion.div>
+                          </>
+                        )}
+                      </AnimatePresence>
                     </div>
+
+                    {/* Advanced Recitation & Repeat Settings Button */}
+                    <button
+                      onClick={() => {
+                        const inWird = !!(wirdGlobalRange && isAyahInWird(selectedAyah.number));
+                        setAdvRepeatScope(inWird ? 'wird' : 'page');
+                        setAdvAyahRepeat(1);
+                        setAdvScopeRepeat(1);
+                        setIsAdvancedRepeatModalOpen(true);
+                      }}
+                      className="w-full py-3.5 mt-2 mb-1 bg-gradient-to-r from-[#C6AD73] to-amber-600 hover:from-[#d8be82] hover:to-amber-700 text-white rounded-xl flex items-center justify-center gap-2 text-xs font-bold shadow-lg shadow-[#C6AD73]/10 hover:shadow-[#C6AD73]/20 active:scale-[0.98] transition-all"
+                    >
+                      <Settings size={16} className="animate-spin-slow" />
+                      إعدادات التكرار للحفظ
+                    </button>
 
                     <div className="flex gap-2">
                       <button onClick={() => { setTafsirData(null); setShowNoteInput(!showNoteInput); }} className="flex-1 py-3 bg-white dark:bg-navy-900/90 rounded-xl border-2 border-gold-200/80 dark:border-[#C6AD73]/40 flex items-center justify-center gap-2 text-xs font-bold text-navy-600 dark:text-navy-300 hover:border-gold-400 dark:hover:border-[#C6AD73] shadow-sm transition-colors relative group">
@@ -2505,7 +2536,7 @@ export const QuranReader: React.FC = () => {
       {/* Hifz Wird Bottom Floating Banner */}
       {shouldShowHifzBanner && (
         <div 
-          className={`fixed ${bannerBottomClass} left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-xl bg-white/80 dark:bg-navy-900/90 backdrop-blur-lg border border-navy-100 dark:border-gold-500/30 rounded-3xl p-4 shadow-2xl flex items-center justify-between gap-4 animate-in slide-in-from-bottom-5 duration-300`}
+          className={`fixed ${bannerBottomClass} left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-xl bg-white/80 dark:bg-navy-900/90 backdrop-blur-lg border border-navy-100 dark:border-gold-500/30 rounded-3xl p-4 shadow-2xl flex items-center justify-between gap-4 animate-in slide-in-from-bottom-5 duration-300 transition-opacity duration-200 ${isModalOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
           dir="rtl"
         >
           <div className="flex items-center gap-3 min-w-0">
@@ -2521,6 +2552,17 @@ export const QuranReader: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {wirdGlobalRange && (
+              <button
+                onClick={() => setIsWirdRepeatModalOpen(true)}
+                className="px-3 py-2 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-400 text-sm font-bold rounded-xl active:scale-95 transition-all flex items-center gap-1 border border-blue-200/50 dark:border-blue-800/30"
+                title="إعدادات تكرار الورد"
+              >
+                <Settings size={16} />
+                <span className="hidden sm:inline">إعدادات التكرار</span>
+              </button>
+            )}
+
             <button
               onClick={handleCompleteWirdClick}
               disabled={isHifzSubmitting}
@@ -2541,6 +2583,431 @@ export const QuranReader: React.FC = () => {
             >
               <X size={18} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Wird Repeat Settings Modal */}
+      {isWirdRepeatModalOpen && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-end justify-center sm:items-center p-0 sm:p-4 isolate"
+          dir="rtl"
+        >
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-navy-900/80 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => setIsWirdRepeatModalOpen(false)}
+          />
+
+          {/* Modal Container */}
+          <div className="relative w-full sm:max-w-md bg-white dark:bg-navy-950 rounded-t-3xl sm:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)] border-t-4 border-gold-500 overflow-hidden flex flex-col max-h-[85vh] animate-in slide-in-from-bottom-full duration-300 ease-out p-6">
+            
+            {/* Swipe handle for mobile */}
+            <div className="sm:hidden flex justify-center pt-1 pb-3 flex-shrink-0 select-none">
+              <div className="w-10 h-1 bg-navy-200 dark:bg-navy-700 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="relative flex justify-between items-center mb-6">
+              <div>
+                <h3 className="text-lg font-bold text-navy-900 dark:text-white text-right">إعدادات تكرار الورد</h3>
+                <p className="text-xs text-navy-400 dark:text-navy-500 mt-1 text-right">{getWirdLabel()}</p>
+              </div>
+              <button
+                onClick={() => setIsWirdRepeatModalOpen(false)}
+                className="p-2 bg-navy-50 dark:bg-navy-800 rounded-full text-navy-400 hover:text-red-500 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Options Body */}
+            <div className="space-y-6 overflow-y-auto pr-1">
+              
+              {/* Option 1: Repeat each Ayah */}
+              <div>
+                <label className="block text-sm font-bold text-navy-800 dark:text-navy-200 mb-3 text-right">
+                  تكرار كل آية فردياً
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[1, 3, 5, 10].map(n => (
+                    <button
+                      key={`ayah-repeat-${n}`}
+                      onClick={() => setWirdAyahRepeatCount(n)}
+                      className={`py-3 rounded-xl text-sm font-bold transition-all active:scale-95 ${
+                        wirdAyahRepeatCount === n 
+                          ? 'bg-gold-500 text-white shadow-lg shadow-gold-500/20' 
+                          : 'bg-navy-50 dark:bg-navy-900/60 text-navy-600 dark:text-navy-300 hover:bg-navy-100 dark:hover:bg-navy-800/80'
+                      }`}
+                    >
+                      {n === 1 ? 'مرة واحدة' : `${toArabicDigits(n)} مرات`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Option 2: Repeat full Wird */}
+              <div>
+                <label className="block text-sm font-bold text-navy-800 dark:text-navy-200 mb-3 text-right">
+                  تكرار الورد كاملاً
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  {[1, 3, 5, 100].map(n => (
+                    <button
+                      key={`wird-repeat-${n}`}
+                      onClick={() => setWirdTotalRepeatCount(n)}
+                      className={`py-3 rounded-xl text-sm font-bold transition-all active:scale-95 flex items-center justify-center gap-1 ${
+                        wirdTotalRepeatCount === n 
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+                          : 'bg-navy-50 dark:bg-navy-900/60 text-navy-600 dark:text-navy-300 hover:bg-navy-100 dark:hover:bg-navy-800/80'
+                      }`}
+                    >
+                      {n === 100 ? (
+                        <>
+                          <InfinityIcon size={16} />
+                          <span>مستمر</span>
+                        </>
+                      ) : n === 1 ? (
+                        'مرة واحدة'
+                      ) : (
+                        `${toArabicDigits(n)} مرات`
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Summary Box */}
+              <div className="p-4 bg-gold-500/10 dark:bg-navy-900 border border-gold-500/20 dark:border-navy-800 rounded-2xl text-xs text-navy-700 dark:text-navy-300 text-center leading-relaxed font-semibold">
+                سيتم تشغيل الورد كاملاً من البداية. سيتم تكرار كل آية{' '}
+                <span className="text-gold-600 dark:text-gold-400 font-bold underline">
+                  {wirdAyahRepeatCount === 1 ? 'مرة واحدة' : `${toArabicDigits(wirdAyahRepeatCount)} مرات`}
+                </span>{' '}
+                قبل الانتقال للآية التالية، وسيُعاد تكرار الورد كاملاً{' '}
+                <span className="text-blue-600 dark:text-blue-400 font-bold underline">
+                  {wirdTotalRepeatCount === 100 ? 'بلا توقف (تكرار مستمر)' : `${toArabicDigits(wirdTotalRepeatCount)} مرات`}
+                </span>
+                .
+              </div>
+
+              {/* Action Button */}
+              <button
+                onClick={() => playAdvancedWirdRepeat(wirdAyahRepeatCount, wirdTotalRepeatCount)}
+                className="w-full py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all duration-200 flex items-center justify-center gap-2 text-base active:scale-[0.98]"
+              >
+                <Play size={18} fill="currentColor" />
+                <span>بدء جلسة الحفظ والتكرار</span>
+              </button>
+              
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Persistent Hifz Icon when banner is closed */}
+      {isHifzBannerClosed && (hifzMode || !!hifzContext?.state?.isSetup) && hifzContext?.state && !isTodayDone && (
+        <button
+          onClick={() => setIsHifzBannerClosed(false)}
+          className={`fixed ${bannerBottomClass} right-0 z-[90] w-10 h-12 rounded-l-2xl bg-white dark:bg-navy-900 border-y-2 border-l-2 border-emerald-500 dark:border-emerald-400 shadow-[0_4px_12px_rgba(0,0,0,0.15)] flex items-center justify-center text-emerald-600 dark:text-emerald-400 hover:w-12 active:scale-95 transition-all duration-300 ${isModalOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          title="إظهار شريط متابعة الحفظ"
+        >
+          <BookOpen size={18} className="relative z-10" />
+        </button>
+      )}
+
+      {/* Advanced Repeat Settings Modal (النافذة الموحدة والمتقدمة للآية) */}
+      {isAdvancedRepeatModalOpen && selectedAyah && (
+        <div 
+          className="fixed inset-0 z-[110] flex items-end justify-center sm:items-center p-0 sm:p-4 isolate"
+          dir="rtl"
+        >
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-navy-900/80 backdrop-blur-sm transition-opacity duration-300"
+            onClick={() => setIsAdvancedRepeatModalOpen(false)}
+          />
+
+          {/* Modal Container */}
+          <div className="relative w-full sm:max-w-md bg-white dark:bg-navy-950 rounded-t-3xl sm:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.3)] border-t-4 border-gold-500 overflow-hidden flex flex-col max-h-[85vh] animate-in slide-in-from-bottom-full duration-300 ease-out p-6">
+            
+            {/* Swipe handle for mobile */}
+            <div className="sm:hidden flex justify-center pt-1 pb-3 flex-shrink-0 select-none">
+              <div className="w-10 h-1 bg-navy-200 dark:bg-navy-700 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="relative flex justify-between items-center mb-5 flex-shrink-0">
+              <div>
+                <h3 className="text-base font-bold text-navy-900 dark:text-white text-right">إعدادات التكرار للحفظ</h3>
+                <p className="text-[10px] text-navy-400 dark:text-navy-500 mt-0.5 text-right">
+                  سورة {selectedAyah.surah?.name || ''} - الآية {toArabicDigits(selectedAyah.numberInSurah)}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsAdvancedRepeatModalOpen(false)}
+                className="p-2 bg-navy-50 dark:bg-navy-800 rounded-full text-navy-400 hover:text-red-500 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="space-y-5 overflow-y-auto pr-1 flex-1 max-h-[55vh] pb-4">
+              
+              {/* Option 1: Repeat Scope */}
+              <div>
+                <label className="block text-xs font-bold text-navy-800 dark:text-navy-200 mb-2 text-right">
+                  نطاق التكرار للحفظ
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { id: 'page', label: 'الصفحة الحالية' },
+                    { id: 'surah', label: 'السورة كاملة' },
+                    ...(wirdGlobalRange && isAyahInWird(selectedAyah.number) ? [{ id: 'wird', label: 'الورد اليومي' }] : []),
+                    { id: 'custom', label: 'نطاق مخصص' }
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setAdvRepeatScope(opt.id as any)}
+                      className={`py-2.5 rounded-xl text-xs font-bold transition-all border-2 ${
+                        advRepeatScope === opt.id
+                          ? 'bg-gold-500/10 border-gold-500 text-gold-700 dark:text-gold-300'
+                          : 'bg-navy-50 dark:bg-navy-900/60 border-transparent text-navy-600 dark:text-navy-300 hover:bg-navy-100 dark:hover:bg-navy-800/80'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dynamic Sub-options for Scope */}
+              {advRepeatScope === 'page' && (
+                <div className="p-3 bg-navy-50/50 dark:bg-navy-900/40 rounded-xl border border-navy-100 dark:border-navy-800 text-right animate-in fade-in duration-200">
+                  <span className="text-xs text-navy-600 dark:text-navy-300 font-bold">
+                    سيتم تلاوة الصفحة {toArabicDigits(selectedAyah.page)} كاملة وتكرارها.
+                  </span>
+                </div>
+              )}
+
+              {advRepeatScope === 'surah' && (
+                <div className="p-3 bg-navy-50/50 dark:bg-navy-900/40 rounded-xl border border-navy-100 dark:border-navy-800 text-right animate-in fade-in duration-200">
+                  <span className="text-xs text-navy-600 dark:text-navy-300 font-bold">
+                    سيتم تلاوة سورة {selectedAyah.surah?.name || ''} كاملة من الآية 1 إلى {toArabicDigits(SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1)}.
+                  </span>
+                </div>
+              )}
+
+              {advRepeatScope === 'wird' && wirdGlobalRange && (
+                <div className="p-3 bg-blue-50/30 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40 text-right animate-in fade-in duration-200">
+                  <span className="text-xs text-blue-600 dark:text-blue-400 font-bold">
+                    سيتم تلاوة وردك اليومي: {getWirdLabel()}
+                  </span>
+                </div>
+              )}
+
+              {advRepeatScope === 'custom' && (
+                <div className="space-y-3 bg-navy-50/50 dark:bg-navy-900/40 p-3.5 rounded-xl border border-navy-100 dark:border-navy-800 animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 flex items-center gap-1.5 bg-white dark:bg-navy-950 rounded-lg border border-navy-100 dark:border-navy-850 px-2 py-1.5">
+                      <span className="text-[10px] font-bold text-navy-400 dark:text-navy-500 whitespace-nowrap">من آية</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1}
+                        value={rangeFromAyah}
+                        onChange={(e) => {
+                          const maxAyahs = SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1;
+                          const v = Math.max(1, Math.min(parseInt(e.target.value) || 1, maxAyahs));
+                          setRangeFromAyah(v);
+                          if (v > rangeToAyah) setRangeToAyah(v);
+                        }}
+                        className="w-full text-center text-xs font-bold text-navy-800 dark:text-white bg-transparent outline-none"
+                      />
+                    </div>
+                    <span className="text-xs font-bold text-navy-300 dark:text-navy-600">→</span>
+                    <div className="flex-1 flex items-center gap-1.5 bg-white dark:bg-navy-950 rounded-lg border border-navy-100 dark:border-navy-850 px-2 py-1.5">
+                      <span className="text-[10px] font-bold text-navy-400 dark:text-navy-500 whitespace-nowrap">إلى آية</span>
+                      <input
+                        type="number"
+                        min={rangeFromAyah}
+                        max={SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1}
+                        value={rangeToAyah}
+                        onChange={(e) => {
+                          const maxAyahs = SURAH_AYAH_COUNTS[(selectedAyah as any).surah?.number - 1] || 1;
+                          const v = Math.max(rangeFromAyah, Math.min(parseInt(e.target.value) || rangeFromAyah, maxAyahs));
+                          setRangeToAyah(v);
+                        }}
+                        className="w-full text-center text-xs font-bold text-navy-800 dark:text-white bg-transparent outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Dual range slider */}
+                  {(() => {
+                    const rangeMax = SURAH_AYAH_COUNTS[(selectedAyah as any)?.surah?.number - 1] || 1;
+                    if (rangeMax <= 1) return null;
+                    const sliderDenom = Math.max(1, rangeMax - 1);
+                    const rightPercent = ((rangeFromAyah - 1) / sliderDenom) * 100;
+                    const leftPercent = ((rangeMax - rangeToAyah) / sliderDenom) * 100;
+                    return (
+                      <div className="relative h-6 mt-1 mb-2 px-2 flex items-center" dir="rtl">
+                        <div className="absolute left-2 right-2 h-1 bg-navy-100 dark:bg-navy-800 rounded-full" />
+                        <div 
+                          className="absolute h-1 bg-[#C6AD73] rounded-full pointer-events-none"
+                          style={{ left: `calc(0.5rem + ${leftPercent}%)`, right: `calc(0.5rem + ${rightPercent}%)` }}
+                        />
+                        <input 
+                          type="range"
+                          min={1}
+                          max={rangeMax}
+                          value={rangeFromAyah}
+                          onChange={(e) => {
+                            const v = Math.min(parseInt(e.target.value) || 1, rangeMax);
+                            setRangeFromAyah(v);
+                            if (v > rangeToAyah) setRangeToAyah(v);
+                          }}
+                          className="absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#C6AD73] [&::-webkit-slider-thumb]:shadow z-10"
+                        />
+                        <input 
+                          type="range"
+                          min={1}
+                          max={rangeMax}
+                          value={rangeToAyah}
+                          onChange={(e) => {
+                            const v = Math.min(parseInt(e.target.value) || 1, rangeMax);
+                            setRangeToAyah(Math.max(v, rangeFromAyah));
+                          }}
+                          className="absolute left-0 right-0 w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#C6AD73] [&::-webkit-slider-thumb]:shadow z-20"
+                        />
+                      </div>
+                    );
+                  })()}
+
+                  {/* Range previews - vertical stacked for high legibility */}
+                  <div className="flex flex-col gap-2.5 mt-3 text-right">
+                    <div className="bg-white dark:bg-navy-950 p-3 rounded-xl border border-navy-100 dark:border-navy-850 shadow-sm">
+                      <div className="flex justify-between items-center mb-1.5 border-b border-navy-50 dark:border-navy-900 pb-1">
+                        <span className="text-[10px] text-[#C6AD73] font-bold">من بداية الآية {toArabicDigits(rangeFromAyah)}:</span>
+                      </div>
+                      <div className="text-sm md:text-base font-quran text-navy-800 dark:text-white leading-loose text-center py-1 select-all font-semibold">
+                        {rangeStartText ? cleanTajweedTags(rangeStartText) : 'جاري التحميل...'}
+                      </div>
+                    </div>
+                    <div className="bg-white dark:bg-navy-950 p-3 rounded-xl border border-navy-100 dark:border-navy-850 shadow-sm">
+                      <div className="flex justify-between items-center mb-1.5 border-b border-navy-50 dark:border-navy-900 pb-1">
+                        <span className="text-[10px] text-[#C6AD73] font-bold">إلى نهاية الآية {toArabicDigits(rangeToAyah)}:</span>
+                      </div>
+                      <div className="text-sm md:text-base font-quran text-navy-800 dark:text-white leading-loose text-center py-1 select-all font-semibold">
+                        {rangeEndText ? cleanTajweedTags(rangeEndText) : 'جاري التحميل...'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Option 2: Repeat each Ayah */}
+              <div>
+                <label className="block text-xs font-bold text-navy-800 dark:text-navy-200 mb-2 text-right">
+                  تكرار كل آية فردياً
+                </label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[1, 3, 5, 10].map(n => (
+                    <button
+                      key={`adv-ayah-${n}`}
+                      onClick={() => setAdvAyahRepeat(n)}
+                      className={`py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 ${
+                        advAyahRepeat === n 
+                          ? 'bg-gold-500 text-white shadow-lg shadow-gold-500/20' 
+                          : 'bg-navy-50 dark:bg-navy-900/60 text-navy-600 dark:text-navy-300 hover:bg-navy-100 dark:hover:bg-navy-800/80'
+                      }`}
+                    >
+                      {n === 1 ? 'مرة واحدة' : `${toArabicDigits(n)} مرات`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Option 3: Scope Repeat */}
+              {true && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-200">
+                  <label className="block text-xs font-bold text-navy-800 dark:text-navy-200 mb-2 text-right">
+                    تكرار النطاق بالكامل
+                  </label>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {[1, 3, 5, 100].map(n => (
+                      <button
+                        key={`adv-scope-${n}`}
+                        onClick={() => setAdvScopeRepeat(n)}
+                        className={`py-2.5 rounded-xl text-xs font-bold transition-all active:scale-95 flex items-center justify-center gap-0.5 ${
+                          advScopeRepeat === n 
+                            ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' 
+                            : 'bg-navy-50 dark:bg-navy-900/60 text-navy-600 dark:text-navy-300 hover:bg-navy-100 dark:hover:bg-navy-800/80'
+                        }`}
+                      >
+                        {n === 100 ? (
+                          <>
+                            <InfinityIcon size={14} />
+                            <span>مستمر</span>
+                          </>
+                        ) : n === 1 ? (
+                          'مرة واحدة'
+                        ) : (
+                          `${toArabicDigits(n)} مرات`
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Sticky Actions Footer */}
+            <div className="pt-3 border-t border-navy-100 dark:border-navy-900 flex-shrink-0 bg-white dark:bg-navy-950">
+              
+              {/* Summary Box */}
+              <div className="p-3 bg-gold-500/10 dark:bg-navy-900 border border-gold-500/20 dark:border-navy-800 rounded-xl text-[10px] text-navy-700 dark:text-navy-300 text-center leading-relaxed font-semibold">
+                {(() => {
+                  const scopeLabels = {
+                    page: `الصفحة الحالية (${toArabicDigits(selectedAyah.page)})`,
+                    surah: `سورة ${selectedAyah.surah?.name || ''}`,
+                    wird: 'الورد اليومي',
+                    custom: `نطاق مخصص من الآية ${toArabicDigits(rangeFromAyah)} إلى ${toArabicDigits(rangeToAyah)}`
+                  };
+                  const scopeLabel = scopeLabels[advRepeatScope];
+                  
+                  let text = `سيتم تلاوة [${scopeLabel}]. `;
+                  
+                  if (advAyahRepeat > 1) {
+                    text += `سيتم تكرار كل آية ${toArabicDigits(advAyahRepeat)} مرات قبل الانتقال للآية التالية. `;
+                  } else {
+                    text += `سيتم قراءة كل آية مرة واحدة. `;
+                  }
+                  
+                  if (advScopeRepeat === 100) {
+                    text += `وسيعاد تكرار النطاق كاملاً بلا توقف (تكرار مستمر).`;
+                  } else if (advScopeRepeat > 1) {
+                    text += `وسيعاد تكرار النطاق كاملاً ${toArabicDigits(advScopeRepeat)} مرات.`;
+                  } else {
+                    text += `وسيقف التشغيل فور انتهاء النطاق دون إعادة.`;
+                  }
+                  
+                  return text;
+                })()}
+              </div>
+
+              {/* Action Button */}
+              <button
+                onClick={playAdvancedScopeRepeat}
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-bold rounded-2xl shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 transition-all duration-200 flex items-center justify-center gap-2 text-sm active:scale-[0.98] mt-3"
+              >
+                <Play size={16} fill="currentColor" />
+                <span>بدء التلاوة والتكرار</span>
+              </button>
+              
+            </div>
+
           </div>
         </div>
       )}

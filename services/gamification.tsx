@@ -127,6 +127,18 @@ export const ACHIEVEMENTS: Achievement[] = [
         condition: (s) => (s.planType === 'pages' ? s.currentProgress >= 604 : s.currentProgress >= 6236),
         color: 'bg-gradient-to-br from-gold-300 via-amber-500 to-gold-600 border border-white/20'
     },
+    {
+        id: 'range_complete',
+        icon: <PartyPopper size={20} />,
+        title: 'أتممت نطاقك!',
+        description: 'مبارك! أكملت حفظ النطاق الذي حددته',
+        condition: (s) => {
+            if (!s.endPoint) return false;
+            const targetRange = s.endPoint - s.startPoint + 1;
+            return s.currentProgress >= targetRange;
+        },
+        color: 'bg-gradient-to-br from-yellow-300 via-amber-500 to-yellow-600 border border-white/20'
+    },
 ];
 
 export const evaluateAchievements = (state: HifzState, streak: number): string[] => {

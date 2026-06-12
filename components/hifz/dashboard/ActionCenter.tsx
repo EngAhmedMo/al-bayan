@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     BookOpen, Layers, Circle, CheckCircle2, BrainCircuit,
     ArrowUpRight, Sparkles, Target, RotateCcw,
-    Undo2, PartyPopper
+    Undo2, PartyPopper, ChevronRight
 } from 'lucide-react';
 import { toArabicDigits } from '../../../services/normalization';
-import { getApproxPageFromGlobalAyah } from '../../../services/quranStaticData';
+import { getApproxPageFromGlobalAyah, getMetadataFromGlobalAyah } from '../../../services/quranStaticData';
 
 interface ActionCenterProps {
     planType: 'pages' | 'ayahs';
@@ -39,7 +40,32 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
     onStartDailyQuiz,
     onOpenBlankedMushaf
 }) => {
+    const navigate = useNavigate();
     const [showUndoConfirm, setShowUndoConfirm] = useState(false);
+    const [selectedExtraAmount, setSelectedExtraAmount] = useState<number | null>(null);
+
+    const handleGoToExtraLocation = (amount: number) => {
+        const targetLocation = visualLoc;
+        const page = planType === 'pages' ? Math.min(Math.max(targetLocation, 1), 604) : getApproxPageFromGlobalAyah(targetLocation);
+        
+        if (planType === 'pages') {
+            navigate(`/reader?page=${page}&hifzMode=true&start=${targetLocation}&amount=${amount}&planType=${planType}`);
+        } else {
+            const meta = getMetadataFromGlobalAyah(targetLocation);
+            navigate(`/reader?surah=${meta.surahNumber}&ayah=${meta.ayahInSurah}&page=${page}&highlight=${meta.surahNumber}:${meta.ayahInSurah}&hifzMode=true&start=${targetLocation}&amount=${amount}&planType=${planType}`);
+        }
+    };
+
+    const handleStartExtraQuiz = (amount: number) => {
+        navigate(`/quiz?startDailyQuiz=true&extraAmount=${amount}`);
+    };
+
+    const showHalfOption = amountPerDay >= 2;
+    const showQuarterOption = amountPerDay >= 4;
+
+    const fullAmount = amountPerDay;
+    const halfAmount = Math.ceil(amountPerDay / 2);
+    const quarterAmount = Math.ceil(amountPerDay / 4);
 
     // Determines the actual visual target number
     // progress is usually 0-based index or count. Let's assume startPoint + currentProgress logic matches usage
@@ -155,15 +181,97 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
 
                     {/* Done State - Clickable for Undo */}
                     {!showUndoConfirm ? (
-                        <button
-                            onClick={() => setShowUndoConfirm(true)}
-                            className="w-full p-4 bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 text-emerald-100 font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-3 hover:bg-emerald-500/30 transition-all active:scale-98 group"
-                        >
-                            <div className="p-1 bg-emerald-500 rounded-full text-white shadow-sm group-hover:scale-110 transition-transform">
-                                <CheckCircle2 size={20} />
+                        <div className="space-y-4 animate-in fade-in duration-300">
+                            <button
+                                onClick={() => setShowUndoConfirm(true)}
+                                className="w-full p-4 bg-emerald-500/20 backdrop-blur-md border border-emerald-500/30 text-emerald-100 font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-3 hover:bg-emerald-500/30 transition-all active:scale-98 group"
+                            >
+                                <div className="p-1 bg-emerald-500 rounded-full text-white shadow-sm group-hover:scale-110 transition-transform">
+                                    <CheckCircle2 size={20} />
+                                </div>
+                                <span className="text-lg">تم الانتهاء بحمد الله</span>
+                            </button>
+
+                            {/* قسم الورد الإضافي */}
+                            <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 mt-4 animate-in fade-in duration-300">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Sparkles size={16} className="text-gold-400 animate-pulse" />
+                                    <span className="text-sm font-bold text-gold-400">هل تشعر بالهمة؟ افتح ورداً إضافياً</span>
+                                </div>
+                                <div className={`grid gap-3 ${
+                                    (1 + (showHalfOption ? 1 : 0) + (showQuarterOption ? 1 : 0)) === 3
+                                        ? 'grid-cols-3'
+                                        : (1 + (showHalfOption ? 1 : 0) + (showQuarterOption ? 1 : 0)) === 2
+                                        ? 'grid-cols-2'
+                                        : 'grid-cols-1'
+                                }`}>
+                                    <button
+                                        onClick={() => setSelectedExtraAmount(fullAmount)}
+                                        className={`p-3 rounded-xl border transition-all text-right flex flex-col justify-between ${
+                                            selectedExtraAmount === fullAmount
+                                                ? 'bg-gold-500/20 border-gold-500 text-white'
+                                                : 'bg-white/5 border-white/10 hover:bg-white/10 text-gray-300'
+                                        }`}
+                                    >
+                                        <span className="text-xs font-medium text-gray-400">ورد كامل</span>
+                                        <span className="text-sm font-bold mt-1">
+                                            {toArabicDigits(fullAmount)} {planType === 'pages' ? 'صفحة' : 'آية'}
+                                        </span>
+                                    </button>
+
+                                    {showHalfOption && (
+                                        <button
+                                            onClick={() => setSelectedExtraAmount(halfAmount)}
+                                            className={`p-3 rounded-xl border transition-all text-right flex flex-col justify-between ${
+                                                selectedExtraAmount === halfAmount
+                                                    ? 'bg-gold-500/20 border-gold-500 text-white'
+                                                    : 'bg-white/5 border-white/10 hover:bg-white/10 text-gray-300'
+                                            }`}
+                                        >
+                                            <span className="text-xs font-medium text-gray-400">نصف ورد</span>
+                                            <span className="text-sm font-bold mt-1">
+                                                {toArabicDigits(halfAmount)} {planType === 'pages' ? 'صفحة' : 'آية'}
+                                            </span>
+                                        </button>
+                                    )}
+
+                                    {showQuarterOption && (
+                                        <button
+                                            onClick={() => setSelectedExtraAmount(quarterAmount)}
+                                            className={`p-3 rounded-xl border transition-all text-right flex flex-col justify-between ${
+                                                selectedExtraAmount === quarterAmount
+                                                    ? 'bg-gold-500/20 border-gold-500 text-white'
+                                                    : 'bg-white/5 border-white/10 hover:bg-white/10 text-gray-300'
+                                            }`}
+                                        >
+                                            <span className="text-xs font-medium text-gray-400">ربع ورد</span>
+                                            <span className="text-sm font-bold mt-1">
+                                                {toArabicDigits(quarterAmount)} {planType === 'pages' ? 'صفحة' : 'آية'}
+                                            </span>
+                                        </button>
+                                    )}
+                                </div>
+
+                                {selectedExtraAmount !== null && (
+                                    <div className="grid grid-cols-2 gap-3 mt-4 pt-4 border-t border-white/5 animate-in slide-in-from-top-2 duration-300">
+                                        <button
+                                            onClick={() => handleGoToExtraLocation(selectedExtraAmount)}
+                                            className="py-3 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl border border-white/10 flex items-center justify-center gap-2 transition-all text-xs"
+                                        >
+                                            <ArrowUpRight size={16} className="text-gold-400" />
+                                            <span>الذهاب للورد</span>
+                                        </button>
+                                        <button
+                                            onClick={() => handleStartExtraQuiz(selectedExtraAmount)}
+                                            className="py-3 bg-gradient-to-br from-gold-400 to-amber-500 hover:from-gold-500 hover:to-amber-600 text-navy-950 font-bold rounded-xl flex items-center justify-center gap-2 transition-all text-xs shadow-lg shadow-gold-500/20"
+                                        >
+                                            <Target size={16} />
+                                            <span>ابدأ اختبار الورد</span>
+                                        </button>
+                                    </div>
+                                )}
                             </div>
-                            <span className="text-lg">تم الانتهاء بحمد الله</span>
-                        </button>
+                        </div>
                     ) : (
                         <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 animate-in zoom-in duration-200">
                             <div className="text-center mb-4">

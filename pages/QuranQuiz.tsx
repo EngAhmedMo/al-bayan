@@ -90,7 +90,9 @@ export const QuranQuiz: React.FC = () => {
           const { state } = hifzContext;
           if (!state) return;
           const startLoc = state.startPoint + state.currentProgress;
-          const loaded = await getAyahsForDailyWird(state.planType, startLoc, state.amountPerDay);
+          const extraAmountParam = searchParams.get('extraAmount');
+          const amount = extraAmountParam ? parseInt(extraAmountParam, 10) : state.amountPerDay;
+          const loaded = await getAyahsForDailyWird(state.planType, startLoc, amount);
           
           if (loaded.length === 0) {
             setLoadError('لم يتم العثور على آيات لوردك اليومي. تحقق من تحميل بيانات المصحف.');
@@ -273,8 +275,11 @@ export const QuranQuiz: React.FC = () => {
   const completeDailyWirdAndFinishOverall = useCallback((finalScore: number, finalP1Questions: QuizQuestion[], finalP1Answers: Record<string, boolean>) => {
     if (!hifzContext.state) return;
     
+    const extraAmountParam = searchParams.get('extraAmount');
+    const customAmount = extraAmountParam ? parseInt(extraAmountParam, 10) : undefined;
+
     // Save progress to database
-    const newState = HifzService.completeDailyWird(hifzContext.state);
+    const newState = HifzService.completeDailyWird(hifzContext.state, customAmount);
     
     // Process quiz result for SRS algorithm tracking (mistakes and intervals)
     const testResult: HifzTestResult = {
@@ -297,7 +302,7 @@ export const QuranQuiz: React.FC = () => {
 
     // Save quiz result
     saveQuizResult({
-      rangeLabel: 'الورد اليومي',
+      rangeLabel: customAmount !== undefined ? 'الورد الإضافي' : 'الورد اليومي',
       phase: 3,
       score: finalScore,
       correct: finalP1Questions.filter(q => finalP1Answers[q.id] === true).length,
@@ -319,7 +324,7 @@ export const QuranQuiz: React.FC = () => {
       phase: 3
     });
     setPageState('result');
-  }, [hifzContext, difficulty]);
+  }, [hifzContext, difficulty, searchParams]);
 
   // Legacy fallback (should not be triggered for new multi-surah)
   const completeDailyWirdAndFinish = useCallback((finalScore: number) => {
@@ -364,13 +369,15 @@ export const QuranQuiz: React.FC = () => {
   // ── Handle Skip Daily Quiz ──
   const handleSkipDailyQuiz = useCallback(() => {
     if (isDailyWirdMode && hifzContext?.state) {
-      const newState = HifzService.completeDailyWird(hifzContext.state);
+      const extraAmountParam = searchParams.get('extraAmount');
+      const customAmount = extraAmountParam ? parseInt(extraAmountParam, 10) : undefined;
+      const newState = HifzService.completeDailyWird(hifzContext.state, customAmount);
       hifzContext.updateState(newState);
       if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
       triggerHifzCompletion();
       navigate('/hifz');
     }
-  }, [isDailyWirdMode, hifzContext, navigate]);
+  }, [isDailyWirdMode, hifzContext, navigate, searchParams]);
 
   // ── Finish Phase 1 (called after last answer) ──
   const finishPhase1 = useCallback((finalAnswers: Record<string, boolean>) => {

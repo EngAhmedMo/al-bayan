@@ -979,6 +979,44 @@ article {
   text-decoration-color: rgba(205, 153, 116, 0.80);
 }
 
+/* 5. Hifz Wird Ayah Highlight — تظليل متميز وجذاب لورد الحفظ اليومي */
+/* تم تصميم التظليل بنمط المخطوطات المذهبة (Golden Underline Style) ليناسب الهوية البصرية للتطبيق */
+/* نستخدم مسحة ذهبية خفيفة للغاية مع خط سفلي ذهبي متوهج لتمييز الورد دون التداخل مع تظليل التحديد أو البحث */
+
+.qcf-highlight-hifz {
+  background-color: rgba(212, 164, 74, 0.03) !important; /* مسحة ذهبية خفيفة للغاية في اللايت مود */
+  border-bottom: 2px solid rgba(196, 152, 56, 0.65);       /* خط سفلي ذهبي واضح وأنيق */
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(196, 152, 56, 0.05);
+  transition: all 0.3s ease;
+}
+
+.dark .qcf-highlight-hifz {
+  background-color: rgba(212, 164, 74, 0.06) !important; /* مسحة ذهبية دافئة خفيفة في الدارك مود */
+  border-bottom-color: rgba(212, 164, 74, 0.85);       /* خط سفلي ذهبي متوهج وواضح جداً للدارك */
+  box-shadow: 0 0 6px rgba(212, 164, 74, 0.08);
+}
+
+/* حالة دمج: آية ضمن الورد وتُتلى صوتياً الآن */
+/* تظل خلفية التلاوة الصوتي (الأخضر النابض) هي الغالبة لمنع التشتيت، مع الاحتفاظ بجمال الخط السفلي الذهبي للورد */
+.qcf-highlight-hifz.qcf-highlight-audio {
+  border-bottom: 2px solid rgba(212, 164, 74, 0.95) !important;
+}
+
+/* للوضع النصي العادي (Standard Uthmani Mode) */
+.hifz-wird-highlight {
+  background-color: rgba(212, 164, 74, 0.03);
+  border-bottom: 2px solid rgba(196, 152, 56, 0.60);
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.dark .hifz-wird-highlight {
+  background-color: rgba(212, 164, 74, 0.05);
+  border-bottom-color: rgba(212, 164, 74, 0.80);
+}
+
+
 /* ── Surah Header ──────────────────────────────────────────────────────────── */
 .qcf-surah-header {
   /* Break the inline flow — acts as a block element */

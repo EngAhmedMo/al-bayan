@@ -70,8 +70,8 @@ export const HifzCompletionCalendar: React.FC<HifzCompletionCalendarProps> = ({ 
     const completionData = useMemo(() => {
         if (!state.isSetup) return null;
 
-        const totalUnits = state.planType === 'pages' ? 604 : 6236;
-        const remaining = Math.max(0, totalUnits - (state.startPoint + state.currentProgress));
+        const totalUnits = state.endPoint ?? (state.planType === 'pages' ? 604 : 6236);
+        const remaining = Math.max(0, totalUnits - state.startPoint + 1 - state.currentProgress);
 
         // Simulation
         let daysNeeded = 0;

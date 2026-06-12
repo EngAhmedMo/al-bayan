@@ -31,6 +31,8 @@ interface QcfMushafPageProps {
   fontSize: number;
   /** Base URL for assets (required for sub-path GitHub Pages deployments) */
   baseUrl: string;
+  /** Callback to check if an ayah is part of today's memorization wird */
+  isAyahInWird?: (globalId: number) => boolean;
 }
 
 // ── Font State Cache (module level — survives re-renders) ─────────────────
@@ -63,8 +65,8 @@ const isValidQcfText = (text: string | undefined | null): boolean => {
     // Arabic Presentation Forms-B: U+FE70–U+FEFF  
     // Private Use Area: U+E000–U+F8FF
     if ((code >= 0xFB50 && code <= 0xFDFF) ||
-        (code >= 0xFE70 && code <= 0xFEFF) ||
-        (code >= 0xE000 && code <= 0xF8FF)) {
+         (code >= 0xFE70 && code <= 0xFEFF) ||
+         (code >= 0xE000 && code <= 0xF8FF)) {
       return true;
     }
   }
@@ -100,6 +102,7 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
   isDark,
   fontSize,
   baseUrl,
+  isAyahInWird,
 }) => {
   // ── Font Loading ────────────────────────────────────────────────────────
   const [fontState, setFontState] = React.useState<'loading' | 'ready' | 'error'>(() => {
@@ -159,22 +162,29 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
 
   // ── Helpers ─────────────────────────────────────────────────────────────
 
-  const getHighlightClass = (ayah: Ayah, surahNum: number): string => {
+  const getHighlightClasses = (ayah: Ayah, surahNum: number): string => {
     const globalId = getGlobalAyahNumber(surahNum, ayah.numberInSurah);
+    const classes: string[] = [];
 
-    // 1. Audio playing → emerald
+    // Layer 1: Hifz Wird highlight (background layer)
+    if (isAyahInWird && isAyahInWird(globalId)) {
+      classes.push('qcf-highlight-hifz');
+    }
+
+    // Layer 2: Audio highlight (overrides/comes on top of wird background, but keeps bottom border via combo CSS)
     if (currentTrackGlobalId && currentTrackGlobalId === globalId) {
-      return 'qcf-highlight-audio';
+      classes.push('qcf-highlight-audio');
     }
-    // 2. Search URL → amber pulse
-    if (searchHighlight && searchHighlight === `${surahNum}:${ayah.numberInSurah}`) {
-      return 'qcf-highlight-search';
+    // Layer 3: Search result (amber pulse)
+    else if (searchHighlight && searchHighlight === `${surahNum}:${ayah.numberInSurah}`) {
+      classes.push('qcf-highlight-search');
     }
-    // 3. Selected (modal) → gold
-    if (selectedAyah && selectedAyah.number === ayah.number) {
-      return 'qcf-highlight-selected';
+    // Layer 4: Selected ayah (gold)
+    else if (selectedAyah && selectedAyah.number === ayah.number) {
+      classes.push('qcf-highlight-selected');
     }
-    return '';
+
+    return classes.join(' ');
   };
 
   /** Strip Bismillah prefix from first ayah text (non-Fatiha, non-Tawba) */
@@ -200,7 +210,7 @@ export const QcfMushafPage: React.FC<QcfMushafPageProps> = ({
     const surahNum = surah?.number as number;
     const isFirstAyah = ayah.numberInSurah === 1;
     const globalId = getGlobalAyahNumber(surahNum, ayah.numberInSurah);
-    const highlightClass = getHighlightClass(ayah, surahNum);
+    const highlightClass = getHighlightClasses(ayah, surahNum);
     const isBookmarked = isAyahMarked(surahNum, ayah.numberInSurah);
 
     // ── TEXT SELECTION LOGIC ──
