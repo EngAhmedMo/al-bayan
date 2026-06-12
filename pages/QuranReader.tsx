@@ -7,7 +7,7 @@ import { loadSingleAyahTafsir, TAFSIR_SOURCES } from '../services/tafsirService'
 import { toArabicDigits } from '../services/normalization';
 import { SURAH_START_PAGES, SURAH_AYAH_COUNTS, SURAH_NAMES_TASHKEEL, getGlobalAyahNumber, getApproxPageFromGlobalAyah, getAyahById, getMetadataFromGlobalAyah, getPageGlobalAyahRangeSync } from '../services/quranStaticData';
 import { TopBar } from '../components/TopBar';
-import { useAudio, useSettings, NavigationContext, useTheme } from '../components/Layout';
+import { useAudio, useRadio, useSettings, NavigationContext, useTheme } from '../components/Layout';
 import { ChevronLeft, ChevronRight, ChevronDown, PlayCircle, BookOpen, Brain, X, Copy, Bookmark, BookmarkPlus, BookmarkCheck, Settings, Type, Mic, FileEdit, Save, Maximize2, Minimize2, Share2, Grid, Book, Hash, Repeat, Play, Infinity as InfinityIcon, LogOut, Plus, Minus, Sun, Moon, RotateCcw, ArrowDownUp } from 'lucide-react';
 import {
   toggleAyahBookmark,
@@ -206,6 +206,8 @@ export const QuranReader: React.FC = () => {
   const [showNoteInput, setShowNoteInput] = useState(false);
 
   const { playTrack, currentTrack, isPlaying } = useAudio();
+  const { activeStation } = useRadio();
+  const hasActivePlayer = !!currentTrack || !!activeStation;
   const hifzContext = useHifzOptional(); // للربط مع منظومة الحفظ
 
   const navigate = useNavigate();
@@ -249,12 +251,12 @@ export const QuranReader: React.FC = () => {
   const shouldShowHifzBanner = (hifzMode || !!hifzContext?.state?.isSetup) && hifzContext?.state && !isTodayDone && !isHifzBannerClosed;
 
   const bannerBottomClass = isFullscreen
-    ? (currentTrack ? "bottom-[96px] sm:bottom-[104px]" : "bottom-4 sm:bottom-6")
-    : (currentTrack ? "bottom-[168px] sm:bottom-[176px]" : "bottom-[84px] md:bottom-[96px]");
+    ? (hasActivePlayer ? "bottom-[136px] sm:bottom-[148px]" : "bottom-4 sm:bottom-6")
+    : (hasActivePlayer ? "bottom-[200px] sm:bottom-[208px]" : "bottom-[84px] sm:bottom-[92px]");
 
   const pageControlsBottomClass = shouldShowHifzBanner
-    ? (currentTrack ? 'bottom-[224px] sm:bottom-[232px]' : 'bottom-[158px] sm:bottom-[166px]')
-    : (currentTrack ? 'bottom-[154px] sm:bottom-[162px]' : 'bottom-[88px] sm:bottom-[96px]');
+    ? (hasActivePlayer ? 'bottom-[284px] sm:bottom-[296px]' : 'bottom-[164px] sm:bottom-[172px]')
+    : (hasActivePlayer ? 'bottom-[200px] sm:bottom-[208px]' : 'bottom-[88px] sm:bottom-[96px]');
 
   const wirdStartPage = React.useMemo(() => {
     if (hifzPlanType === 'pages') return Math.floor(hifzStart);
