@@ -1209,11 +1209,23 @@ export const Layout: React.FC = () => {
             setPageRepeat(newRepeat);
             pageRepeatRef.current = newRepeat;
             console.log('[Layout] 🔁 Wrapped around Page! Remaining repeats:', newRepeat);
+          } else if (pageRepeatRef.current === 0 && pageRange && currentGlobal === pageRange.lastGlobal) {
+            console.log('[Layout] 🛑 Page Repeat Finished. Stopping playback.');
+            MediaBridge.stop();
+            setIsPlaying(false);
+            setPageRepeat(-1); pageRepeatRef.current = -1;
+            return;
           } else {
             const prevMeta = getMetadataFromGlobalAyah(currentGlobal);
             const newMeta = getMetadataFromGlobalAyah(newGlobalAyah);
-            // If we went from last ayah to first ayah of the SAME surah
-            if (prevMeta.surahNumber === newMeta.surahNumber && prevMeta.ayahInSurah > newMeta.ayahInSurah) {
+            const surahLength = SURAH_AYAH_COUNTS[prevMeta.surahNumber - 1];
+            if (surahRepeatRef.current === 0 && prevMeta.ayahInSurah === surahLength) {
+              console.log('[Layout] 🛑 Surah Repeat Finished. Stopping playback.');
+              MediaBridge.stop();
+              setIsPlaying(false);
+              setSurahRepeat(-1); surahRepeatRef.current = -1;
+              return;
+            } else if (prevMeta.surahNumber === newMeta.surahNumber && prevMeta.ayahInSurah > newMeta.ayahInSurah) {
               if (surahRepeatRef.current > 0 && surahRepeatRef.current !== 100) {
                 const newRepeat = surahRepeatRef.current - 1;
                 setSurahRepeat(newRepeat);
