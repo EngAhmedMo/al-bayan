@@ -191,56 +191,60 @@ const AudioPlayerBar = () => {
     }
   };
 
-  // Determine which repeat badge to show (priority: range > ayah > continuous > page > surah > autoAdvance)
-  const renderRepeatBadge = () => {
+  // Determine which repeat badges to show
+  const renderRepeatBadges = () => {
+    const badges = [];
+
+    // Range Repeat Badges
     if (rangeRepeat > 0) {
       // Range repeat (نطاق آيات)
       const startMeta = rangeStart > 0 ? getMetadataFromGlobalAyah(rangeStart) : null;
       const endMeta = rangeEnd > 0 ? getMetadataFromGlobalAyah(rangeEnd) : null;
-      return (
-        <span className="flex items-center gap-0.5 text-rose-600 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+      badges.push(
+        <span key="range" className="flex items-center gap-0.5 text-[9px] sm:text-[10px] text-rose-600 dark:text-rose-400 font-bold bg-rose-50 dark:bg-rose-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
           <Repeat size={10} /> نطاق {startMeta ? toArabicDigits(startMeta.ayahInSurah) : '?'}-{endMeta ? toArabicDigits(endMeta.ayahInSurah) : '?'} ×{rangeRepeat >= 100 ? '∞' : rangeRepeat}
         </span>
       );
+    } else if (pageRepeat > 0) {
+      badges.push(
+        <span key="page" className="flex items-center gap-0.5 text-[9px] sm:text-[10px] text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+          <Repeat size={10} /> صفحة ×{pageRepeat >= 100 ? '∞' : pageRepeat}
+        </span>
+      );
+    } else if (surahRepeat > 0) {
+      badges.push(
+        <span key="surah" className="flex items-center gap-0.5 text-[9px] sm:text-[10px] text-purple-600 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+          <Repeat size={10} /> سورة ×{surahRepeat >= 100 ? '∞' : surahRepeat}
+        </span>
+      );
     }
+
+    // Ayah Repeat Badges
     if (repeatCount > 0 && continuousRepeat === 0) {
       // Single ayah repeat (no auto-advance)
-      return (
-        <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
-          <Repeat size={10} /> {repeatCount >= 100 ? '∞' : repeatCount}
+      badges.push(
+        <span key="ayah" className="flex items-center gap-0.5 text-[9px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+          <Repeat size={10} /> آية ×{repeatCount >= 100 ? '∞' : repeatCount}
         </span>
       );
-    }
-    if (repeatCount > 0 && continuousRepeat > 0) {
+    } else if (repeatCount > 0 && continuousRepeat > 0) {
       // Continuous repeat (مع الاستمرار) — show repeat count per ayah
-      return (
-        <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
-          <Repeat size={10} /> ×{repeatCount >= 100 ? '∞' : repeatCount} متصل
+      badges.push(
+        <span key="ayah-continuous" className="flex items-center gap-0.5 text-[9px] sm:text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+          <Repeat size={10} /> آية ×{repeatCount >= 100 ? '∞' : repeatCount} متصل
         </span>
       );
     }
-    if (pageRepeat > 0) {
-      return (
-        <span className="flex items-center gap-0.5 text-blue-600 dark:text-blue-400 font-bold bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
-          <Repeat size={10} /> صفحة {pageRepeat >= 100 ? '∞' : pageRepeat}
-        </span>
-      );
-    }
-    if (surahRepeat > 0) {
-      return (
-        <span className="flex items-center gap-0.5 text-purple-600 dark:text-purple-400 font-bold bg-purple-50 dark:bg-purple-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
-          <Repeat size={10} /> سورة {surahRepeat >= 100 ? '∞' : surahRepeat}
-        </span>
-      );
-    }
-    if (autoAdvance) {
-      return (
-        <span className="flex items-center gap-0.5 text-gold-600 dark:text-gold-500 font-bold bg-gold-50 dark:bg-gold-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
+
+    if (badges.length === 0 && autoAdvance) {
+      badges.push(
+        <span key="auto-advance" className="flex items-center gap-0.5 text-[9px] sm:text-[10px] text-gold-600 dark:text-gold-500 font-bold bg-gold-50 dark:bg-gold-900/20 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap">
           <Repeat size={10} /> متابعة
         </span>
       );
     }
-    return null;
+
+    return <>{badges}</>;
   };
 
   return (
@@ -352,7 +356,7 @@ const AudioPlayerBar = () => {
                   <span>القارئ: {currentReciter.name}</span>
                   <ChevronDown size={10} className="shrink-0 text-gold-500 animate-pulse" />
                 </span>
-                {renderRepeatBadge()}
+                {renderRepeatBadges()}
               </div>
             </div>
           </div>
@@ -1271,8 +1275,8 @@ export const Layout: React.FC = () => {
     consecutiveErrors.current = 0;
     if (autoAdvanceRef.current && trackRef.current && trackRef.current.globalAyahNumber) {
 
-      // Protect range repeat from early exit
-      if (isAndroid && continuousRepeatRef.current === 0 && rangeStartRef.current === 0) {
+      // Protect repeat scopes from early exit
+      if (isAndroid && continuousRepeatRef.current === 0 && rangeStartRef.current === 0 && pageRepeatRef.current === 0 && surahRepeatRef.current === 0) {
         // GAPLESS SOLUTION: Trust Native Queue 100% ONLY IF NOT REPEATING
         // ExoPlayer handles transitions automatically via its internal queue.
         console.log('[Layout] Android: Trusting native gapless queue. No JS intervention.');
