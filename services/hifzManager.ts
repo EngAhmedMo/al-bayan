@@ -413,8 +413,9 @@ export const getAyahsForDailyWird = async (
     const ayahs: Ayah[] = [];
 
     if (planType === 'pages') {
-        const endPage = Math.min(604, startPoint + amount - 1);
-        for (let p = startPoint; p <= endPage; p++) {
+        const startPage = Math.floor(startPoint);
+        const endPage = Math.min(604, Math.max(startPage, Math.floor(startPoint + amount - 0.001)));
+        for (let p = startPage; p <= endPage; p++) {
             try {
                 const pageAyahs = await fetchPageOffline(p);
                 ayahs.push(...pageAyahs);

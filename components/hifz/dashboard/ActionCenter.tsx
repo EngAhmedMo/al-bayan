@@ -46,7 +46,7 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
 
     const handleGoToExtraLocation = (amount: number) => {
         const targetLocation = visualLoc;
-        const page = planType === 'pages' ? Math.min(Math.max(targetLocation, 1), 604) : getApproxPageFromGlobalAyah(targetLocation);
+        const page = planType === 'pages' ? Math.min(Math.max(Math.floor(targetLocation), 1), 604) : getApproxPageFromGlobalAyah(targetLocation);
         
         if (planType === 'pages') {
             navigate(`/reader?page=${page}&hifzMode=true&start=${targetLocation}&amount=${amount}&planType=${planType}`);
@@ -60,12 +60,14 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
         navigate(`/quiz?startDailyQuiz=true&extraAmount=${amount}`);
     };
 
-    const showHalfOption = amountPerDay >= 2;
-    const showQuarterOption = amountPerDay >= 4;
+    const isPages = planType === 'pages';
+
+    const showHalfOption = isPages ? true : (Math.round(amountPerDay / 2) >= 1 && Math.round(amountPerDay / 2) < amountPerDay);
+    const showQuarterOption = isPages ? true : (Math.round(amountPerDay / 4) >= 1 && Math.round(amountPerDay / 4) < Math.round(amountPerDay / 2));
 
     const fullAmount = amountPerDay;
-    const halfAmount = Math.ceil(amountPerDay / 2);
-    const quarterAmount = Math.ceil(amountPerDay / 4);
+    const halfAmount = isPages ? (amountPerDay / 2) : Math.round(amountPerDay / 2);
+    const quarterAmount = isPages ? (amountPerDay / 4) : Math.round(amountPerDay / 4);
 
     // Determines the actual visual target number
     // progress is usually 0-based index or count. Let's assume startPoint + currentProgress logic matches usage
@@ -77,7 +79,8 @@ export const ActionCenter: React.FC<ActionCenterProps> = ({
         let pageCount = amountPerDay;
 
         if (planType === 'pages') {
-            startPage = Math.min(Math.max(currentRaw, 1), 604);
+            startPage = Math.min(Math.max(Math.floor(currentRaw), 1), 604);
+            pageCount = Math.max(1, Math.ceil(amountPerDay));
         } else {
             startPage = getApproxPageFromGlobalAyah(currentRaw);
             const endRaw = currentRaw + amountPerDay - 1;

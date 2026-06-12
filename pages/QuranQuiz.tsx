@@ -91,7 +91,7 @@ export const QuranQuiz: React.FC = () => {
           if (!state) return;
           const startLoc = state.startPoint + state.currentProgress;
           const extraAmountParam = searchParams.get('extraAmount');
-          const amount = extraAmountParam ? parseInt(extraAmountParam, 10) : state.amountPerDay;
+          const amount = extraAmountParam ? parseFloat(extraAmountParam) : state.amountPerDay;
           const loaded = await getAyahsForDailyWird(state.planType, startLoc, amount);
           
           if (loaded.length === 0) {
@@ -276,7 +276,7 @@ export const QuranQuiz: React.FC = () => {
     if (!hifzContext.state) return;
     
     const extraAmountParam = searchParams.get('extraAmount');
-    const customAmount = extraAmountParam ? parseInt(extraAmountParam, 10) : undefined;
+    const customAmount = extraAmountParam ? parseFloat(extraAmountParam) : undefined;
 
     // Save progress to database
     const newState = HifzService.completeDailyWird(hifzContext.state, customAmount);
@@ -370,7 +370,7 @@ export const QuranQuiz: React.FC = () => {
   const handleSkipDailyQuiz = useCallback(() => {
     if (isDailyWirdMode && hifzContext?.state) {
       const extraAmountParam = searchParams.get('extraAmount');
-      const customAmount = extraAmountParam ? parseInt(extraAmountParam, 10) : undefined;
+      const customAmount = extraAmountParam ? parseFloat(extraAmountParam) : undefined;
       const newState = HifzService.completeDailyWird(hifzContext.state, customAmount);
       hifzContext.updateState(newState);
       if (navigator.vibrate) navigator.vibrate([50, 50, 50]);

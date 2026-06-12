@@ -212,15 +212,17 @@ export const QuranReader: React.FC = () => {
   const hifzMode = searchParams.get('hifzMode') === 'true';
 
   // Hybrid Data Fetching: URL Fallback + Context State
-  const urlStart = parseInt(searchParams.get('start') || '0');
-  const urlAmount = parseInt(searchParams.get('amount') || '0');
+  const urlStart = parseFloat(searchParams.get('start') || '0');
+  const urlAmount = parseFloat(searchParams.get('amount') || '0');
   const urlPlanType = searchParams.get('planType') as 'pages' | 'ayahs' | null;
 
-  const hifzPlanType = hifzContext?.state?.planType || urlPlanType || 'pages';
-  const hifzAmount = hifzContext?.state?.amountPerDay || urlAmount || 1;
-  const hifzStart = hifzContext?.state 
-    ? (hifzContext.state.startPoint + hifzContext.state.currentProgress)
-    : (urlStart || 1);
+  const hifzPlanType = urlPlanType || hifzContext?.state?.planType || 'pages';
+  const hifzAmount = urlAmount > 0 ? urlAmount : (hifzContext?.state?.amountPerDay || 1);
+  const hifzStart = urlStart > 0 
+    ? urlStart 
+    : (hifzContext?.state 
+      ? (hifzContext.state.startPoint + hifzContext.state.currentProgress)
+      : 1);
 
   const [isHifzBannerClosed, setIsHifzBannerClosed] = useState(true);
   const [isHifzSubmitting, setIsHifzSubmitting] = useState(false);
@@ -255,18 +257,18 @@ export const QuranReader: React.FC = () => {
     : (currentTrack ? 'bottom-[154px] sm:bottom-[162px]' : 'bottom-[88px] sm:bottom-[96px]');
 
   const wirdStartPage = React.useMemo(() => {
-    if (hifzPlanType === 'pages') return hifzStart;
+    if (hifzPlanType === 'pages') return Math.floor(hifzStart);
     return getApproxPageFromGlobalAyah(hifzStart);
   }, [hifzStart, hifzPlanType]);
 
   const wirdEndPage = React.useMemo(() => {
     if (hifzPlanType === 'pages') {
-      return hifzStart + hifzAmount - 1;
+      return Math.max(wirdStartPage, Math.floor(hifzStart + hifzAmount - 0.001));
     } else {
       const lastAyahGlobal = hifzStart + hifzAmount - 1;
       return getApproxPageFromGlobalAyah(lastAyahGlobal);
     }
-  }, [hifzStart, hifzAmount, hifzPlanType]);
+  }, [hifzStart, hifzAmount, hifzPlanType, wirdStartPage]);
 
   const getWirdLabel = () => {
     if (hifzPlanType === 'pages') {
